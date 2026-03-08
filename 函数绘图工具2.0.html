@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>专业级函数绘图器</title>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjs@12.4.2/lib/browser/math.min.js"></script>
+<style>
+  /* 定义CSS变量，方便切换主题 */
+  :root {
+    --bg-body: #f7f7f7;
+    --bg-container: #fff;
+    --bg-tab: #eee;
+    --bg-tab-active: #007bff;
+    --bg-btn: #007bff;
+    --bg-btn-clear: #dc3545;
+    --bg-func-btn: #e9ecef;
+    --text-main: #333;
+    --text-white: #fff;
+    --border-normal: #ccc;
+    --border-error: #dc3545;
+    --grid-color: #eee;
+  }
+  
+  .dark-mode {
+    --bg-body: #1a1a1a;
+    --bg-container: #2d2d2d;
+    --bg-tab: #3d3d3d;
+    --bg-tab-active: #0066cc;
+    --bg-btn: #0066cc;
+    --bg-btn-clear: #c82333;
+    --bg-func-btn: #4d4d4d;
+    --text-main: #eee;
+    --text-white: #fff;
+    --border-normal: #555;
+    --border-error: #dc3545;
+    --grid-color: #444;
+  }
+
+  *{box-sizing:border-box;font-family:system-ui}
+  body{margin:0;padding:20px;background:var(--bg-body);color:var(--text-main);transition:all 0.3s ease}
+  .container{max-width:1200px;margin:auto;background:var(--bg-container);padding:24px;border-radius:12px;transition:all 0.3s ease}
+  
+  /* 深色模式切换按钮 */
+  .theme-toggle{position:absolute;top:20px;right:20px;padding:8px 16px;border:none;border-radius:6px;cursor:pointer;background:var(--bg-tab);color:var(--text-main)}
+  
+  .tabbar{display:flex;gap:10px;margin-bottom:20px}
+  .tab{padding:10px 20px;border:none;border-radius:6px;cursor:pointer;background:var(--bg-tab);color:var(--text-main);transition:all 0.2s ease}
+  .tab.active{background:var(--bg-tab-active);color:var(--text-white)}
+  .panel{display:none}
+  .panel.active{display:block}
+  .row{display:flex;gap:10px;margin:10px 0}
+  .col{flex:1}
+  input{width:100%;padding:10px;border:1px solid var(--border-normal);border-radius:6px;background:var(--bg-container);color:var(--text-main)}
+  button{padding:10px 20px;border:none;border-radius:6px;cursor:pointer;background:var(--bg-btn);color:var(--text-white)}
+  .clear{background:var(--bg-btn-clear)}
+  #plot2d, #plot3d{width:100%;height:600px;margin-top:15px}
+  
+  /* 常用函数快捷按钮样式 */
+  .func-btns{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+  .func-btn{padding:8px 12px;font-size:14px;background:var(--bg-func-btn);color:var(--text-main)}
+  
+  /* 加载中样式 */
+  .loading{position:relative;pointer-events:none;opacity:0.8}
+  .loading::after{content:"";position:absolute;right:8px;top:50%;width:16px;height:16px;margin-top:-8px;border:2px solid var(--text-white);border-radius:50%;border-top-color:transparent;animation:spin 0.8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  
+  /* 移动端响应式 */
+  @media (max-width:768px) {
+    .row{flex-direction:column;gap:8px}
+    .col{width:100%}
+    #plot2d, #plot3d{height:400px}
+    .tabbar{flex-wrap:wrap}
+    .func-btns{justify-content:center}
+    body{padding:10px}
+    .container{padding:16px}
+    .theme-toggle{top:10px;right:10px;padding:6px 12px;font-size:14px}
+  }
+</style>
+</head>
+<body>
+<!-- 深色模式切换按钮 -->
+<button class="theme-toggle" onclick="toggleDarkMode()">切换深色模式</button>
+
+<div class="container">
+  <h2>专业级函数绘图器（精准版）</h2>
+  <div class="tabbar">
+    <button class="tab active" onclick="show('2d')">2D 函数（支持叠加）</button>
+    <button class="tab" onclick="show('3d')">3D 曲面</button>
+  </div>
+
+  <div id="panel2d" class="panel active">
+    <input id="f2" placeholder="函数表达式，例如 x^2, sin(x)+cos(x), x*2+1" value="x^2">
+    <div class="func-btns">
+      <button class="func-btn" onclick="insertFunc('x^2')">x²</button>
+      <button class="func-btn" onclick="insertFunc('sin(x)')">sin(x)</button>
+      <button class="func-btn" onclick="insertFunc('cos(x)')">cos(x)</button>
+      <button class="func-btn" onclick="insertFunc('exp(x)')">eˣ</button>
+      <button class="func-btn" onclick="insertFunc('log(x)')">log(x)</button>
+      <button class="func-btn" onclick="insertFunc('sqrt(x)')">√x</button>
+      <button class="func-btn" onclick="insertFunc('x^3')">x³</button>
+    </div>
+    <div class="row">
+      <div class="col">
+        <input id="xmin2" placeholder="X最小值" value="-10">
+      </div>
+      <div class="col">
+        <input id="xmax2" placeholder="X最大值" value="10">
+      </div>
+      <div class="col">
+        <input id="ymin2" placeholder="Y最小值" value="-10">
+      </div>
+      <div class="col">
+        <input id="ymax2" placeholder="Y最大值" value="10">
+      </div>
+    </div>
+    <button onclick="add2d()" id="btn2d">添加/叠加函数</button>
+    <button class="clear" onclick="clear2d()">清空</button>
+    <button onclick="exportImage('plot2d')" style="margin-left:10px">导出2D图像</button>
+    <div id="plot2d"></div>
+  </div>
+
+  <div id="panel3d" class="panel">
+    <input id="f3" placeholder="函数表达式，例如 x^2+y^2, sin(sqrt(x^2+y^2))" value="x^2+y^2">
+    <div class="func-btns">
+      <button class="func-btn" onclick="insertFunc('x^2+y^2')">x²+y²</button>
+      <button class="func-btn" onclick="insertFunc('sin(sqrt(x^2+y^2))')">sin(√(x²+y²))</button>
+      <button class="func-btn" onclick="insertFunc('x*y')">x*y</button>
+      <button class="func-btn" onclick="insertFunc('exp(-x^2-y^2)')">e^(-x²-y²)</button>
+    </div>
+    <div class="row">
+      <div class="col">
+        <input id="xmin3" placeholder="X最小值" value="-5">
+      </div>
+      <div class="col">
+        <input id="xmax3" placeholder="X最大值" value="5">
+      </div>
+      <div class="col">
+        <input id="ymin3" placeholder="Y最小值" value="-5">
+      </div>
+      <div class="col">
+        <input id="ymax3" placeholder="Y最大值" value="5">
+      </div>
+    </div>
+    <button onclick="draw3d()" id="btn3d">绘制曲面</button>
+    <button class="clear" onclick="clear3d()">清空</button>
+    <button onclick="exportImage('plot3d')" style="margin-left:10px">导出3D图像</button>
+    <div id="plot3d"></div>
+  </div>
+</div>
+
+<script>
+let mode = '2d';
+let traces2d = [];
+// 记录深色模式状态
+let isDarkMode = false;
+
+// 新增：生成随机颜色
+function getRandomColor() {
+  const letters = '0123456789ABCDEF';
+  let color = '#';
+  for (let i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random() * 16)];
+  }
+  return color;
+}
+
+// 切换深色模式
+function toggleDarkMode() {
+  isDarkMode = !isDarkMode;
+  document.body.classList.toggle('dark-mode', isDarkMode);
+  // 更新Plotly图表主题（适配深色模式）
+  updatePlotTheme();
+  // 保存主题状态到本地存储
+  localStorage.setItem('darkMode', isDarkMode);
+}
+
+// 更新图表主题适配深色模式
+function updatePlotTheme() {
+  const plotLayout = {
+    paper_bgcolor: isDarkMode ? '#2d2d2d' : '#fff',
+    plot_bgcolor: isDarkMode ? '#2d2d2d' : '#fff',
+    font: {
+      color: isDarkMode ? '#eee' : '#333'
+    },
+    xaxis: {
+      gridcolor: isDarkMode ? '#444' : '#eee'
+    },
+    yaxis: {
+      gridcolor: isDarkMode ? '#444' : '#eee'
+    },
+    scene: {
+      xaxis: {
+        gridcolor: isDarkMode ? '#555' : '#eee',
+        color: isDarkMode ? '#eee' : '#333'
+      },
+      yaxis: {
+        gridcolor: isDarkMode ? '#555' : '#eee',
+        color: isDarkMode ? '#eee' : '#333'
+      },
+      zaxis: {
+        gridcolor: isDarkMode ? '#555' : '#eee',
+        color: isDarkMode ? '#eee' : '#333'
+      },
+      bgcolor: isDarkMode ? '#2d2d2d' : '#fff'
+    }
+  };
+
+  // 更新2D图表
+  if (document.getElementById('plot2d').children.length > 0) {
+    Plotly.relayout('plot2d', plotLayout);
+  }
+  // 更新3D图表
+  if (document.getElementById('plot3d').children.length > 0) {
+    Plotly.relayout('plot3d', plotLayout);
+  }
+}
+
+// 插入常用函数到输入框
+function insertFunc(funcStr) {
+  const inputId = mode === '2d' ? 'f2' : 'f3';
+  document.getElementById(inputId).value = funcStr;
+}
+
+// 导出图像功能
+function exportImage(plotId) {
+  Plotly.downloadImage(plotId, {
+    format: 'png',
+    width: 1200,
+    height: 600,
+    filename: `${plotId}-函数图像`
+  });
+}
+
+function show(p) {
+  mode = p;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(e=>e.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel'+p).classList.add('active');
+}
+
+function add2d() {
+  // 显示加载状态
+  const btn = document.getElementById('btn2d');
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  const f = document.getElementById('f2').value.trim();
+  const xmin = parseFloat(document.getElementById('xmin2').value);
+  const xmax = parseFloat(document.getElementById('xmax2').value);
+  const ymin = parseFloat(document.getElementById('ymin2').value);
+  const ymax = parseFloat(document.getElementById('ymax2').value);
+
+  // 简单的数值校验（仅提示，不阻止）
+  if (isNaN(xmin) || isNaN(xmax) || isNaN(ymin) || isNaN(ymax) || xmin >= xmax || ymin >= ymax) {
+    alert('请输入有效的数值范围（最小值 < 最大值）');
+    btn.classList.remove('loading');
+    btn.disabled = false;
+    return;
+  }
+
+  const x = math.range(xmin, xmax, (xmax-xmin)/2000).toArray();
+  let y;
+  try {
+    // 转换兼容语法（e^x → exp(x)）
+    const compatibleExpr = f.replace(/e\^/g, 'exp(').replace(/exp\(([^)]+)$/, 'exp($1)');
+    y = x.map(xi => {
+      try {
+        return math.evaluate(compatibleExpr, {x: xi});
+      } catch (e) {
+        return NaN;
+      }
+    });
+  } catch (e) {
+    alert('函数表达式错误：' + e.message);
+    btn.classList.remove('loading');
+    btn.disabled = false;
+    return;
+  }
+
+  // 新增：每次添加函数时使用随机颜色
+  const randomColor = getRandomColor();
+
+  traces2d.push({
+    x: x, y: y, mode: 'lines', name: f, line: {width: 2, color: randomColor}
+  });
+
+  const layout = {
+    title: '2D 函数图像',
+    xaxis: {title: 'x', range: [xmin, xmax], dtick: 1, gridcolor: isDarkMode ? '#444' : '#eee'},
+    yaxis: {title: 'y', range: [ymin, ymax], dtick: 1, gridcolor: isDarkMode ? '#444' : '#eee'},
+    showlegend: true,
+    paper_bgcolor: isDarkMode ? '#2d2d2d' : '#fff',
+    plot_bgcolor: isDarkMode ? '#2d2d2d' : '#fff',
+    font: {color: isDarkMode ? '#eee' : '#333'}
+  };
+
+  // 绘制完成后移除加载状态
+  Plotly.newPlot('plot2d', traces2d, layout).then(() => {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  });
+  document.getElementById('f2').value = '';
+}
+
+function clear2d() {
+  traces2d = [];
+  Plotly.purge('plot2d');
+}
+
+function draw3d() {
+  // 显示加载状态
+  const btn = document.getElementById('btn3d');
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  const f = document.getElementById('f3').value.trim();
+  const xmin = parseFloat(document.getElementById('xmin3').value);
+  const xmax = parseFloat(document.getElementById('xmax3').value);
+  const ymin = parseFloat(document.getElementById('ymin3').value);
+  const ymax = parseFloat(document.getElementById('ymax3').value);
+
+  // 简单的数值校验（仅提示，不阻止）
+  if (isNaN(xmin) || isNaN(xmax) || isNaN(ymin) || isNaN(ymax) || xmin >= xmax || ymin >= ymax) {
+    alert('请输入有效的数值范围（最小值 < 最大值）');
+    btn.classList.remove('loading');
+    btn.disabled = false;
+    return;
+  }
+
+  const x = math.range(xmin, xmax, (xmax-xmin)/80).toArray();
+  const y = math.range(ymin, ymax, (ymax-ymin)/80).toArray();
+  const z = [];
+
+  try {
+    // 转换兼容语法（e^x → exp(x)）
+    const compatibleExpr = f.replace(/e\^/g, 'exp(').replace(/exp\(([^)]+)$/, 'exp($1)');
+    for (let i=0; i<y.length; i++) {
+      const row = [];
+      for (let j=0; j<x.length; j++) {
+        try {
+          row.push(math.evaluate(compatibleExpr, {x: x[j], y: y[i]}));
+        } catch (e) {
+          row.push(NaN);
+        }
+      }
+      z.push(row);
+    }
+  } catch (e) {
+    alert('函数表达式错误：' + e.message);
+    btn.classList.remove('loading');
+    btn.disabled = false;
+    return;
+  }
+
+  const data = [{
+    x: x, y: y, z: z, type: 'surface', name: f,
+    colorscale: isDarkMode ? 'Plasma' : 'Viridis', // 深色模式适配配色
+    opacity: 0.85
+  }];
+
+  const layout = {
+    title: `3D 曲面: ${f}`,
+    scene: {
+      xaxis: {title: 'X', dtick: 1, gridcolor: isDarkMode ? '#555' : '#eee', color: isDarkMode ? '#eee' : '#333'},
+      yaxis: {title: 'Y', dtick: 1, gridcolor: isDarkMode ? '#555' : '#eee', color: isDarkMode ? '#eee' : '#333'},
+      zaxis: {title: 'Z', dtick: 1, gridcolor: isDarkMode ? '#555' : '#eee', color: isDarkMode ? '#eee' : '#333'},
+      bgcolor: isDarkMode ? '#2d2d2d' : '#fff'
+    },
+    paper_bgcolor: isDarkMode ? '#2d2d2d' : '#fff',
+    plot_bgcolor: isDarkMode ? '#2d2d2d' : '#fff',
+    font: {color: isDarkMode ? '#eee' : '#333'}
+  };
+
+  // 绘制完成后移除加载状态
+  Plotly.newPlot('plot3d', data, layout).then(() => {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  });
+}
+
+function clear3d() {
+  Plotly.purge('plot3d');
+}
+
+// 初始化：读取本地存储的主题设置
+window.onload = function() {
+  const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+  if (savedDarkMode) {
+    isDarkMode = true;
+    document.body.classList.add('dark-mode');
+  }
+}
+</script>
+</body>
+</html>
