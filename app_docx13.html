@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>文档智能总结助手（最终完美版）</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: "Microsoft YaHei", sans-serif;
+            transition: background 0.2s, color 0.2s, border-color 0.2s;
+        }
+
+        :root {
+            --bg: #f4f6fa;
+            --card: #fff;
+            --text: #334155;
+            --text2: #475569;
+            --text3: #64748b;
+            --border: #e2e8f0;
+            --blue: #3b82f6;
+            --blue-hover: #2563eb;
+            --gray: #94a3b8;
+            --light-blue: #eff6ff;
+            --preview-bg: #f8fafc;
+        }
+
+        [data-theme="dark"] {
+            --bg: #1e1e2e;
+            --card: #282838;
+            --text: #e0e0e0;
+            --text2: #c0c0d0;
+            --text3: #a0a0b0;
+            --border: #3f3f5f;
+            --blue: #5b8cf7;
+            --blue-hover: #4b7cf7;
+            --light-blue: #2a3a5f;
+            --preview-bg: #2d2d3f;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: var(--card);
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            padding: 30px;
+        }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 12px;
+        }
+
+        h2 {
+            color: var(--text);
+            margin-bottom: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .config-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .config-item {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .config-item label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--text2);
+            font-size: 14px;
+        }
+
+        .config-item input, .config-item select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            background: var(--card);
+            color: var(--text);
+        }
+
+        .drop-area {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            cursor: pointer;
+        }
+
+        .drop-area.dragover {
+            border-color: var(--blue);
+            background: var(--light-blue);
+        }
+
+        .drop-area p {
+            color: var(--text3);
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            background: var(--blue);
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn:hover {
+            background: var(--blue-hover);
+        }
+
+        .btn:disabled {
+            background: var(--gray);
+            cursor: not-allowed;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        .card {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .card h4 {
+            margin-bottom: 12px;
+            color: var(--text);
+            font-size: 16px;
+        }
+
+        .info {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+            color: var(--text2);
+            font-size: 14px;
+        }
+
+        .preview {
+            background: var(--preview-bg);
+            padding: 12px;
+            border-radius: 6px;
+            max-height: 160px;
+            overflow-y: auto;
+            font-size: 13px;
+            color: var(--text);
+            white-space: pre-wrap;
+        }
+
+        .summary {
+            background: var(--light-blue);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 12px 0;
+            border-left: 4px solid var(--blue);
+            color: var(--text);
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+
+        .copy-row {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 8px;
+            gap: 8px;
+        }
+
+        .loading {
+            color: var(--text3);
+            font-style: italic;
+        }
+
+        .char-count {
+            font-size: 12px;
+            color: var(--text3);
+            margin-top: 6px;
+            text-align: right;
+        }
+
+        .keywords {
+            margin-top: 8px;
+            font-size: 14px;
+            color: var(--text);
+        }
+
+        /* 翻译结果区样式 */
+        .translate-panel {
+            margin-top: 30px;
+            padding: 15px;
+            background: var(--light-blue);
+            border-radius: 8px;
+            border-left: 4px solid #8b5cf6;
+        }
+
+        .translate-panel h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: var(--text);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .translate-content {
+            background: var(--card);
+            padding: 12px;
+            border-radius: 6px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .history-panel {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 12px 15px;
+            background: var(--preview-bg);
+            border-radius: 6px;
+            border-left: 3px solid var(--border);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-item:hover {
+            background: var(--light-blue);
+        }
+
+        .history-item.active {
+            border-left-color: var(--blue);
+            background: var(--light-blue);
+        }
+
+        .history-item .name {
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .history-item .time {
+            font-size: 12px;
+            color: var(--text3);
+            margin-top: 4px;
+        }
+
+        .history-item .del {
+            color: #ef4444;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .empty-history {
+            text-align: center;
+            color: var(--text3);
+            padding: 20px;
+        }
+
+        .full-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 9999;
+            display: none;
+        }
+
+        .full-box {
+            background: var(--card);
+            width: 90%; max-width: 800px;
+            max-height: 80vh;
+            border-radius: 10px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .full-box h3 {
+            margin-bottom: 12px;
+        }
+
+        .full-content {
+            white-space: pre-wrap;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .close-btn {
+            margin-top: 12px;
+            background: var(--border);
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .compare-panel {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .compare-boxes {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .compare-box {
+            flex: 1;
+        }
+
+        .compare-drop {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .compare-drop.dragover {
+            border-color: var(--blue);
+            background: var(--light-blue);
+        }
+
+        .compare-bar {
+            margin-top: 12px;
+            text-align: center;
+        }
+
+        .compare-result {
+            margin-top: 16px;
+            padding: 16px;
+            background: var(--light-blue);
+            border-radius: 8px;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .theme-switch {
+            background: var(--preview-bg);
+            border: 1px solid var(--border);
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--text);
+        }
+
+        /* 对比维度样式 */
+        .compare-dimension {
+            margin: 15px 0;
+            padding: 10px;
+            background: var(--preview-bg);
+            border-radius: 6px;
+        }
+
+        .dimension-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .dimension-item input {
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header-row">
+        <h2>📄 文档智能总结助手</h2>
+        <div style="display:flex;gap:10px">
+            <button class="btn btn-sm" id="clearHistoryBtn">清空历史记录</button>
+            <button class="theme-switch" id="themeBtn">深色/浅色</button>
+        </div>
+    </div>
+
+    <div class="config-area">
+        <div class="config-item">
+            <label>总结字数限制：</label>
+            <input type="number" id="wordLimit" value="300" min="50" max="500">
+        </div>
+        <div class="config-item">
+            <label>总结风格：</label>
+            <select id="summaryStyle">
+                <option value="concise">简洁要点</option>
+                <option value="detailed">详细展开</option>
+                <option value="creative">创意重述</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="drop-area" id="dropArea">
+        <p>拖拽 DOCX / TXT / PDF 文件到此处</p>
+        <button class="btn" id="selectBtn">选择文件</button>
+    </div>
+
+    <div id="results"></div>
+
+    <!-- 翻译结果展示区 -->
+    <div class="translate-panel" id="translatePanel" style="display: none;">
+        <h3>
+            <span>🌐 翻译结果</span>
+            <button class="btn btn-sm" id="copyTranslateBtn">一键复制翻译结果</button>
+        </h3>
+        <div class="translate-content" id="translateContent"></div>
+    </div>
+
+    <div class="history-panel">
+        <div class="history-header">
+            <h3>📜 历史记录</h3>
+            <span style="font-size:13px;color:var(--text3)">本地自动保存</span>
+        </div>
+        <div id="historyList" class="history-list"></div>
+    </div>
+
+    <div class="compare-panel">
+        <h3>📝 文档对比</h3>
+        <!-- 对比维度勾选 -->
+        <div class="compare-dimension">
+            <label style="font-weight: 500; margin-bottom: 8px; display: block;">对比维度：</label>
+            <div class="dimension-item">
+                <input type="checkbox" id="dimContent" checked>
+                <label for="dimContent">内容差异</label>
+            </div>
+            <div class="dimension-item">
+                <input type="checkbox" id="dimKeyword" checked>
+                <label for="dimKeyword">关键词差异</label>
+            </div>
+            <div class="dimension-item">
+                <input type="checkbox" id="dimView" checked>
+                <label for="dimView">核心观点差异</label>
+            </div>
+            <div class="dimension-item">
+                <input type="checkbox" id="dimStructure">
+                <label for="dimStructure">结构/逻辑差异</label>
+            </div>
+            <div class="dimension-item">
+                <input type="checkbox" id="dimData">
+                <label for="dimData">数据/案例差异</label>
+            </div>
+        </div>
+        <div class="compare-boxes">
+            <div class="compare-box">
+                <div class="compare-drop" id="compareDrop1">
+                    <p>拖拽或点击选择文档1</p>
+                    <button class="btn btn-sm" id="compareSelect1">选择文件</button>
+                </div>
+            </div>
+            <div class="compare-box">
+                <div class="compare-drop" id="compareDrop2">
+                    <p>拖拽或点击选择文档2</p>
+                    <button class="btn btn-sm" id="compareSelect2">选择文件</button>
+                </div>
+            </div>
+        </div>
+        <div class="compare-bar">
+            <button class="btn" id="startCompareBtn" disabled>开始对比</button>
+            <button class="btn btn-sm" id="exportCompareBtn" style="margin-left: 10px;" disabled>导出对比结果</button>
+        </div>
+        <div class="compare-result" id="compareResult" style="white-space:pre-wrap;"></div>
+    </div>
+</div>
+
+<div class="full-modal" id="fullModal">
+    <div class="full-box">
+        <h3 id="fullTitle">全文</h3>
+        <div class="full-content" id="fullContent"></div>
+        <button class="close-btn" id="closeFull">关闭</button>
+    </div>
+</div>
+
+<!-- 引入依赖 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://unpkg.com/docxtemplater@3.37.12/build/docxtemplater.js"></script>
+<script src="https://unpkg.com/pizzip@3.1.4/dist/pizzip.js"></script>
+<script src="https://unpkg.com/pizzip@3.1.4/dist/pizzip-utils.js"></script>
+<script src="https://unpkg.com/mammoth@1.4.18/mammoth.browser.min.js"></script>
+<script>
+const DEEPSEEK_API_KEY = "sk-05b0d1e86c6d4e268f371771d7e90628";
+const DEEPSEEK_URL = "https://api.deepseek.com/chat/completions";
+const MODEL_NAME = "deepseek-chat";
+
+// 全局变量
+let currentTranslateContent = "";
+let compareFile1 = { name: "", text: "", stat: null };
+let compareFile2 = { name: "", text: "", stat: null };
+let currentCompareResult = "";
+
+// DOM 元素
+const wordLimitInput = document.getElementById("wordLimit");
+const styleSelect = document.getElementById("summaryStyle");
+const dropArea = document.getElementById("dropArea");
+const selectBtn = document.getElementById("selectBtn");
+const resultsDiv = document.getElementById("results");
+const historyList = document.getElementById("historyList");
+const clearHistoryBtn = document.getElementById("clearHistoryBtn");
+const themeBtn = document.getElementById("themeBtn");
+const fullModal = document.getElementById("fullModal");
+const fullContent = document.getElementById("fullContent");
+const fullTitle = document.getElementById("fullTitle");
+const closeFull = document.getElementById("closeFull");
+
+const compareDrop1 = document.getElementById("compareDrop1");
+const compareSelect1 = document.getElementById("compareSelect1");
+const compareDrop2 = document.getElementById("compareDrop2");
+const compareSelect2 = document.getElementById("compareSelect2");
+const startCompareBtn = document.getElementById("startCompareBtn");
+const compareResult = document.getElementById("compareResult");
+const exportCompareBtn = document.getElementById("exportCompareBtn");
+
+// 对比维度
+const dimContent = document.getElementById("dimContent");
+const dimKeyword = document.getElementById("dimKeyword");
+const dimView = document.getElementById("dimView");
+const dimStructure = document.getElementById("dimStructure");
+const dimData = document.getElementById("dimData");
+
+// 翻译面板
+const translatePanel = document.getElementById("translatePanel");
+const translateContent = document.getElementById("translateContent");
+const copyTranslateBtn = document.getElementById("copyTranslateBtn");
+
+// ========== 1. 主题切换 ==========
+themeBtn.addEventListener("click", () => {
+    const now = document.documentElement.getAttribute("data-theme");
+    if (now === "dark") {
+        document.documentElement.removeAttribute("data-theme");
+        localStorage.setItem("theme", "light");
+    } else {
+        document.documentElement.setAttribute("data-theme", "dark");
+        localStorage.setItem("theme", "dark");
+    }
+});
+const savedTheme = localStorage.getItem("theme");
+if (savedTheme === "dark") document.documentElement.setAttribute("data-theme", "dark");
+
+// ========== 2. PDF解析（保留段落结构） ==========
+async function readPdf(file) {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let fullText = "";
+    
+    for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        
+        // 按y坐标重组文本，保留换行结构
+        let pageText = "";
+        let lastY = null;
+        content.items.forEach(item => {
+            const y = Math.floor(item.transform[5]);
+            if (lastY !== null && y < lastY - 5) {
+                pageText += "\n";
+            } else if (lastY !== null) {
+                pageText += " ";
+            }
+            pageText += item.str;
+            lastY = y;
+        });
+        
+        fullText += pageText + "\n\n";
+    }
+    
+    return fullText.trim();
+}
+
+// ========== 3. 精准句子统计（仅保留。！？.?!） ==========
+function statText(text) {
+    // 纯文字数（去空格）
+    const pure = text.replace(/\s+/g, "");
+    // 段落数（过滤空行）
+    const paras = text.split("\n").filter(p => p.trim());
+    
+    // 仅以 。！？ . ! ? 作为句子分隔符
+    const sentenceRegex = /([。！？.?!])\s*/g;
+    const sentences = text.split(sentenceRegex)
+        .filter(s => s.trim() && !sentenceRegex.test(s)) // 过滤空内容和纯标点
+        .map(s => s.trim())
+        .filter(Boolean);
+
+    return {
+        chars: pure.length,
+        paraCnt: paras.length,
+        sentCnt: sentences.length
+    };
+}
+
+// ========== 4. 全文阅读弹窗 ==========
+window.openFullText = (title, text) => {
+    fullTitle.textContent = title;
+    fullContent.textContent = text;
+    fullModal.style.display = "flex";
+};
+closeFull.addEventListener("click", () => fullModal.style.display = "none");
+
+// ========== 5. 翻译功能（复制按钮替换导出） ==========
+window.translateSummary = async function(content, filename) {
+    try {
+        translatePanel.style.display = "block";
+        translateContent.textContent = "翻译中...";
+        
+        const prompt = `将以下总结内容翻译成英文，保持原意和格式：\n${content}`;
+        const res = await fetch(DEEPSEEK_URL, {
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer " + DEEPSEEK_API_KEY,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: MODEL_NAME,
+                messages: [{ role: "user", content: prompt }],
+                temperature: 0.2
+            })
+        });
+        
+        const data = await res.json();
+        if (data.error) throw new Error(data.error.message);
+        
+        // 存储翻译结果
+        currentTranslateContent = data.choices[0].message.content;
+        translateContent.textContent = currentTranslateContent;
+    } catch (e) {
+        translateContent.textContent = `翻译失败：${e.message}`;
+        currentTranslateContent = "";
+    }
+};
+
+// 复制翻译结果
+copyTranslateBtn.addEventListener("click", () => {
+    if (!currentTranslateContent) {
+        alert("暂无翻译结果可复制");
+        return;
+    }
+    navigator.clipboard.writeText(currentTranslateContent).then(() => {
+        alert("翻译结果已复制到剪贴板！");
+    }).catch(() => {
+        alert("复制失败，请手动复制");
+    });
+});
+
+// ========== 6. 通用导出功能（仅保留对比结果导出） ==========
+function exportToTxt(filename, content) {
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${filename}.txt`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+
+function exportToDocx(filename, content) {
+    try {
+        const zip = new PizZip();
+        zip.file("document.xml", `
+            <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                <w:body>
+                    <w:p>
+                        <w:r>
+                            <w:t xml:space="preserve">${content.replace(/\n/g, "</w:t></w:r></w:p><w:p><w:r><w:t xml:space=\"preserve\">")}</w:t>
+                        </w:r>
+                    </w:p>
+                </w:body>
+            </w:document>
+        `);
+        const blob = zip.generate({ type: "blob" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `${filename}.docx`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+    } catch (e) {
+        alert("DOCX导出失败，将自动导出为TXT：" + e.message);
+        exportToTxt(filename, content);
+    }
+}
+
+// ========== 7. 错误重试机制 ==========
+window.retryProcess = async function(filename, ext, fullText) {
+    try {
+        resultsDiv.innerHTML = renderCard({ 
+            filename, ext, 
+            chars: statText(fullText).chars,
+            paraCnt: statText(fullText).paraCnt,
+            sentCnt: statText(fullText).sentCnt,
+            preview: fullText.slice(0,600) + (fullText.length>600?"…":""),
+            summary: null, 
+            keywords: null, 
+            fullText 
+        });
+        
+        const [sum, kw] = await Promise.all([aiSummary(fullText), extractKeywords(fullText)]);
+        const final = { 
+            filename, ext, 
+            ...statText(fullText),
+            preview: fullText.slice(0,600) + (fullText.length>600?"…":""),
+            summary: sum, 
+            keywords: kw, 
+            fullText 
+        };
+        
+        resultsDiv.innerHTML = renderCard(final);
+        const history = getHistory();
+        const idx = history.findIndex(item => item.filename === filename);
+        if (idx > -1) {
+            history[idx] = { ...history[idx], summary: sum, keywords: kw };
+            localStorage.setItem("docSummaryHistory", JSON.stringify(history));
+            renderHistory();
+        } else {
+            saveHistory(final);
+        }
+    } catch (e) {
+        resultsDiv.innerHTML = renderCard({ 
+            filename, ext, 
+            chars: "-", paraCnt: "-", sentCnt: "-",
+            preview: "失败", 
+            summary: e.message, 
+            keywords: null, 
+            fullText: "" 
+        });
+    }
+};
+
+// ========== 8. 文档对比功能 ==========
+function setupCompareDrop(dropEl, selectBtn, fileNum) {
+    dropEl.addEventListener("dragover", e => { e.preventDefault(); dropEl.classList.add("dragover"); });
+    dropEl.addEventListener("dragleave", () => dropEl.classList.remove("dragover"));
+    dropEl.addEventListener("drop", e => {
+        e.preventDefault();
+        dropEl.classList.remove("dragover");
+        if (e.dataTransfer.files.length) loadCompareFile(e.dataTransfer.files[0], dropEl, fileNum);
+    });
+    selectBtn.addEventListener("click", () => {
+        const inp = document.createElement("input");
+        inp.type = "file"; inp.accept = ".txt,.docx,.pdf";
+        inp.onchange = e => {
+            if (e.target.files.length) loadCompareFile(e.target.files[0], dropEl, fileNum);
+        };
+        inp.click();
+    });
+}
+
+setupCompareDrop(compareDrop1, compareSelect1, 1);
+setupCompareDrop(compareDrop2, compareSelect2, 2);
+
+async function loadCompareFile(file, dropEl, num) {
+    try {
+        let text = "";
+        const ext = file.name.split(".").pop().toLowerCase();
+        if (ext === "txt") text = await readTxt(file);
+        else if (ext === "docx") text = await readDocx(file);
+        else if (ext === "pdf") text = await readPdf(file);
+        else { alert("仅支持 txt/docx/pdf"); return; }
+        const stat = statText(text); // 精准句子统计
+        if (num === 1) {
+            compareFile1 = { name: file.name, text, stat };
+        } else {
+            compareFile2 = { name: file.name, text, stat };
+        }
+        dropEl.innerHTML = `<p style="margin:0;">✅ ${file.name}</p>`;
+        checkCompareReady();
+    } catch (e) { alert("读取失败：" + e.message); }
+}
+
+function checkCompareReady() {
+    startCompareBtn.disabled = !(compareFile1.text && compareFile2.text);
+}
+
+startCompareBtn.addEventListener("click", async () => {
+    if (!DEEPSEEK_API_KEY || DEEPSEEK_API_KEY.includes("粘贴")) {
+        alert("请填写 API Key");
+        return;
+    }
+    startCompareBtn.disabled = true;
+    exportCompareBtn.disabled = true;
+    compareResult.textContent = "正在对比...";
+
+    const s1 = compareFile1.stat;
+    const s2 = compareFile2.stat;
+
+    // 勾选的对比维度
+    const selectedDims = [];
+    if (dimContent.checked) selectedDims.push("内容差异");
+    if (dimKeyword.checked) selectedDims.push("关键词差异");
+    if (dimView.checked) selectedDims.push("核心观点/重点差异");
+    if (dimStructure.checked) selectedDims.push("结构/逻辑差异");
+    if (dimData.checked) selectedDims.push("数据/案例差异");
+
+    if (selectedDims.length === 0) {
+        alert("请至少选择一个对比维度");
+        startCompareBtn.disabled = false;
+        compareResult.textContent = "";
+        return;
+    }
+
+    const basic = `【基础信息对比】
+文档1：${compareFile1.name}
+文档2：${compareFile2.name}
+总字数：${s1.chars} vs ${s2.chars}
+段落数：${s1.paraCnt} vs ${s2.paraCnt}
+句子数：${s1.sentCnt} vs ${s2.sentCnt}
+
+【AI 内容对比】正在分析...`;
+
+    compareResult.textContent = basic;
+
+    try {
+        const dimText = selectedDims.join("、");
+        const prompt = `
+请对比下面两份文档，仅针对【${dimText}】维度，用中文分点清晰输出：
+${selectedDims.map((dim, idx) => `${idx+1}. ${dim}`).join("\n")}
+文档1：
+${compareFile1.text.slice(0, 8000)}
+
+文档2：
+${compareFile2.text.slice(0, 8000)}`;
+
+        const res = await fetch(DEEPSEEK_URL, {
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer " + DEEPSEEK_API_KEY,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: MODEL_NAME,
+                messages: [{ role: "user", content: prompt }],
+                temperature: 0.4,
+                max_tokens: 1500
+            })
+        });
+        const data = await res.json();
+        const ai = data.choices?.[0]?.message.content || "对比失败";
+        const finalResult = `${basic.replace("正在分析...", "")}\n${ai}`;
+        compareResult.textContent = finalResult;
+        currentCompareResult = finalResult;
+        exportCompareBtn.disabled = false;
+    } catch (e) {
+        compareResult.textContent = `${basic.replace("正在分析...", "失败：" + e.message)}`;
+    }
+    startCompareBtn.disabled = false;
+});
+
+// 对比结果导出
+exportCompareBtn.addEventListener("click", () => {
+    if (!currentCompareResult) return;
+    const type = prompt("请选择导出格式：\n1 - TXT\n2 - DOCX", "1");
+    const filename = `${compareFile1.name}_VS_${compareFile2.name}_对比结果`;
+    if (type === "1") {
+        exportToTxt(filename, currentCompareResult);
+    } else if (type === "2") {
+        exportToDocx(filename, currentCompareResult);
+    }
+});
+
+// ========== 9. 文档总结核心功能 ==========
+window.addEventListener("dragover", e => e.preventDefault());
+window.addEventListener("drop", e => e.preventDefault());
+
+dropArea.addEventListener("dragover", e => { e.preventDefault(); dropArea.classList.add("dragover"); });
+dropArea.addEventListener("dragleave", () => dropArea.classList.remove("dragover"));
+dropArea.addEventListener("drop", e => {
+    e.preventDefault();
+    dropArea.classList.remove("dragover");
+    processFiles(Array.from(e.dataTransfer.files));
+});
+
+selectBtn.addEventListener("click", () => {
+    const inp = document.createElement("input");
+    inp.type = "file"; inp.multiple = true; inp.accept = ".docx,.txt,.pdf";
+    inp.onchange = e => processFiles(Array.from(e.target.files));
+    inp.click();
+});
+
+async function readTxt(file) {
+    return new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result);
+        r.onerror = reject;
+        r.readAsText(file, "utf-8");
+    });
+}
+
+async function readDocx(file) {
+    const buf = await file.arrayBuffer();
+    const r = await mammoth.extractRawText({ arrayBuffer: buf });
+    return r.value;
+}
+
+async function aiSummary(text) {
+    const max = parseInt(wordLimitInput.value) || 300;
+    const style = styleSelect.value;
+    let prompt = "";
+
+    if (style === "concise") {
+        prompt = `请用极简要点总结，只保留最核心结论，不要分点、不要解释、不要细节，越短越好，严格控制在${max}字内：
+${text}`;
+    } else if (style === "detailed") {
+        prompt = `请做详细完整总结，保留逻辑、背景、关键细节、过程和结论，内容充实有条理，尽量接近${max}字，不冗余、不省略重点：
+${text}`;
+    } else {
+        prompt = `流畅自然总结，≤${max}字：
+${text}`;
+    }
+
+    const res = await fetch(DEEPSEEK_URL, {
+        method: "POST",
+        headers: {
+            "Authorization": "Bearer " + DEEPSEEK_API_KEY,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            model: MODEL_NAME,
+            messages: [{ role: "user", content: prompt }],
+            temperature: style === "creative" ? 0.7 : 0.2,
+            max_tokens: 1000
+        })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    let r = data.choices[0].message.content;
+    if (r.length > max + 20) {
+        const t = r.slice(0, max);
+        const last = Math.max(t.lastIndexOf("。"), t.lastIndexOf("！"), t.lastIndexOf("？"));
+        r = last > 0 ? t.slice(0, last + 1) : t;
+    }
+    return r;
+}
+
+async function extractKeywords(text) {
+    const p = "提取5-10个关键词，逗号分隔：\n" + text;
+    const r = await fetch(DEEPSEEK_URL, {
+        method: "POST",
+        headers: {
+            "Authorization": "Bearer " + DEEPSEEK_API_KEY,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ model: MODEL_NAME, messages: [{ role: "user", content: p }], temperature: 0.3 })
+    });
+    const d = await r.json();
+    return d.choices?.[0]?.message.content || "无";
+}
+
+window.copySummary = function(t) { 
+    navigator.clipboard.writeText(t).then(() => alert("已复制！")); 
+};
+
+function renderCard(item) {
+    const cnt = item.summary ? `<div class="char-count">${item.summary.length} 字</div>` : "";
+    const kw = item.keywords ? `<div class="keywords"><strong>关键词：</strong>${item.keywords}</div>` : "";
+    
+    // 按钮组
+    const readBtn = item.fullText
+        ? `<button class="btn btn-sm" onclick="openFullText('${item.filename}', \`${item.fullText.replace(/`/g, '')}\`)">完整阅读</button>`
+        : "";
+    const copyBtn = item.summary
+        ? `<button class="btn btn-sm" onclick="copySummary(\`${item.summary.replace(/`/g, '')}\`)">一键复制</button>`
+        : "";
+    const exportBtn = item.summary
+        ? `<button class="btn btn-sm" onclick="exportSummary('${item.filename}', \`${item.summary.replace(/`/g, '')}\`)">导出总结</button>`
+        : "";
+    const translateBtn = item.summary
+        ? `<button class="btn btn-sm" onclick="translateSummary(\`${item.summary.replace(/`/g, '')}\`, '${item.filename}')">翻译总结</button>`
+        : "";
+    const retryBtn = item.summary && item.summary.includes("失败")
+        ? `<button class="btn btn-sm" style="background:#ef4444;" onclick="retryProcess('${item.filename}', '${item.ext}', \`${item.fullText.replace(/`/g, '')}\`)">重试</button>`
+        : "";
+
+    return `
+    <div class="card">
+        <h4>${item.filename}</h4>
+        <div class="info">
+            <div>字数：${item.chars}</div>
+            <div>段落：${item.paraCnt}</div>
+            <div>句子：${item.sentCnt}</div>
+            <div>类型：${item.ext}</div>
+        </div>
+        <div class="preview"><pre>${item.preview}</pre></div>
+        <div class="summary">${item.summary || '<span class="loading">生成中…</span>'}</div>
+        ${cnt}${kw}
+        <div class="copy-row">${readBtn} ${copyBtn} ${exportBtn} ${translateBtn} ${retryBtn}</div>
+    </div>`;
+}
+
+window.exportSummary = function(filename, content) {
+    const type = prompt("请选择导出格式：\n1 - TXT\n2 - DOCX", "1");
+    if (type === "1") {
+        exportToTxt(`${filename}_总结`, content);
+    } else if (type === "2") {
+        exportToDocx(`${filename}_总结`, content);
+    }
+};
+
+// ========== 10. 历史记录功能 ==========
+function getHistory() { return JSON.parse(localStorage.getItem("docSummaryHistory") || "[]"); }
+function saveHistory(item) {
+    const h = getHistory();
+    h.unshift({ id: Date.now(), time: new Date().toLocaleString(), ...item });
+    localStorage.setItem("docSummaryHistory", JSON.stringify(h));
+    renderHistory();
+}
+function deleteHistory(id) {
+    const h = getHistory().filter(x => x.id !== id);
+    localStorage.setItem("docSummaryHistory", JSON.stringify(h));
+    renderHistory();
+}
+function clearAllHistory() { 
+    if (confirm("确定清空历史记录？")) { 
+        localStorage.removeItem("docSummaryHistory"); 
+        renderHistory(); 
+    } 
+}
+function renderHistory() {
+    const h = getHistory();
+    if (!h.length) { 
+        historyList.innerHTML = '<div class="empty-history">暂无记录</div>'; 
+        return; 
+    }
+    historyList.innerHTML = h.map(x => `
+    <div class="history-item" onclick="loadHistory(${x.id})">
+        <div><div class="name">${x.filename}</div><div class="time">${x.time}</div></div>
+        <button class="del" onclick="event.stopPropagation();deleteHistory(${x.id})">删除</button>
+    </div>`).join("");
+}
+function loadHistory(id) {
+    const item = getHistory().find(x => x.id === id);
+    if (item) resultsDiv.innerHTML = renderCard(item);
+}
+
+clearHistoryBtn.addEventListener("click", clearAllHistory);
+window.loadHistory = loadHistory;
+window.deleteHistory = deleteHistory;
+renderHistory();
+
+// 处理文件入口
+async function processFiles(files) {
+    if (!DEEPSEEK_API_KEY || DEEPSEEK_API_KEY.includes("粘贴")) { 
+        alert("请先填写有效的 API Key"); 
+        return; 
+    }
+    const wl = parseInt(wordLimitInput.value);
+    if (wl < 50 || wl > 500) { 
+        alert("总结字数限制需在 50-500 之间"); 
+        return; 
+    }
+    resultsDiv.innerHTML = "";
+    selectBtn.disabled = true;
+    
+    for (const f of files) {
+        resultsDiv.innerHTML = renderCard({ 
+            filename: f.name, 
+            ext:"-", 
+            chars:"-", 
+            paraCnt:"-", 
+            sentCnt:"-", 
+            preview:"读取中…", 
+            summary:null, 
+            keywords:null, 
+            fullText:"" 
+        });
+        
+        try {
+            let text = "";
+            const ext = f.name.split(".").pop().toLowerCase();
+            
+            if (ext === "txt") text = await readTxt(f);
+            else if (ext === "docx") text = await readDocx(f);
+            else if (ext === "pdf") text = await readPdf(f);
+            else throw new Error("不支持的文件格式");
+            
+            const st = statText(text); // 精准句子统计
+            const prev = text.slice(0,600) + (text.length>600?"…":"");
+            
+            resultsDiv.innerHTML = renderCard({ 
+                filename:f.name, 
+                ext, 
+                ...st, 
+                preview:prev, 
+                summary:null, 
+                keywords:null, 
+                fullText:text 
+            });
+            
+            const [sum, kw] = await Promise.all([aiSummary(text), extractKeywords(text)]);
+            const final = { 
+                filename:f.name, 
+                ext, 
+                ...st, 
+                preview:prev, 
+                summary:sum, 
+                keywords:kw, 
+                fullText:text 
+            };
+            
+            resultsDiv.innerHTML = renderCard(final);
+            saveHistory(final);
+        } catch(e) {
+            resultsDiv.innerHTML = renderCard({ 
+                filename:f.name, 
+                ext:"-", 
+                chars:"-", 
+                paraCnt:"-", 
+                sentCnt:"-", 
+                preview:"读取失败", 
+                summary:e.message, 
+                keywords:null, 
+                fullText:"" 
+            });
+        }
+    }
+    selectBtn.disabled = false;
+}
+</script>
+</body>
+</html>
