@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>文档智能总结助手（DOCX/TXT增强版）</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+        body {
+            background: #f4f6fa;
+            padding: 30px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            padding: 30px;
+        }
+        h2 {
+            color: #334155;
+            margin-bottom: 20px;
+        }
+        .config-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .config-item {
+            flex: 1;
+            min-width: 200px;
+        }
+        .config-item label {
+            display: block;
+            margin-bottom: 5px;
+            color: #475569;
+            font-size: 14px;
+        }
+        .config-item input, .config-item select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .drop-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .drop-area.dragover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+        .drop-area p {
+            color: #64748b;
+            margin-bottom: 15px;
+        }
+        .btn {
+            background: #3b82f6;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn:hover {
+            background: #2563eb;
+        }
+        .btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+        .card {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+        .card h4 {
+            margin-bottom: 12px;
+            color: #1e293b;
+            font-size: 16px;
+        }
+        .info {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+            color: #475569;
+            font-size: 14px;
+        }
+        .preview {
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 6px;
+            max-height: 160px;
+            overflow-y: auto;
+            font-size: 13px;
+            color: #334155;
+            white-space: pre-wrap;
+        }
+        .summary {
+            background: #eff6ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 12px 0;
+            border-left: 4px solid #3b82f6;
+            color: #1e293b;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+        .loading {
+            color: #64748b;
+            font-style: italic;
+        }
+        .char-count {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 6px;
+            text-align: right;
+        }
+        .keywords {
+            margin-top: 8px;
+            font-size: 14px;
+            color: #334155;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>📄 文档智能总结助手</h2>
+
+        <div class="config-area">
+            <div class="config-item">
+                <label>总结字数限制：</label>
+                <input type="number" id="wordLimit" value="300" min="50" max="500">
+            </div>
+            <div class="config-item">
+                <label>总结风格：</label>
+                <select id="summaryStyle">
+                    <option value="concise">简洁要点</option>
+                    <option value="detailed">详细展开</option>
+                    <option value="creative">创意重述</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="drop-area" id="dropArea">
+            <p>拖拽 DOCX / TXT 文件到此处</p>
+            <button class="btn" id="selectBtn">选择文件</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script src="https://unpkg.com/mammoth@1.4.18/mammoth.browser.min.js"></script>
+
+    <script>
+        // ===================== 填入你的 Deepseek API Key =====================
+        const DEEPSEEK_API_KEY = "yours API key";
+        const DEEPSEEK_URL = "https://api.deepseek.com/chat/completions";
+        const MODEL_NAME = "deepseek-chat";
+        // ====================================================================
+
+        const wordLimitInput = document.getElementById("wordLimit");
+        const styleSelect = document.getElementById("summaryStyle");
+        const dropArea = document.getElementById("dropArea");
+        const selectBtn = document.getElementById("selectBtn");
+        const resultsDiv = document.getElementById("results");
+
+        window.addEventListener("dragover", e => e.preventDefault());
+        window.addEventListener("drop", e => e.preventDefault());
+
+        dropArea.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            dropArea.classList.add("dragover");
+        });
+        dropArea.addEventListener("dragleave", () => {
+            dropArea.classList.remove("dragover");
+        });
+        dropArea.addEventListener("drop", (e) => {
+            e.preventDefault();
+            dropArea.classList.remove("dragover");
+            processFiles(Array.from(e.dataTransfer.files));
+        });
+
+        selectBtn.addEventListener("click", () => {
+            const inp = document.createElement("input");
+            inp.type = "file";
+            inp.multiple = true;
+            inp.accept = ".docx,.txt";
+            inp.onchange = e => processFiles(Array.from(e.target.files));
+            inp.click();
+        });
+
+        function statText(text) {
+            const pure = text.replace(/\s+/g, "");
+            const paras = text.split("\n").filter(p => p.trim());
+            const sents = text.split(/[。！？；\n]/).filter(s => s.trim());
+            return {
+                chars: pure.length,
+                paraCnt: paras.length,
+                sentCnt: sents.length
+            };
+        }
+
+        async function readTxt(file) {
+            return new Promise((resolve, reject) => {
+                const r = new FileReader();
+                r.onload = () => resolve(r.result);
+                r.onerror = reject;
+                r.readAsText(file, "utf-8");
+            });
+        }
+
+        async function readDocx(file) {
+            const buf = await file.arrayBuffer();
+            const r = await mammoth.extractRawText({ arrayBuffer: buf });
+            return r.value;
+        }
+
+        async function aiSummary(text) {
+            const max = parseInt(wordLimitInput.value) || 300;
+            const style = styleSelect.value;
+
+            let stylePrompt = "";
+            if (style === "concise") {
+                stylePrompt = "用简洁语言提炼核心要点，";
+            } else if (style === "detailed") {
+                stylePrompt = "详细梳理内容逻辑，清晰完整说明，";
+            } else if (style === "creative") {
+                stylePrompt = "用流畅自然的语言重新表述，";
+            }
+
+            // 超级严格字数约束提示词（不截断、保证完整）
+            const prompt = `
+请你严格遵守以下规则：
+1. 总结字数**必须控制在${max}字以内**，绝对不能超过
+2. 总结必须**完整、通顺、有结尾**，不能中途断掉
+3. 不要输出任何多余内容，只给总结
+4. ${stylePrompt}
+
+内容如下：
+${text}`.trim();
+
+            const res = await fetch(DEEPSEEK_URL, {
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + DEEPSEEK_API_KEY,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: MODEL_NAME,
+                    messages: [{ role: "user", content: prompt }],
+                    temperature: style === "creative" ? 0.85 : 0.7,
+                    max_tokens: 1000
+                })
+            });
+
+            const data = await res.json();
+            if (data.error) throw new Error(data.error.message);
+
+            // 完全不截断，直接返回AI生成的完整内容
+            return data.choices[0].message.content;
+        }
+
+        async function extractKeywords(text) {
+            const prompt = `请从下面文本中提取5-10个核心关键词，用逗号分隔：\n` + text;
+            const res = await fetch(DEEPSEEK_URL, {
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + DEEPSEEK_API_KEY,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: MODEL_NAME,
+                    messages: [{ role: "user", content: prompt }],
+                    temperature: 0.3,
+                    max_tokens: 200
+                })
+            });
+            const data = await res.json();
+            return data.choices?.[0]?.message?.content || "无";
+        }
+
+        function renderCard(item) {
+            const cnt = item.summary ? `<div class="char-count">${item.summary.length} 字</div>` : "";
+            const keywords = item.keywords ? `<div class="keywords"><strong>关键词：</strong>${item.keywords}</div>` : "";
+
+            return `
+            <div class="card">
+                <h4>${item.filename}</h4>
+                <div class="info">
+                    <div>字数：${item.chars}</div>
+                    <div>段落：${item.paraCnt}</div>
+                    <div>句子：${item.sentCnt}</div>
+                    <div>类型：${item.ext}</div>
+                </div>
+                <div class="preview"><pre>${item.preview}</pre></div>
+                <div class="summary">${item.summary || '<span class="loading">生成总结中…</span>'}</div>
+                ${cnt}
+                ${keywords}
+            </div>`;
+        }
+
+        async function processFiles(files) {
+            if (!DEEPSEEK_API_KEY || DEEPSEEK_API_KEY.includes("粘贴")) {
+                alert("请先填写 API Key");
+                return;
+            }
+            const wl = parseInt(wordLimitInput.value);
+            if (wl < 50 || wl > 500) {
+                alert("字数 50–500");
+                return;
+            }
+
+            resultsDiv.innerHTML = "";
+            selectBtn.disabled = true;
+
+            for (const f of files) {
+                const ext = f.name.split(".").pop().toLowerCase();
+                const id = "c" + Date.now();
+                resultsDiv.innerHTML += `<div id="${id}">${renderCard({
+                    filename: f.name, ext, chars: "-", paraCnt: "-", sentCnt: "-",
+                    preview: "读取中…", summary: null, keywords: null
+                })}</div>`;
+                const el = document.getElementById(id);
+
+                try {
+                    let c = "";
+                    if (ext === "txt") c = await readTxt(f);
+                    else if (ext === "docx") c = await readDocx(f);
+                    else throw new Error("不支持此格式");
+
+                    const st = statText(c);
+                    const prev = c.slice(0, 600) + (c.length > 600 ? "…" : "");
+                    el.innerHTML = renderCard({
+                        filename: f.name, ext, ...st, preview: prev, summary: null, keywords: null
+                    });
+
+                    const [summary, keywords] = await Promise.all([
+                        aiSummary(c), extractKeywords(c)
+                    ]);
+
+                    el.innerHTML = renderCard({
+                        filename: f.name, ext, ...st, preview: prev, summary, keywords
+                    });
+                } catch (e) {
+                    el.innerHTML = renderCard({
+                        filename: f.name, ext, chars: "-", paraCnt: "-", sentCnt: "-",
+                        preview: "失败", summary: e.message, keywords: null
+                    });
+                }
+            }
+            selectBtn.disabled = false;
+        }
+    </script>
+</body>
+</html>

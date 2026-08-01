@@ -1,0 +1,3263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frictionless Inbox — 无脑收件箱</title>
+<style>
+/* ============================================ */
+/*  CSS 变量 & 基础                              */
+/* ============================================ */
+:root {
+  --bg:           #F2F2F7;
+  --surface:      #FFFFFF;
+  --text:         #1C1C1E;
+  --text2:        #6C6C70;
+  --text3:        #AEAEB2;
+  --border:       #E5E5EA;
+  --shadow:       0 1px 3px rgba(0,0,0,.04), 0 1px 2px rgba(0,0,0,.06);
+  --shadow-lg:    0 8px 32px rgba(0,0,0,.08);
+  --radius:       14px;
+  --radius-sm:    8px;
+  --primary:      #5B6AF0;
+  --primary-dim:  #EEF0FF;
+  --todo:         #FF9500;
+  --todo-dim:     #FFF3E0;
+  --calendar:     #34C759;
+  --cal-dim:      #E8F8ED;
+  --knowledge:    #AF52DE;
+  --know-dim:     #F3E8FA;
+  --essay:        #20B2AA;
+  --essay-dim:    #E0F7F6;
+  --danger:       #FF3B30;
+  --font:         -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --transition:   0.2s cubic-bezier(.4,0,.2,1);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+body{
+  font-family:var(--font);
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ============================================ */
+/*  布局                                        */
+/* ============================================ */
+.app{
+  max-width:720px;
+  margin:0 auto;
+  padding:16px 20px 80px;
+}
+
+/* ============================================ */
+/*  头部                                        */
+/* ============================================ */
+.header{
+  text-align:center;
+  padding:32px 0 8px;
+}
+.header .icon{ font-size:40px; display:block; margin-bottom:4px; }
+.header h1{ font-size:26px; font-weight:700; letter-spacing:-0.3px; }
+.header .subtitle{ color:var(--text2); font-size:14px; margin-top:2px; }
+
+/* ============================================ */
+/*  输入区 —— 核心：极简、醒目                    */
+/* ============================================ */
+.input-zone{
+  position:sticky;
+  top:16px;
+  z-index:100;
+  background:var(--surface);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow-lg);
+  padding:20px;
+  margin-bottom:20px;
+  transition:box-shadow var(--transition);
+}
+.input-zone:focus-within{
+  box-shadow:0 0 0 3px var(--primary-dim), var(--shadow-lg);
+}
+
+.input-zone textarea{
+  width:100%;
+  border:none;
+  outline:none;
+  resize:none;
+  font-size:16px;
+  font-family:var(--font);
+  color:var(--text);
+  line-height:1.7;
+  min-height:60px;
+  max-height:200px;
+  background:transparent;
+}
+.input-zone textarea::placeholder{ color:var(--text3); }
+
+.input-zone .input-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-top:12px;
+  gap:10px;
+}
+
+.input-zone .char-hint{
+  font-size:12px;
+  color:var(--text3);
+  flex:1;
+}
+
+.btn{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:8px 18px;
+  border-radius:20px;
+  border:none;
+  font-size:14px;
+  font-family:var(--font);
+  cursor:pointer;
+  transition:all var(--transition);
+  font-weight:500;
+  white-space:nowrap;
+}
+.btn-primary{
+  background:var(--primary);
+  color:#fff;
+}
+.btn-primary:hover{ filter:brightness(1.1); transform:translateY(-1px); }
+.btn-primary:active{ transform:scale(0.97); }
+
+.btn-ghost{
+  background:var(--bg);
+  color:var(--text);
+}
+.btn-ghost:hover{ background:var(--border); }
+
+.btn-sm{ padding:5px 12px; font-size:13px; border-radius:14px; }
+.btn-danger{ background:var(--danger); color:#fff; }
+
+/* 处理动画 */
+.processing{
+  display:none;
+  align-items:center;
+  gap:8px;
+  padding:8px 0 0;
+  color:var(--primary);
+  font-size:13px;
+  font-weight:500;
+}
+.processing.active{ display:flex; }
+.processing .dot-pulse{
+  display:flex;gap:4px;
+}
+.processing .dot-pulse span{
+  width:5px;height:5px;
+  border-radius:50%;
+  background:var(--primary);
+  animation:bounce 1.2s infinite;
+}
+.processing .dot-pulse span:nth-child(2){animation-delay:.15s}
+.processing .dot-pulse span:nth-child(3){animation-delay:.3s}
+@keyframes bounce{
+  0%,80%,100%{transform:scale(0);opacity:0}
+  40%{transform:scale(1);opacity:1}
+}
+
+/* 分类结果气泡 */
+.classify-preview{
+  display:none;
+  flex-wrap:wrap;
+  gap:6px;
+  padding:6px 0 0;
+}
+.classify-preview.active{ display:flex; }
+.classify-preview .badge{
+  font-size:11px;
+  padding:2px 10px;
+  border-radius:10px;
+  font-weight:500;
+}
+.badge-todo{ background:var(--todo-dim); color:var(--todo); }
+.badge-calendar{ background:var(--cal-dim); color:var(--calendar); }
+.badge-knowledge{ background:var(--know-dim); color:var(--knowledge); }
+.badge-inbox{ background:var(--bg); color:var(--text2); }
+.badge-essay{ background:var(--essay-dim); color:var(--essay); }
+
+/* 模式切换按钮组 */
+.mode-toggle-row{
+  display:flex;
+  gap:6px;
+  margin-bottom:12px;
+}
+.mode-btn{
+  flex:1;
+  padding:8px 14px;
+  border-radius:18px;
+  border:1.5px solid var(--border);
+  background:var(--bg);
+  font-size:13px;
+  font-family:var(--font);
+  cursor:pointer;
+  transition:all var(--transition);
+  text-align:center;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  color:var(--text2);
+  font-weight:500;
+}
+.mode-btn:hover{ background:var(--border); }
+.mode-btn.active{
+  background:var(--primary-dim);
+  border-color:var(--primary);
+  color:var(--primary);
+  font-weight:600;
+}
+.mode-btn.active.essay-active{
+  background:var(--essay-dim);
+  border-color:var(--essay);
+  color:var(--essay);
+}
+
+/* ============================================ */
+/*  标签栏                                      */
+/* ============================================ */
+.tab-bar{
+  display:flex;
+  gap:6px;
+  margin-bottom:16px;
+}
+.tab-btn{
+  flex:1;
+  padding:12px 8px;
+  border:none;
+  border-radius:var(--radius-sm);
+  background:var(--surface);
+  cursor:pointer;
+  font-family:var(--font);
+  font-size:13px;
+  font-weight:500;
+  color:var(--text2);
+  transition:all var(--transition);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:2px;
+  box-shadow:var(--shadow);
+}
+.tab-btn .tab-icon{ font-size:20px; }
+.tab-btn .tab-count{ font-size:18px; font-weight:700; }
+.tab-btn.active{
+  background:var(--primary);
+  color:#fff;
+  box-shadow:0 4px 12px rgba(91,106,240,.35);
+}
+.tab-btn:hover:not(.active){ background:var(--primary-dim); }
+
+/* ============================================ */
+/*  内容区                                      */
+/* ============================================ */
+.content-area{ position:relative; min-height:200px; }
+
+.tab-panel{ display:none; }
+.tab-panel.active{ display:block; }
+
+/* ============================================ */
+/*  卡片                                        */
+/* ============================================ */
+.card{
+  background:var(--surface);
+  border-radius:var(--radius-sm);
+  padding:16px;
+  margin-bottom:10px;
+  box-shadow:var(--shadow);
+  transition:all var(--transition);
+  position:relative;
+}
+.card:hover{ box-shadow:var(--shadow-lg); }
+.card.completed{ opacity:0.5; }
+.card.completed .card-title{ text-decoration:line-through; }
+
+.card-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+}
+.card-title{
+  font-size:15px;
+  font-weight:600;
+  flex:1;
+  word-break:break-word;
+  cursor:text;
+  padding:2px 4px;
+  border-radius:4px;
+  transition:background var(--transition);
+  border:1px solid transparent;
+}
+.card-title:hover{ background:var(--primary-dim); }
+.card-title.editing{
+  background:var(--bg);
+  border-color:var(--primary);
+  outline:none;
+  cursor:text;
+}
+.card-title-input{
+  flex:1;
+  font-size:15px;
+  font-weight:600;
+  font-family:var(--font);
+  padding:2px 4px;
+  border:1px solid var(--primary);
+  border-radius:4px;
+  outline:none;
+  background:var(--bg);
+}
+.card-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:8px;
+  align-items:center;
+}
+.card .badge{ font-size:11px; padding:2px 10px; border-radius:10px; font-weight:500; }
+.card .date-badge{
+  font-size:11px;
+  color:var(--danger);
+  background:#FFF0EF;
+  padding:2px 10px;
+  border-radius:10px;
+  font-weight:500;
+}
+.card .date-badge.soon{ color:var(--todo); background:var(--todo-dim); }
+.card .date-badge.ok{ color:var(--calendar); background:var(--cal-dim); }
+
+.card-body{
+  font-size:13px;
+  color:var(--text2);
+  margin-top:8px;
+  white-space:pre-wrap;
+  word-break:break-word;
+  max-height:120px;
+  overflow-y:auto;
+}
+.card-body.expanded{ max-height:none; }
+.card-body-toggle{
+  font-size:12px;
+  color:var(--primary);
+  cursor:pointer;
+  margin-top:4px;
+  display:inline-block;
+}
+
+.card-actions{
+  display:flex;
+  gap:6px;
+  margin-top:10px;
+}
+.card-time{
+  font-size:11px;
+  color:var(--text3);
+  margin-top:4px;
+}
+
+/* ============================================ */
+/*  批量操作                                    */
+/* ============================================ */
+.batch-toolbar{
+  display:none;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+  padding:10px 14px;
+  background:var(--surface);
+  border-radius:var(--radius-sm);
+  box-shadow:var(--shadow);
+  margin-bottom:10px;
+  position:sticky;
+  top:100px;
+  z-index:50;
+}
+.batch-toolbar.active{ display:flex; }
+.batch-toolbar .batch-count{
+  font-size:13px;
+  font-weight:600;
+  color:var(--primary);
+  white-space:nowrap;
+}
+.batch-toolbar .batch-actions{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+.batch-toolbar .btn{ font-size:12px; padding:5px 12px; }
+.batch-toolbar .batch-move-select{
+  font-size:12px;
+  padding:5px 8px;
+  border-radius:14px;
+  border:1px solid var(--border);
+  background:var(--bg);
+  font-family:var(--font);
+  color:var(--text);
+  cursor:pointer;
+  outline:none;
+}
+.batch-toolbar .batch-move-select:focus{ border-color:var(--primary); }
+
+.batch-select{
+  width:18px; height:18px;
+  cursor:pointer;
+  accent-color:var(--primary);
+  flex-shrink:0;
+  margin-top:2px;
+}
+
+/* 知识卡片特色样式 */
+.card.knowledge-card{
+  border-left:3px solid var(--knowledge);
+}
+.card.todo-card{
+  border-left:3px solid var(--todo);
+}
+.card.inbox-card{
+  border-left:3px solid var(--primary);
+}
+.card.essay-card{
+  border-left:3px solid var(--essay);
+}
+
+/* ============================================ */
+/*  卡片分类移动下拉                             */
+/* ============================================ */
+.card-category-selector{
+  position:relative;
+  display:inline-block;
+}
+.card-cat-trigger{
+  font-size:11px;
+  padding:2px 8px;
+  border-radius:10px;
+  border:1px dashed var(--text3);
+  background:transparent;
+  color:var(--text2);
+  cursor:pointer;
+  font-family:var(--font);
+  transition:all var(--transition);
+}
+.card-cat-trigger:hover{
+  border-color:var(--primary);
+  color:var(--primary);
+  background:var(--primary-dim);
+}
+.cat-dropdown{
+  display:none;
+  position:absolute;
+  top:100%;
+  left:0;
+  margin-top:4px;
+  background:var(--surface);
+  border-radius:var(--radius-sm);
+  box-shadow:0 8px 24px rgba(0,0,0,0.15);
+  padding:6px 0;
+  z-index:50;
+  min-width:140px;
+}
+.cat-dropdown.show{
+  display:block;
+}
+.cat-dropdown label{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 12px;
+  font-size:13px;
+  cursor:pointer;
+  white-space:nowrap;
+  transition:background var(--transition);
+}
+.cat-dropdown label:hover{
+  background:var(--bg);
+}
+.cat-dropdown input[type="checkbox"]{
+  accent-color:var(--primary);
+}
+
+/* ============================================ */
+/*  空状态                                      */
+/* ============================================ */
+.empty-state{
+  text-align:center;
+  padding:48px 20px;
+  color:var(--text3);
+}
+.empty-state .empty-icon{ font-size:48px; display:block; margin-bottom:12px; }
+.empty-state p{ font-size:14px; }
+
+/* ============================================ */
+/*  提示消息                                    */
+/* ============================================ */
+.toast{
+  position:fixed;
+  bottom:30px;
+  left:50%;
+  transform:translateX(-50%) translateY(100px);
+  background:#1C1C1E;
+  color:#fff;
+  padding:10px 24px;
+  border-radius:20px;
+  font-size:14px;
+  z-index:999;
+  transition:transform 0.35s cubic-bezier(.4,0,.2,1);
+  pointer-events:none;
+}
+.toast.show{ transform:translateX(-50%) translateY(0); }
+
+/* ============================================ */
+/*  设置面板                                    */
+/* ============================================ */
+.header-row{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+}
+.btn-settings{
+  width:34px;height:34px;
+  border-radius:50%;
+  border:1px solid var(--border);
+  background:var(--surface);
+  cursor:pointer;
+  font-size:17px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:all var(--transition);
+  position:relative;
+}
+.btn-settings:hover{ background:var(--primary-dim); }
+.btn-settings .ai-dot{
+  position:absolute;
+  top:2px;right:2px;
+  width:8px;height:8px;
+  border-radius:50%;
+  background:var(--calendar);
+  border:1.5px solid var(--surface);
+  display:none;
+}
+.btn-settings .ai-dot.active{ display:block; }
+
+/* 模态遮罩 */
+.modal-overlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.35);
+  z-index:200;
+  align-items:center;
+  justify-content:center;
+}
+.modal-overlay.show{ display:flex; }
+
+.modal{
+  background:var(--surface);
+  border-radius:var(--radius);
+  padding:24px;
+  width:90%;
+  max-width:420px;
+  max-height:85vh;
+  overflow-y:auto;
+  box-shadow:var(--shadow-lg);
+  animation:modalIn .25s ease;
+}
+@keyframes modalIn{
+  from{opacity:0;transform:translateY(20px) scale(.96)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+
+.modal-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:18px;
+}
+.modal-header h2{ font-size:18px; font-weight:700; }
+.modal-close{
+  width:28px;height:28px;
+  border-radius:50%;
+  border:none;
+  background:var(--bg);
+  cursor:pointer;
+  font-size:16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.modal-close:hover{ background:var(--border); }
+
+.form-group{
+  margin-bottom:14px;
+}
+.form-group label{
+  display:block;
+  font-size:13px;
+  font-weight:600;
+  margin-bottom:4px;
+  color:var(--text);
+}
+.form-group .hint{
+  font-size:11px;
+  color:var(--text3);
+  margin-bottom:4px;
+}
+.form-group input,
+.form-group select{
+  width:100%;
+  padding:9px 12px;
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  font-size:14px;
+  font-family:var(--font);
+  background:var(--bg);
+  color:var(--text);
+  outline:none;
+  transition:border var(--transition);
+}
+.form-group input:focus,
+.form-group select:focus{
+  border-color:var(--primary);
+}
+
+/* 开关 */
+.toggle-wrap{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.toggle{
+  width:48px;height:28px;
+  border-radius:14px;
+  background:var(--border);
+  cursor:pointer;
+  position:relative;
+  transition:background var(--transition);
+  flex-shrink:0;
+}
+.toggle.on{ background:var(--primary); }
+.toggle::after{
+  content:'';
+  position:absolute;
+  top:3px;left:3px;
+  width:22px;height:22px;
+  border-radius:50%;
+  background:#fff;
+  transition:transform var(--transition);
+  box-shadow:0 1px 3px rgba(0,0,0,.15);
+}
+.toggle.on::after{ transform:translateX(20px); }
+
+.modal-actions{
+  display:flex;
+  gap:8px;
+  margin-top:18px;
+}
+.modal-actions .btn{ flex:1; justify-content:center; }
+
+.ai-status-bar{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 12px;
+  border-radius:16px;
+  font-size:11px;
+  font-weight:500;
+  margin-bottom:8px;
+}
+.ai-status-bar.online{
+  background:#E8F8ED;
+  color:var(--calendar);
+}
+.ai-status-bar.offline{
+  background:var(--bg);
+  color:var(--text3);
+}
+.ai-status-bar .status-dot{
+  width:6px;height:6px;
+  border-radius:50%;
+  flex-shrink:0;
+}
+.ai-status-bar.online .status-dot{ background:var(--calendar); }
+.ai-status-bar.offline .status-dot{ background:var(--text3); }
+
+/* ============================================ */
+/*  响应式                                      */
+/* ============================================ */
+@media(max-width:500px){
+  .app{ padding:10px 12px 60px; }
+  .header{ padding:20px 0 4px; }
+  .header h1{ font-size:22px; }
+  .tab-btn{ font-size:11px; padding:10px 4px; }
+  .tab-btn .tab-icon{ font-size:18px; }
+  .tab-btn .tab-count{ font-size:15px; }
+  .card{ padding:12px; }
+  .input-zone{ padding:14px; }
+  .input-zone textarea{ font-size:15px; }
+  .btn{ font-size:13px; padding:7px 14px; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ========== 头部 ========== -->
+  <header class="header">
+    <span class="icon">📥</span>
+    <div class="header-row">
+      <h1>Frictionless Inbox</h1>
+      <button class="btn-settings" id="btnSettings" title="AI 分类设置">
+        ⚙️
+        <span class="ai-dot" id="aiDot"></span>
+      </button>
+    </div>
+    <p class="subtitle">无脑扔进来 · 自动分出去</p>
+    <div class="ai-status-bar offline" id="aiStatusBar">
+      <span class="status-dot"></span>
+      <span id="aiStatusText">本地规则引擎</span>
+    </div>
+  </header>
+
+  <!-- ========== 输入区 ========== -->
+  <section class="input-zone" id="inputZone">
+    <textarea id="inputText" rows="2"
+      placeholder="随便扔点什么进来…&#10;复制网页文字、待办事项、一闪而过的想法、论文片段……不用分类，直接丢进来就行。"
+    ></textarea>
+    <div class="mode-toggle-row">
+      <button class="mode-btn active" id="modeNormal">🧠 普通模式</button>
+      <button class="mode-btn" id="modeEssay">✍️ 随笔模式</button>
+    </div>
+    <div class="processing" id="processing">
+      <span>🧠 智能识别中</span>
+      <span class="dot-pulse"><span></span><span></span><span></span></span>
+    </div>
+    <div class="classify-preview" id="classifyPreview"></div>
+    <div class="input-row">
+      <span class="char-hint" id="charHint">Ctrl + Enter 快速提交</span>
+      <button class="btn btn-primary" id="submitBtn">丢进去 →</button>
+    </div>
+  </section>
+
+  <!-- ========== 标签栏 ========== -->
+  <nav class="tab-bar" id="tabBar">
+    <button class="tab-btn active" data-tab="inbox">
+      <span class="tab-icon">📥</span>
+      <span class="tab-count" id="countInbox">0</span>
+      <span>收件箱</span>
+    </button>
+    <button class="tab-btn" data-tab="todo">
+      <span class="tab-icon">✅</span>
+      <span class="tab-count" id="countTodo">0</span>
+      <span>待办清单</span>
+    </button>
+    <button class="tab-btn" data-tab="knowledge">
+      <span class="tab-icon">📚</span>
+      <span class="tab-count" id="countKnowledge">0</span>
+      <span>知识卡片</span>
+    </button>
+    <button class="tab-btn" data-tab="essay">
+      <span class="tab-icon">✍️</span>
+      <span class="tab-count" id="countEssay">0</span>
+      <span>随笔</span>
+    </button>
+  </nav>
+
+  <!-- 回收站入口 -->
+  <div style="text-align:center;margin-bottom:12px;">
+    <button class="btn btn-ghost btn-sm" id="btnTrash" style="font-size:12px;color:var(--text3);">
+      🗑️ 回收站 <span id="trashHint" style="opacity:0.6;"></span>
+    </button>
+  </div>
+
+  <!-- ========== 内容区 ========== -->
+  <div class="content-area">
+    <div class="tab-panel active" id="panel-inbox"></div>
+    <div class="tab-panel" id="panel-todo"></div>
+    <div class="tab-panel" id="panel-knowledge"></div>
+    <div class="tab-panel" id="panel-essay"></div>
+    <div class="tab-panel" id="panel-trash"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ========== 设置面板 ========== -->
+<div class="modal-overlay" id="settingsOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>⚙️ AI 分类设置</h2>
+      <button class="modal-close" id="settingsClose">&times;</button>
+    </div>
+
+    <div class="form-group">
+      <div class="toggle-wrap">
+        <label>🧠 AI 智能分类</label>
+        <div class="toggle" id="toggleAI"></div>
+      </div>
+      <span class="hint">开启后由 AI 大模型识别内容，分类更精准。关闭时使用本地规则引擎。</span>
+    </div>
+
+    <div class="form-group">
+      <label>API 提供商</label>
+      <select id="aiProvider"></select>
+    </div>
+
+    <div class="form-group">
+      <label>API Key</label>
+      <input type="password" id="aiApiKey" placeholder="sk-… 或 anthropic-…">
+      <span class="hint">🔒 仅存储在本浏览器，不会上传到任何服务器</span>
+    </div>
+
+    <div class="form-group">
+      <label>模型</label>
+      <select id="aiModel"></select>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="btnTestAPI">🔍 测试连接</button>
+      <button class="btn btn-primary" id="btnSaveSettings">💾 保存设置</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 确认弹窗 ========== -->
+<div class="modal-overlay" id="confirmOverlay">
+  <div class="modal" style="max-width:340px;text-align:center;padding:28px 24px;">
+    <div style="font-size:36px;margin-bottom:8px;" id="confirmIcon">🗑️</div>
+    <p style="font-size:15px;font-weight:600;margin-bottom:4px;" id="confirmTitle">确认删除</p>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:18px;" id="confirmMsg">删除后可在回收站保留7天</p>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost" id="confirmCancel" style="flex:1;justify-content:center;">取消</button>
+      <button class="btn btn-danger" id="confirmOk" style="flex:1;justify-content:center;">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================
+   数据存储层
+   ============================================ */
+const DB = {
+  KEY: 'frictionless_inbox_v2',
+
+  getAll() {
+    try {
+      const raw = localStorage.getItem(this.KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  },
+
+  saveAll(items) {
+    try {
+      localStorage.setItem(this.KEY, JSON.stringify(items));
+    } catch(e) {
+      if (e.name === 'QuotaExceededError') {
+        this._showToast('⚠️ 存储空间不足，请清理一些旧条目');
+      }
+    }
+  },
+
+  add(item) {
+    const items = this.getAll();
+    items.unshift(item); // 最新的在前面
+    this.saveAll(items);
+    return item;
+  },
+
+  update(id, updates) {
+    const items = this.getAll();
+    const idx = items.findIndex(i => i.id === id);
+    if (idx !== -1) {
+      items[idx] = { ...items[idx], ...updates };
+      this.saveAll(items);
+    }
+  },
+
+  remove(id) {
+    const items = this.getAll().filter(i => i.id !== id);
+    this.saveAll(items);
+  },
+
+  _showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+};
+
+/* ============================================
+   居中确认弹窗
+   ============================================ */
+function showConfirm(title, msg, icon, okLabel) {
+  return new Promise(resolve => {
+    const overlay = document.getElementById('confirmOverlay');
+    document.getElementById('confirmIcon').textContent = icon || '🗑️';
+    document.getElementById('confirmTitle').textContent = title || '确认';
+    document.getElementById('confirmMsg').textContent = msg || '';
+    document.getElementById('confirmOk').textContent = okLabel || '确认删除';
+
+    overlay.classList.add('show');
+
+    const cleanup = () => {
+      overlay.classList.remove('show');
+      document.getElementById('confirmCancel').removeEventListener('click', onCancel);
+      document.getElementById('confirmOk').removeEventListener('click', onOk);
+      overlay.removeEventListener('click', onOverlay);
+      document.removeEventListener('keydown', onKey);
+    };
+
+    const onCancel = () => { cleanup(); resolve(false); };
+    const onOk = () => { cleanup(); resolve(true); };
+    const onOverlay = (e) => { if (e.target === overlay) { cleanup(); resolve(false); } };
+    const onKey = (e) => { if (e.key === 'Escape') { cleanup(); resolve(false); } };
+
+    document.getElementById('confirmCancel').addEventListener('click', onCancel);
+    document.getElementById('confirmOk').addEventListener('click', onOk);
+    overlay.addEventListener('click', onOverlay);
+    document.addEventListener('keydown', onKey);
+  });
+}
+
+/* ============================================
+   回收站存储
+   ============================================ */
+const TrashDB = {
+  KEY: 'frictionless_inbox_trash',
+
+  getAll() {
+    try {
+      const raw = localStorage.getItem(this.KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  },
+
+  saveAll(items) {
+    localStorage.setItem(this.KEY, JSON.stringify(items));
+  },
+
+  /** 移入回收站 */
+  moveIn(item) {
+    const trash = this.getAll();
+    trash.unshift({
+      ...item,
+      deletedAt: new Date().toISOString(),
+    });
+    this.saveAll(trash);
+  },
+
+  /** 恢复 */
+  restore(id) {
+    const trash = this.getAll();
+    const idx = trash.findIndex(i => i.id === id);
+    if (idx === -1) return null;
+    const [restored] = trash.splice(idx, 1);
+    this.saveAll(trash);
+    // 清理回收站字段
+    const { deletedAt, ...item } = restored;
+    return item;
+  },
+
+  /** 彻底删除 */
+  removeForever(id) {
+    const trash = this.getAll().filter(i => i.id !== id);
+    this.saveAll(trash);
+  },
+
+  /** 清空回收站 */
+  emptyAll() {
+    this.saveAll([]);
+  },
+
+  /** 清理过期条目（>7天），返回清理数量 */
+  cleanExpired() {
+    const now = Date.now();
+    const MS_7_DAYS = 7 * 24 * 60 * 60 * 1000;
+    const trash = this.getAll();
+    const valid = trash.filter(i => {
+      const deletedTime = new Date(i.deletedAt).getTime();
+      return (now - deletedTime) < MS_7_DAYS;
+    });
+    const removed = trash.length - valid.length;
+    if (removed > 0) this.saveAll(valid);
+    return removed;
+  },
+};
+
+/* ============================================
+   内置 API 提供商配置
+   ============================================ */
+const PROVIDERS = {
+  anthropic: {
+    name: 'Anthropic (Claude)',
+    format: 'anthropic',
+    endpoint: 'https://api.anthropic.com/v1/messages',
+    keyHeader: 'x-api-key',
+    models: [
+      { val: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5（快速便宜）' },
+      { val: 'claude-sonnet-5-20251001', label: 'Claude Sonnet 5（精准）' },
+      { val: 'claude-opus-5-20251001', label: 'Claude Opus 5（最强）' },
+    ],
+  },
+  openai: {
+    name: 'OpenAI (GPT)',
+    format: 'openai',
+    endpoint: 'https://api.openai.com/v1/chat/completions',
+    keyHeader: 'Authorization',
+    keyPrefix: 'Bearer ',
+    models: [
+      { val: 'gpt-4o-mini', label: 'GPT-4o Mini（快速便宜）' },
+      { val: 'gpt-4o', label: 'GPT-4o（精准）' },
+    ],
+  },
+  deepseek: {
+    name: 'DeepSeek',
+    format: 'openai',
+    endpoint: 'https://api.deepseek.com/v1/chat/completions',
+    keyHeader: 'Authorization',
+    keyPrefix: 'Bearer ',
+    models: [
+      { val: 'deepseek-chat', label: 'DeepSeek V3（推荐）' },
+      { val: 'deepseek-reasoner', label: 'DeepSeek R1（深度推理）' },
+    ],
+  },
+  zhipu: {
+    name: '智谱 GLM',
+    format: 'openai',
+    endpoint: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+    keyHeader: 'Authorization',
+    keyPrefix: 'Bearer ',
+    models: [
+      { val: 'glm-4-flash', label: 'GLM-4 Flash（免费快速）' },
+      { val: 'glm-4', label: 'GLM-4（精准）' },
+    ],
+  },
+  moonshot: {
+    name: '月之暗面 (Kimi)',
+    format: 'openai',
+    endpoint: 'https://api.moonshot.cn/v1/chat/completions',
+    keyHeader: 'Authorization',
+    keyPrefix: 'Bearer ',
+    models: [
+      { val: 'moonshot-v1-8k', label: 'Moonshot V1 8K' },
+      { val: 'moonshot-v1-32k', label: 'Moonshot V1 32K' },
+    ],
+  },
+  qwen: {
+    name: '通义千问 (DashScope)',
+    format: 'openai',
+    endpoint: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+    keyHeader: 'Authorization',
+    keyPrefix: 'Bearer ',
+    models: [
+      { val: 'qwen-turbo', label: 'Qwen Turbo（快速便宜）' },
+      { val: 'qwen-plus', label: 'Qwen Plus（均衡）' },
+      { val: 'qwen-max', label: 'Qwen Max（最强）' },
+    ],
+  },
+  doubao: {
+    name: '豆包 (字节)',
+    format: 'openai',
+    endpoint: 'https://ark.cn-beijing.volces.com/api/v3/chat/completions',
+    keyHeader: 'Authorization',
+    keyPrefix: 'Bearer ',
+    models: [
+      { val: 'doubao-lite-32k', label: '豆包 Lite 32K' },
+      { val: 'doubao-pro-32k', label: '豆包 Pro 32K' },
+    ],
+  },
+  groq: {
+    name: 'Groq（超快）',
+    format: 'openai',
+    endpoint: 'https://api.groq.com/openai/v1/chat/completions',
+    keyHeader: 'Authorization',
+    keyPrefix: 'Bearer ',
+    models: [
+      { val: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B（极速）' },
+      { val: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B' },
+    ],
+  },
+  google: {
+    name: 'Google (Gemini)',
+    format: 'openai',
+    endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+    keyHeader: 'Authorization',
+    keyPrefix: 'Bearer ',
+    models: [
+      { val: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash（快速）' },
+      { val: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro（最强）' },
+    ],
+  },
+};
+
+/* ============================================
+   设置管理
+   ============================================ */
+const Settings = {
+  KEY: 'frictionless_inbox_settings',
+
+  _defaults: {
+    aiEnabled: false,
+    provider: 'anthropic',
+    apiKey: '',
+    model: 'claude-haiku-4-5-20251001',
+  },
+
+  getAll() {
+    try {
+      const raw = localStorage.getItem(this.KEY);
+      const data = raw ? JSON.parse(raw) : {};
+      return { ...this._defaults, ...data };
+    } catch { return { ...this._defaults }; }
+  },
+
+  get(key) {
+    return this.getAll()[key];
+  },
+
+  set(key, value) {
+    const all = this.getAll();
+    all[key] = value;
+    localStorage.setItem(this.KEY, JSON.stringify(all));
+  },
+
+  setAll(obj) {
+    const all = { ...this.getAll(), ...obj };
+    localStorage.setItem(this.KEY, JSON.stringify(all));
+  },
+
+  /** 当前是否启用 AI */
+  isAIReady() {
+    const s = this.getAll();
+    return s.aiEnabled && s.apiKey.trim().length > 0;
+  },
+};
+
+/* ============================================
+   AI 分类器（调用大模型 API）
+   ============================================ */
+const AIClassifier = {
+
+  /**
+   * 调用 AI 进行分类，返回与 Brain.analyze() 相同格式的结果
+   * 失败时返回 null，由调用方回退到本地引擎
+   */
+  async classify(text) {
+    const settings = Settings.getAll();
+    if (!settings.apiKey) return null;
+
+    const prompt = this._buildPrompt(text);
+
+    try {
+      let response;
+      const provider = PROVIDERS[settings.provider];
+      if (!provider) return null;
+      if (provider.format === 'anthropic') {
+        response = await this._callAnthropic(settings, provider, prompt);
+      } else {
+        response = await this._callOpenAICompatible(settings, provider, prompt);
+      }
+      return this._parseResponse(response, text);
+    } catch (e) {
+      console.warn('AI 分类失败，回退本地引擎:', e.message);
+      return null;
+    }
+  },
+
+  /** 测试 API 连接 */
+  async testConnection() {
+    const settings = Settings.getAll();
+    if (!settings.apiKey) return { ok: false, error: '请先填写 API Key' };
+
+    try {
+      const provider = PROVIDERS[settings.provider];
+      if (!provider) return { ok: false, error: '未知提供商' };
+      if (provider.format === 'anthropic') {
+        await this._callAnthropic(settings, provider, '回复"OK"');
+      } else {
+        await this._callOpenAICompatible(settings, provider, '回复"OK"');
+      }
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  },
+
+  /** 构建分类提示词 */
+  _buildPrompt(text) {
+    return `你是一个智能分类助手。分析以下用户输入的文字，返回一个 JSON 对象。
+
+## 分类规则
+- **todo**(待办): 包含明确的行动意图，需要用户去做某事。例如：交作业、写报告、去拿快递、记得开会、需要完成…
+- **calendar**(日历): 包含明确的截止日期或时间点。例如：12月15日、明天、下周…
+- **knowledge**(知识): 包含学术、技术、理论、学科知识等内容。例如：数学公式、物理原理、编程概念、哲学思想…
+- **essay**(随笔): 包含个人反思、感悟、日记式记录、生活观察、心情随笔等内容。不是学术知识，不是明确的任务待办，不是日历事件。
+- **inbox**(收件箱): 以上都不匹配的日常碎片、闲聊、情绪表达等。
+
+一条文字可以同时属于多个分类（例如"明天交数学作业"既是todo又是calendar）。
+
+## 返回格式
+必须返回纯 JSON，不要包含其他文字：
+{
+  "categories": ["todo", "calendar"],
+  "title": "简短的标题（≤30字）",
+  "deadline": "YYYY-MM-DD 或 null",
+  "eventDate": "YYYY-MM-DD 或 null",
+  "time": "HH:MM 或 null",
+  "tags": ["标签1", "标签2"],
+  "summary": "一句话概括（≤100字）"
+}
+
+## 用户输入
+${text}`;
+  },
+
+  /** Anthropic API */
+  async _callAnthropic(settings, provider, prompt) {
+    const headers = { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01' };
+    headers[provider.keyHeader] = (provider.keyPrefix || '') + settings.apiKey;
+
+    const resp = await fetch(provider.endpoint, {
+      method: 'POST', headers,
+      body: JSON.stringify({
+        model: settings.model,
+        max_tokens: 500,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error?.message || `HTTP ${resp.status}`);
+    }
+
+    const data = await resp.json();
+    return data.content[0].text;
+  },
+
+  /** OpenAI 兼容 API（OpenAI、DeepSeek、智谱、Kimi、通义千问、豆包、Groq、Gemini…） */
+  async _callOpenAICompatible(settings, provider, prompt) {
+    const headers = { 'Content-Type': 'application/json' };
+    headers[provider.keyHeader] = (provider.keyPrefix || '') + settings.apiKey;
+
+    const body = {
+      model: settings.model,
+      messages: [
+        { role: 'system', content: '你是一个分类助手。始终返回纯 JSON，不要包含 markdown 代码块或其他文字。' },
+        { role: 'user', content: prompt },
+      ],
+      max_tokens: 500,
+    };
+    // OpenAI 专有：response_format；其他家兼容则忽略报错
+    if (provider.format === 'openai' && settings.provider === 'openai') {
+      body.response_format = { type: 'json_object' };
+    }
+
+    const resp = await fetch(provider.endpoint, {
+      method: 'POST', headers,
+      body: JSON.stringify(body),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error?.message || `HTTP ${resp.status}`);
+    }
+
+    const data = await resp.json();
+    return data.choices[0].message.content;
+  },
+
+  /** 解析 AI 返回的 JSON，标准化为 Brain.analyze() 格式 */
+  _parseResponse(raw, originalText) {
+    let json = raw.trim();
+    json = json.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+    const parsed = JSON.parse(json);
+    return {
+      categories: (parsed.categories || []).filter(c =>
+        ['todo','calendar','knowledge','inbox','essay'].includes(c)),
+      title: parsed.title || originalText.slice(0, 40),
+      // 区分截止日期和事件日期
+      deadline: parsed.deadline && parsed.deadline !== 'null' ? parsed.deadline : null,
+      eventDate: parsed.eventDate && parsed.eventDate !== 'null' ? parsed.eventDate : null,
+      time: parsed.time && parsed.time !== 'null' ? parsed.time : null,
+      timeDisplay: parsed.timeDisplay || (parsed.time && parsed.time !== 'null' ? parsed.time : null),
+      tags: parsed.tags || [],
+      summary: parsed.summary || originalText.slice(0, 200),
+    };
+  },
+};
+const Brain = {
+
+  /**
+   * 分析文本，返回分类结果
+   */
+  analyze(text) {
+    const result = {
+      categories: [],       // ['todo', 'calendar', 'knowledge', 'essay']
+      title: '',
+      deadline: null,       // Date or null — 截止日期（有"前/截止"等压力词）
+      eventDate: null,      // Date or null — 事件日期（某件事发生的当天）
+      time: null,           // "15:00" or null
+      timeDisplay: null,    // "下午3点" or null
+      tags: [],
+      summary: '',
+    };
+
+    if (!text.trim()) return result;
+
+    // --- 聊天/对话检测：短路的归入收件箱 ---
+    if (this._isChat(text)) {
+      result.categories.push('inbox');
+      return result;
+    }
+
+    // --- 提取标题（第一行或前30字） ---
+    const lines = text.trim().split(/[\n\r]+/);
+    const firstLine = lines[0].trim();
+    result.title = firstLine.length > 40 ? firstLine.slice(0,40) + '…' : firstLine;
+    result.summary = text.trim().length > 200 ? text.trim().slice(0,200) + '…' : text.trim();
+
+    // --- 提取日期（区分截止日期和事件日期） ---
+    const dates = this._extractDates(text);
+    result.deadline = dates.deadline;
+    result.eventDate = dates.eventDate;
+
+    // --- 提取具体时间 ---
+    const timeResult = this._extractTime(text);
+    result.time = timeResult.time;
+    result.timeDisplay = timeResult.display;
+
+    // --- 计算各类别得分 ---
+    const todoScore = this._todoScore(text);
+    const knowledgeScore = this._knowledgeScore(text);
+    const essayScore = this._essayScore(text);
+    const hasDate = result.deadline !== null || result.eventDate !== null;
+
+    // --- 智能分发逻辑 ---
+    // 知识：知识得分高，且不被待办得分压倒（避免"复习傅里叶变换"误判）
+    if (knowledgeScore >= 2 && knowledgeScore > todoScore) {
+      result.categories.push('knowledge');
+      result.tags.push(...this._extractKnowledgeTags(text));
+    }
+
+    // 待办：待办得分高，或者有明显动作意图
+    if (todoScore >= 2 && todoScore >= knowledgeScore) {
+      result.categories.push('todo');
+    }
+
+    // 日历：有日期（截止日期或事件日期都算）
+    if (hasDate) {
+      result.categories.push('calendar');
+    }
+
+    // 随笔：随笔得分高，且不是知识、不是待办（避免与已有强分类冲突）
+    if (essayScore >= 3 && knowledgeScore < 2 && todoScore < 2) {
+      result.categories.push('essay');
+    }
+
+    // 如果什么都没匹配，默认归入收件箱
+    if (result.categories.length === 0) {
+      result.categories.push('inbox');
+    }
+
+    // 去重
+    result.categories = [...new Set(result.categories)];
+    result.tags = [...new Set(result.tags)];
+
+    return result;
+  },
+
+  /**
+   * 提取日期，区分「截止日期」和「事件日期」
+   * - deadline: 带"前"/"之前"/"截止"/"ddl"等压力词 → 必须在此日期前完成
+   * - eventDate: 不带压力词 → 某件事在当天发生
+   * 返回 { deadline: Date|null, eventDate: Date|null }
+   */
+  _extractDates(text) {
+    const now = new Date();
+    const year = now.getFullYear();
+    const weekMap = { '一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'日':0,'天':0 };
+
+    // 判断是否带有截止压力
+    const hasDeadlinePressure = /(?:前|之前|截止|ddl|deadline|到期|不晚于|最晚|在此之前|到期日)/i.test(text);
+
+    let date = null;
+
+    // "12月15日" / "12月15号"
+    let m = text.match(/(\d{1,2})\s*月\s*(\d{1,2})\s*[日号]/);
+    if (m) {
+      const month = parseInt(m[1]) - 1;
+      const day = parseInt(m[2]);
+      date = new Date(year, month, day);
+      if (date < new Date(year, now.getMonth(), now.getDate() - 1)) {
+        date.setFullYear(year + 1);
+      }
+    }
+
+    // "明天"
+    if (!date && /明天/.test(text)) {
+      date = new Date(now);
+      date.setDate(date.getDate() + 1);
+    }
+
+    // "大后天" —— 必须在"后天"之前检测，否则"后天"会先匹配到大后天中的子串
+    if (!date && /大后天/.test(text)) {
+      date = new Date(now);
+      date.setDate(date.getDate() + 3);
+    }
+
+    // "后天"
+    if (!date && /后天/.test(text)) {
+      date = new Date(now);
+      date.setDate(date.getDate() + 2);
+    }
+
+    // "下周X"
+    if (!date) {
+      m = text.match(/下周\s*([一二三四五六日天])/);
+      if (m) {
+        const targetDay = weekMap[m[1]];
+        date = new Date(now);
+        const daysUntil = (7 - now.getDay()) + targetDay;
+        date.setDate(date.getDate() + (daysUntil <= 7 ? daysUntil : daysUntil));
+      }
+    }
+
+    // "下个月X号/日"
+    if (!date) {
+      m = text.match(/下个?月\s*(\d{1,2})\s*[日号]/);
+      if (m) {
+        date = new Date(year, now.getMonth() + 1, parseInt(m[1]));
+      }
+    }
+
+    // "周X"（本周）
+    if (!date) {
+      m = text.match(/周\s*([一二三四五六日天])/);
+      if (m) {
+        const targetDay = weekMap[m[1]];
+        date = new Date(now);
+        let daysUntil = targetDay - now.getDay();
+        if (daysUntil <= 0) daysUntil += 7;
+        date.setDate(date.getDate() + daysUntil);
+      }
+    }
+
+    // 截止词 + 附近数字日期
+    if (!date && /截止|ddl|deadline|到期/gi.test(text)) {
+      m = text.match(/(\d{1,2})[\./-](\d{1,2})/);
+      if (m) {
+        const month = parseInt(m[1]) - 1;
+        const day = parseInt(m[2]);
+        date = new Date(year, month, day);
+        if (date < new Date(year, now.getMonth(), now.getDate() - 1)) {
+          date.setFullYear(year + 1);
+        }
+      }
+    }
+
+    if (!date) return { deadline: null, eventDate: null };
+
+    // 根据压力词决定日期类型
+    return {
+      deadline: hasDeadlinePressure ? date : null,
+      eventDate: hasDeadlinePressure ? null : date,
+    };
+  },
+
+  /**
+   * 提取文本中的具体时间点
+   * 返回 { time: "15:00"|null, display: "下午3点"|null }
+   */
+  _extractTime(text) {
+    // 中文数字转阿拉伯数字（支持 零～九十九）
+    const cnToNum = (cn) => {
+      const map = { '零':0,'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10,'两':2 };
+      if (!cn || cn.length === 0) return NaN;
+      // 纯阿拉伯数字
+      if (/^\d+$/.test(cn)) return parseInt(cn);
+      // "十" = 10
+      if (cn === '十') return 10;
+      // "X十Y" / "十Y": 二十三、三十五、十五…
+      let m = cn.match(/^([一二三四五六七八九])?十([一二三四五六七八九])?$/);
+      if (m) {
+        const tens = m[1] ? map[m[1]] : 1;
+        const ones = m[2] ? map[m[2]] : 0;
+        return tens * 10 + ones;
+      }
+      // "零X": 零三 = 3
+      m = cn.match(/^零([一二三四五六七八九])$/);
+      if (m) return map[m[1]];
+      // 单个中文数字
+      if (cn.length === 1 && map[cn] !== undefined) return map[cn];
+      return NaN;
+    };
+
+    // "下午3点" / "晚上九点半" / "上午十点二十三分"
+    let m = text.match(/(上午|下午|中午|晚上|傍晚|早上|凌晨)\s*([\d一二三四五六七八九十两]{1,3})\s*[点:：]\s*([\d一二三四五六七八九十两半零]{0,4})\s*(分)?/);
+    if (m) {
+      const period = m[1];
+      const hourStr = m[2];
+      const minStr = m[3];
+
+      let hour = cnToNum(hourStr);
+      if (isNaN(hour) || hour > 23) return { time: null, display: null };
+
+      let minute = 0;
+      if (minStr === '半') {
+        minute = 30;
+      } else if (minStr && minStr.length > 0) {
+        const minNum = cnToNum(minStr);
+        if (!isNaN(minNum) && minNum < 60) minute = minNum;
+      }
+
+      // 时段 → 24 小时制转换
+      if (period === '下午' || period === '晚上' || period === '傍晚') {
+        if (hour !== 12) hour += 12;
+      } else if (period === '凌晨') {
+        if (hour === 12) hour = 0;
+      } else if (period === '中午') {
+        if (hour !== 12) hour += 12;
+      }
+      // 上午/早上: 保持原样
+
+      if (hour > 23) hour = 23;
+
+      const hh = String(hour).padStart(2, '0');
+      const mm = String(minute).padStart(2, '0');
+      return { time: `${hh}:${mm}`, display: `${hh}:${mm}` };
+    }
+
+    // "15:00" / "15:30" (24小时制)
+    m = text.match(/(\d{1,2}):(\d{2})/);
+    if (m) {
+      const hour = parseInt(m[1]);
+      const minute = parseInt(m[2]);
+      if (hour <= 23 && minute <= 59) {
+        const hh = String(hour).padStart(2, '0');
+        const mm = String(minute).padStart(2, '0');
+        return { time: `${hh}:${mm}`, display: `${hh}:${mm}` };
+      }
+    }
+
+    return { time: null, display: null };
+  },
+
+  /**
+   * 检测是否为对话/闲聊内容（应该归入收件箱）
+   * 返回 true 表示这是聊天内容，不应进行知识/待办分类
+   */
+  _isChat(text) {
+    const trimmed = text.trim();
+    const chatPatterns = [
+      /你是什么/, /你是谁/, /你叫什么/, /你是哪个/,
+      /你能做/, /你可以做/, /你会做/, /你懂/, /你会不会/,
+      /你有(什么|哪些)功能/, /你的(功能|能力)/,
+      /^你[好嗨早]/, /你在吗/, /你怎么样/,
+      /^谢谢/, /^多谢/, /^感谢/,
+      /再见/, /拜拜/, /晚安/,
+      /讲个笑话/, /说个故事/,
+      /你是.{1,10}(模型|AI|机器人|助手)/,
+      /聊天/, /聊聊/, /陪(我|聊)/,
+      /(嗯|啊|哦|哈|嘿|喂)[，,。.]*$/,
+      /怎么(办|样|搞)/,
+      /帮我(写|画|翻译|解释|回答)/,
+      /告诉我/,
+      /请教/,
+      /帮我个忙/,
+      /问(你|个问题)/,
+      /请问/,
+      /什么(模型|AI|机器人|助手)/,      // "什么模型" → 非知识
+      /你是.{0,5}(AI|机器人|程序|软件)/,
+      /你能(帮我)?(做|干|写|画|翻译|回答|搜索|查)/,
+      /(帮我|给我|为我|替我)/,         // 直接的请求帮助
+      /好吗|好不好|行不行|可以吗|能吗/,  // 征求性提问
+      /^怎么(用|做|写|搞|弄|玩|操作)/,  // "怎么用这个" 类
+      /^如何/,                          // "如何使用" → 极短文本可能误判知识
+      /^有没有/,                        // 询问式
+      /(聊|唠)会(儿|天|嗑)/,
+      /随便聊聊/,
+      /测试/,                           // "这是一个测试"
+      /(有空|在吗|忙吗)/,
+    ];
+    for (const re of chatPatterns) {
+      if (re.test(trimmed)) return true;
+    }
+    // 短文本 + 疑问语气 → 更像提问/闲聊（且非明确待办动作）
+    if (trimmed.length < 30 && /[?？呢吗啊呀]$/.test(trimmed) && !/(?:交|做|写|去|买|拿|记得|完成|提交)/.test(trimmed)) {
+      return true;
+    }
+    // 超短纯问句（< 15字）直接归收件箱，避免误匹配知识词库
+    if (trimmed.length < 15 && /[?？]/.test(trimmed)) {
+      return true;
+    }
+    return false;
+  },
+
+  /**
+   * 随笔/反思内容得分
+   */
+  _essayScore(text) {
+    let score = 0;
+    const patterns = [
+      // 明确随笔/日记信号 (+3)
+      { re: /随笔/, weight: 3 },
+      { re: /日记/, weight: 3 },
+      { re: /心情/, weight: 3 },
+      { re: /记录一下/, weight: 3 },
+      { re: /碎碎念/, weight: 3 },
+      { re: /有感/, weight: 2 },
+      { re: /感悟/, weight: 2 },
+      { re: /反思/, weight: 2 },
+      { re: /随记/, weight: 3 },
+      { re: /随便写写/, weight: 3 },
+      { re: /备忘/, weight: 2 },
+      { re: /吐槽/, weight: 2 },
+      { re: /唠叨/, weight: 2 },
+      // 反思/个人思考模式 (+2)
+      { re: /我(觉得|想|认为|发现|感觉|意识到|注意到)/, weight: 2 },
+      { re: /今天(的)?(心情|状态|感受|收获)/, weight: 2 },
+      { re: /最近(的)?(感觉|状态|想法|思考|生活)/, weight: 2 },
+      // 生活观察/随想 (+1)
+      { re: /突然(想|发现|觉得)/, weight: 1 },
+      { re: /原来/, weight: 1 },
+      { re: /其实/, weight: 1 },
+      { re: /或许/, weight: 1 },
+      { re: /说来也/, weight: 1 },
+      { re: /嗯[，,]{0,1}/, weight: 1 },
+      { re: /诶[，,]{0,1}/, weight: 1 },
+      // 第一人称反思型长句特征
+      { re: /我.{1,30}(想|觉得|认为|感觉|发现|反思|意识到)/, weight: 1 },
+    ];
+    for (const { re, weight } of patterns) {
+      if (re.test(text)) score += weight;
+    }
+    // 长文本 + 第一人称 + 无明显待办/知识特征 → 更像随笔
+    if (text.length > 80 && /我/.test(text)) {
+      score += 1;
+    }
+    return score;
+  },
+
+  /**
+   * 待办事项得分（改为评分制，每条命中 +1）
+   */
+  _todoScore(text) {
+    let score = 0;
+    const patterns = [
+      // 强动作信号（直接指向具体任务 +2 分）
+      { re: /交\s*(作业|报告|材料|表|论文|总结|上去|了)/, weight: 2 },
+      { re: /提交/, weight: 2 },
+      { re: /完成/, weight: 2 },
+      { re: /打印/, weight: 2 },
+      { re: /报名/, weight: 2 },
+      { re: /签到/, weight: 2 },
+      { re: /预约/, weight: 2 },
+      { re: /别忘了/, weight: 2 },
+      { re: /记得\s*(去|要|交|做|写|提交|完成|买|拿|带)/, weight: 2 },
+      { re: /(必须|得|要|需要)\s*(交|做|写|提交|完成|去|买|拿|办|处理|改|调整|优化|修|换|fix|喝|吃|扔|丢|倒|洗)/, weight: 2 },
+      { re: /(必须|得|要|需要)\s*\S{1,3}?(掉|完|了|一下)/, weight: 2 },  // "得喝掉"、"要扔掉"
+
+      // 中等动作信号 +1 分
+      { re: /做\s*(完|好|了|一下|个)/, weight: 1 },
+      { re: /写\s*(完|好|了|论文|报告|作业)/, weight: 1 },
+      { re: /准备\s*(考试|材料|面试|报告|一下)/, weight: 1 },
+      { re: /参加\s*(会议|考试|活动|面试|答辩)/, weight: 1 },
+      { re: /去\s*(拿|买|办|开会|上课|一趟|趟)/, weight: 1 },
+      { re: /去(?:了|过|趟|一下|了趟)?\s*(超市|商场|银行|医院|图书馆|药店|便利店|菜市场|快递站)/, weight: 1 },
+      { re: /整理/, weight: 1 },
+      { re: /复习/, weight: 1 },
+      { re: /预习/, weight: 1 },
+      { re: /联系/, weight: 1 },
+      { re: /确认/, weight: 1 },
+      { re: /处理/, weight: 1 },
+      { re: /搞定/, weight: 1 },
+      { re: /记得/, weight: 1 },
+      { re: /安排/, weight: 1 },
+      { re: /规划/, weight: 1 },
+      { re: /跟进/, weight: 1 },
+      { re: /催促/, weight: 1 },
+      { re: /提醒/, weight: 1 },
+      { re: /记得/, weight: 1 },
+      { re: /别忘了/, weight: 1 },
+      { re: /解决/, weight: 1 },
+      { re: /修复/, weight: 1 },
+      { re: /安装/, weight: 1 },
+      { re: /配置/, weight: 1 },
+      { re: /部署/, weight: 1 },
+      { re: /备份/, weight: 1 },
+      { re: /更新/, weight: 1 },
+      { re: /升级/, weight: 1 },
+      { re: /下载/, weight: 1 },
+      { re: /上传/, weight: 1 },
+      { re: /发送/, weight: 1 },
+      { re: /回复/, weight: 1 },
+      { re: /通知/, weight: 1 },
+      { re: /开会/, weight: 1 },
+      { re: /请假/, weight: 1 },
+      { re: /报销/, weight: 1 },
+      { re: /填表/, weight: 1 },
+      { re: /注册/, weight: 1 },
+      { re: /登录/, weight: 1 },
+      { re: /修改/, weight: 1 },
+      { re: /检查/, weight: 1 },
+      { re: /测试/, weight: 1 },
+      { re: /发布/, weight: 1 },
+      // 口语化/生活化动作
+      { re: /买/, weight: 1 },
+      { re: /购买/, weight: 1 },
+      { re: /(看|读|写|做|学|复习|改|调|弄)\s*完/, weight: 2 },  // 看完/做完/改完 = 强信号
+      { re: /(看|读|写|做|学|改|调|弄)\s*(一下|个)/, weight: 1 },
+      { re: /发\s*(给|送|出)/, weight: 1 },
+      { re: /(交给|递给|送给|发给)/, weight: 1 },
+      { re: /(喝|吃|扔|丢|倒|洗|收|还)\s*(掉|了|一下)/, weight: 1 },
+      { re: /(需要|得|要|必须)\s*(改|调整|优化|修|换|fix)/, weight: 2 },
+      { re: /催/, weight: 1 },
+      { re: /调整/, weight: 1 },
+      { re: /修改/, weight: 1 },
+      { re: /优化/, weight: 1 },
+      { re: /换/, weight: 1 },
+      { re: /去\s*(超市|商场|银行|医院|图书馆|药店|便利店)/, weight: 1 },
+      { re: /总结/, weight: 1 },  // "写个总结"中的总结 = 待办动作
+      { re: /记录/, weight: 1 },
+      { re: /备注/, weight: 1 },
+    ];
+
+    for (const { re, weight } of patterns) {
+      if (re.test(text)) score += weight;
+    }
+
+    return score;
+  },
+
+  /**
+   * 知识内容得分（评分制，每条命中 +1，涵盖各学科领域）
+   */
+  _knowledgeScore(text) {
+    let score = 0;
+
+    // ======== 数学与形式科学 ========
+    const mathTerms = [
+      '变换','函数','积分','微分','导数','矩阵','向量','概率','统计','级数','展开',
+      '线性代数','微积分','拓扑','集合','映射','空间','数论','几何','代数',
+      '傅里叶','拉普拉斯','泰勒','多项式','对数','指数','极限','连续','离散',
+      '正交','特征值','特征向量','范数','卷积','协方差','方差','回归','分类','聚类',
+      '优化','梯度','偏导','全微分','伽罗瓦','希尔伯特','黎曼','柯西','拉格朗日',
+      '高斯','泊松','贝叶斯','马尔可夫','欧拉','张量','流形','群论','环','域',
+      '随机过程','布朗运动','蒙特卡洛','数值分析','泛函','变分','同伦','同调',
+      '方程','求解','解析','数值解','近似','收敛','发散',
+    ];
+    for (const t of mathTerms) { if (text.includes(t)) score++; }
+
+    // ======== 物理 ========
+    const physicsTerms = [
+      '物理','力学','电磁','光学','热学','声学','原子','分子','粒子',
+      '相对论','量子力学','经典力学','电动力学','热力学','统计物理',
+      '薛定谔','海森堡','狄拉克','麦克斯韦','牛顿','爱因斯坦','玻尔',
+      '波函数','熵','焓','能量','动量','角动量','自旋','场论','规范',
+      '对称性','守恒','辐射','光谱','衍射','干涉','偏振','激光',
+      '等离子体','超导','半导体','能带','费米','玻色','光子','声子',
+      '费曼','泡利','霍金','杨振宁','凝聚态','拓扑绝缘体','量子点',
+      '光电效应','康普顿','德布罗意','隧穿','霍尔效应','超流',
+    ];
+    for (const t of physicsTerms) { if (text.includes(t)) score++; }
+
+    // ======== 信号与系统 / 电子工程 ========
+    const signalTerms = [
+      '信号','系统','控制','电路','通信','编码','调制','滤波','采样',
+      '时域','频域','频谱','带宽','噪声','信噪比','反馈','环路','增益',
+      '阻抗','电压','电流','功率','传感器','执行器','嵌入式','FPGA','DSP',
+      '单片机','模数转换','数模转换','示波器','频谱仪','传递函数','频率响应',
+      '幅频','相频','波特图','奈奎斯特','香农','信息论','纠错码','加密',
+    ];
+    for (const t of signalTerms) { if (text.includes(t)) score++; }
+
+    // ======== 计算机科学 ========
+    const csTerms = [
+      '编程','代码','编译','网络','数据库','操作系统','算法','数据结构',
+      '机器学习','深度学习','神经网络','人工智能','模型','训练','推理',
+      'Python','Java','C\\+\\+','前端','后端','架构','设计模式',
+      'HTTP','TCP','IP','DNS','API','REST','GraphQL','SQL','NoSQL',
+      'Redis','Docker','Kubernetes','微服务','分布式','并发','并行',
+      '线程','进程','内存','缓存','索引','哈希','区块链','智能合约',
+      'Git','Linux','服务器','容器','虚拟化','DevOps','CI/CD',
+      '自然语言处理','计算机视觉','强化学习','迁移学习','注意力机制',
+      'Transformer','GPT','BERT','大模型','Token','Embedding',
+      '过拟合','欠拟合','正则化','损失函数','激活函数','反向传播',
+    ];
+    for (const t of csTerms) {
+      const re = new RegExp(t.replace(/\\\\/g,'\\'));
+      if (re.test(text)) score++;
+    }
+
+    // ======== 化学 / 生物 / 医学 ========
+    const chemBioTerms = [
+      '化学','反应','分子','原子','元素','化合物','催化','有机','无机',
+      '分析化学','物理化学','聚合','生物','基因','细胞','蛋白质','DNA','RNA',
+      '进化','生态','遗传','变异','自然选择','线粒体','核糖体','酶','激素',
+      '神经','突触','免疫','染色体','基因组','转录','翻译','代谢','光合',
+      '呼吸链','克雷布斯','ATP','干细胞','克隆','CRISPR','疫苗','抗体',
+      '病理','药理','解剖','生理','诊断','治疗','临床','流行病',
+    ];
+    for (const t of chemBioTerms) { if (text.includes(t)) score++; }
+
+    // ======== 人文社科 ========
+    const humanitiesTerms = [
+      '哲学','历史','经济','社会学','心理学','语言学','文学','政治',
+      '法律','教育','管理','市场','金融','认知','行为','决策','博弈',
+      '均衡','供需','通货膨胀','货币','财政','制度','文化','人类学',
+      '考古','伦理','美学','逻辑','修辞','辩证法','形而上学','认识论',
+      '存在主义','现象学','结构主义','解构','后现代','批判理论',
+    ];
+    for (const t of humanitiesTerms) { if (text.includes(t)) score++; }
+
+    // ======== 通用学术标志 ========
+    const academicMarkers = [
+      '研究','分析','方法','观察','假设','结论','综上所述','因此','由此可见',
+      '换言之','定义','概念','原理','理论','实践','实验',
+      '定理','引理','推论','命题','猜想','证明','推导','公式',
+      '参考文献','引自','doi','arXiv','论文','文献','教材','教科书',
+      '课程','知识点','总结','笔记','重点','难点','考试范围',
+      '体系结构','框架','模式','范式','机制','效应','现象','规律',
+      '方程','等式','不等式','推论','归纳','演绎',
+    ];
+    for (const t of academicMarkers) { if (text.includes(t)) score++; }
+
+    // ======== 补充：长文本学术特征启发式 ========
+    // 包含两个以上大写字母缩写词（如 CNN、API、DNA）→ 可能是技术内容
+    const abbrs = text.match(/[A-Z]{2,6}/g);
+    if (abbrs && abbrs.length >= 2) score += 1;
+
+    // 包含 "是……的" 或 "可以……" 等中文阐述句式 → 更像在解释/描述
+    if (/(?:是|即|指|称为|定义|表示|可以|可被|用于|用来|具有|包含).{2,20}(?:的|之一|方法|过程|结果)/.test(text)) {
+      score += 1;
+    }
+
+    // 数学符号检测
+    if (/[∫∮∂∇∑∏√∞≈≠≤≥±×÷→⇒⇔]/.test(text)) score += 2;
+    if (/[α-ωΑ-Ω]/.test(text)) score += 1; // 希腊字母
+
+    // ======== 补充：光学/波动学术语 ========
+    const opticsTerms = ['光','波长','频率','折射','反射','散射','色散','介质','振幅','相位','共振','干涉仪','光速','引力波','黑洞','暗物质','暗能量','宇宙学','夸克','轻子','能级','基态','激发态','跃迁','电磁波','射线','引力'];
+    for (const t of opticsTerms) { if (text.includes(t)) score++; }
+
+    // ======== 补充：哲学/人文深度术语 ========
+    const philosophyTerms = ['康德','黑格尔','柏拉图','亚里士多德','笛卡尔','尼采','叔本华','维特根斯坦','海德格尔','萨特','福柯','先验','经验','理性','感性','知性','物自体','二律背反','绝对精神','辩证法','形而上学','存在主义','现象学','批判','纯粹理性','实践理性','判断力','启蒙','异化','主奴辩证法','权力意志','永恒轮回'];
+    for (const t of philosophyTerms) { if (text.includes(t)) score++; }
+
+    // ======== 补充：深度学习/现代CS术语 ========
+    const dlTerms = ['残差','跳跃连接','恒等映射','ResNet','BatchNorm','Dropout','ReLU','Softmax','Sigmoid','Tanh','Adam','SGD','CNN','RNN','LSTM','GAN','VAE','BERT','GPT','Transformer','注意力机制','自注意力','交叉注意力','LayerNorm','Word2Vec','GloVe','FastText','预训练','微调','fine-tuning','tokenization','分词','词向量','位置编码','多头注意力'];
+    for (const t of dlTerms) {
+      if (text.includes(t)) score++;
+      // 大小写不敏感
+      if (text.toLowerCase().includes(t.toLowerCase())) score++;
+    }
+
+    // ======== 补充：英文数学/科学术语 ========
+    const enMathTerms = ['derivative','integral','sin','cos','tan','log','ln','lim','dx','dy','gradient','divergence','curl','laplacian','eigenvalue','eigenvector','theorem','lemma','proof','equation','function','matrix','vector','probability','distribution','variance','covariance'];
+    for (const t of enMathTerms) {
+      if (text.toLowerCase().includes(t.toLowerCase())) score++;
+    }
+
+    // ======== 补充："是什么/是什么"问答式知识句式 ========
+    if (/(?:什么是|是什么|为什么|如何理解|怎么理解|本质上|说白了|通俗地讲|换句话说|顾名思义).{4,40}(?:是|就是|指|即|意思|含义|概念)/.test(text)) {
+      score += 2;
+    }
+
+    // ======== 补充：书名号内容 = 知识信号 ========
+    const bookNames = text.match(/《([^》]+)》/g);
+    if (bookNames && bookNames.length >= 1) score += bookNames.length;
+
+    return score;
+  },
+
+  /**
+   * 提取知识标签（大幅扩展覆盖各学科）
+   */
+  _extractKnowledgeTags(text) {
+    const tags = [];
+
+    // 学科 → 标签映射
+    const tagMap = {
+      // 数学
+      '傅里叶': ['傅里叶分析', '信号处理'],
+      '拉普拉斯': ['拉普拉斯变换', '复变函数'],
+      '变换': ['数学变换'],
+      '函数': ['函数论'],
+      '积分': ['微积分'],
+      '微分': ['微积分'],
+      '导数': ['微积分'],
+      '矩阵': ['线性代数'],
+      '向量': ['线性代数'],
+      '特征值': ['线性代数'],
+      '概率': ['概率论'],
+      '统计': ['统计学'],
+      '级数': ['级数理论'],
+      '拓扑': ['拓扑学'],
+      '数论': ['数论'],
+      '几何': ['几何学'],
+      '优化': ['最优化'],
+      '梯度': ['优化算法'],
+      '方程': ['方程求解'],
+
+      // 物理
+      '量子': ['量子力学'],
+      '半导体': ['半导体物理'],
+      '能带': ['能带理论', '固体物理'],
+      '相对论': ['相对论'],
+      '力学': ['力学'],
+      '电磁': ['电磁学'],
+      '光学': ['光学'],
+      '热力学': ['热力学'],
+      '熵': ['热力学'],
+      '自旋': ['量子力学'],
+      '超导': ['超导物理'],
+      '粒子': ['粒子物理'],
+
+      // 信号/工程
+      '信号': ['信号处理'],
+      '频域': ['信号处理'],
+      '时域': ['信号处理'],
+      '滤波': ['信号处理'],
+      '采样': ['数字信号处理'],
+      '调制': ['通信原理'],
+      '编码': ['信息编码'],
+      '控制': ['控制理论'],
+      '电路': ['电路设计'],
+
+      // 计算机
+      '算法': ['算法'],
+      '数据结构': ['数据结构'],
+      '机器学习': ['机器学习'],
+      '深度学习': ['深度学习'],
+      '神经网络': ['神经网络'],
+      '人工智能': ['人工智能'],
+      'GPT': ['大语言模型'],
+      'Transformer': ['深度学习'],
+      '数据库': ['数据库'],
+      '操作系统': ['操作系统'],
+      '分布式': ['分布式系统'],
+      '编程': ['编程'],
+      '架构': ['软件架构'],
+
+      // 化学/生物
+      '化学': ['化学'],
+      '反应': ['化学反应'],
+      '基因': ['遗传学'],
+      '细胞': ['细胞生物学'],
+      '蛋白质': ['分子生物学'],
+      'DNA': ['遗传学'],
+      'RNA': ['分子生物学'],
+      '进化': ['进化论'],
+      '神经': ['神经科学'],
+      '免疫': ['免疫学'],
+
+      // 人文社科
+      '哲学': ['哲学'],
+      '经济': ['经济学'],
+      '心理学': ['心理学'],
+      '社会学': ['社会学'],
+      '语言学': ['语言学'],
+      '政治': ['政治学'],
+      '法律': ['法学'],
+      '金融': ['金融学'],
+      '管理': ['管理学'],
+      '博弈': ['博弈论'],
+      '认知': ['认知科学'],
+
+      // 通用
+      '公式': ['数学公式'],
+      '推导': ['公式推导'],
+      '定理': ['定理证明'],
+      '证明': ['数学证明'],
+      '实验': ['实验方法'],
+      '论文': ['学术论文'],
+      '文献': ['文献阅读'],
+      '笔记': ['学习笔记'],
+      '定义': ['概念定义'],
+      '原理': ['基本原理'],
+
+      // 光学/物理补充
+      '光': ['光学'],
+      '波长': ['波动光学'],
+      '折射': ['几何光学'],
+      '反射': ['几何光学'],
+      '色散': ['光学'],
+      '干涉': ['波动光学'],
+      '衍射': ['波动光学'],
+      '偏振': ['光学'],
+      '介质': ['光学介质'],
+      '引力': ['引力理论'],
+      '黑洞': ['天体物理'],
+      '暗物质': ['宇宙学'],
+
+      // 哲学补充
+      '康德': ['德国古典哲学'],
+      '黑格尔': ['辩证法'],
+      '先验': ['认识论'],
+      '经验': ['经验主义'],
+      '理性': ['理性主义'],
+      '批判': ['批判哲学'],
+      '形而上学': ['形而上学'],
+      '存在主义': ['存在主义'],
+
+      // 深度学习补充
+      '残差': ['深度学习'],
+      'ResNet': ['计算机视觉'],
+      'CNN': ['卷积神经网络'],
+      'RNN': ['循环神经网络'],
+      'LSTM': ['序列建模'],
+      'GAN': ['生成模型'],
+      'Attention': ['注意力机制'],
+      'Embedding': ['词嵌入'],
+
+      // 信号/工程补充
+      '频率': ['信号处理'],
+      '相位': ['信号处理'],
+      '振幅': ['信号处理'],
+      '采样': ['信号处理'],
+    };
+
+    // 按匹配长度降序排列，优先匹配长关键词（"傅里叶"比"变换"更具体）
+    const keys = Object.keys(tagMap).sort((a, b) => b.length - a.length);
+    const seenDomains = new Set();
+
+    for (const key of keys) {
+      if (text.includes(key)) {
+        for (const tag of tagMap[key]) {
+          if (!seenDomains.has(tag)) {
+            tags.push(tag);
+            seenDomains.add(tag);
+          }
+        }
+      }
+    }
+
+    // 提取方括号引用标记
+    if (/\[[\d,]+\]/.test(text) || /参考文献|引自|引用/.test(text)) {
+      tags.push('有参考文献');
+    }
+
+    // 数学/物理公式特征
+    if (/[α-ωΑ-Ω∫∮∂∇∑∏√∞≈≠≤≥±×÷→⇒⇔]/.test(text)) {
+      tags.push('含数学符号');
+    }
+
+    // 希腊字母
+    if (/[α-ωΑ-Ω]/.test(text)) {
+      tags.push('含希腊字母');
+    }
+
+    return [...new Set(tags)].slice(0, 6);
+  },
+
+  /**
+   * 格式化日期为中文
+   */
+  formatDate(date) {
+    if (!date) return '';
+    const y = date.getFullYear();
+    const m = date.getMonth() + 1;
+    const d = date.getDate();
+    const week = ['日','一','二','三','四','五','六'][date.getDay()];
+    return `${y}年${m}月${d}日 周${week}`;
+  },
+
+  /**
+   * 判断日期是否临近/过期
+   */
+  dateUrgency(date) {
+    if (!date) return null;
+    const now = new Date();
+    now.setHours(0,0,0,0);
+    const target = new Date(date);
+    target.setHours(0,0,0,0);
+    const diff = (target - now) / (1000*60*60*24);
+    if (diff < 0) return 'overdue';   // 已过期
+    if (diff <= 2) return 'soon';     // 2天内
+    if (diff <= 7) return 'week';     // 一周内
+    return 'ok';
+  }
+};
+
+/* ============================================
+   UI 渲染层
+   ============================================ */
+const UI = {
+  _el(id) { return document.getElementById(id); },
+
+  /** 更新时间计数 */
+  /** 渲染所有视图 */
+  renderAll() {
+    this.updateCounts();
+    this.renderInbox();
+    this.renderTodo();
+    this.renderKnowledge();
+    this.renderEssay();
+    this.renderTrash();
+  },
+
+  /** 收件箱 —— 显示全部条目 */
+  renderInbox() {
+    const panel = this._el('panel-inbox');
+    const items = DB.getAll().filter(i => {
+      const cats = (i.categories || []);
+      return cats.length === 0 || (cats.length === 1 && cats[0] === 'inbox');
+    });
+
+    if (items.length === 0) {
+      panel.innerHTML = this._renderBatchToolbar('inbox', 'normal') + `
+        <div class="empty-state">
+          <span class="empty-icon">📥</span>
+          <p>收件箱是空的</p>
+          <p style="font-size:12px;margin-top:4px">所有条目都已分类 👍</p>
+        </div>`;
+      this._bindBatchToolbarEvents('inbox', 'normal');
+      return;
+    }
+
+    panel.innerHTML = this._renderBatchToolbar('inbox', 'normal') + items.map(item => this._renderCard(item)).join('');
+    this._bindCardEvents(panel);
+    this._syncBatchCheckboxes('inbox');
+    this._bindBatchToolbarEvents('inbox', 'normal');
+  },
+
+  /** 待办清单（含日历条目） */
+  renderTodo() {
+    const panel = this._el('panel-todo');
+    const items = DB.getAll().filter(i => {
+      const cats = (i.categories || []);
+      return cats.includes('todo') || cats.includes('calendar');
+    });
+
+    if (items.length === 0) {
+      panel.innerHTML = this._renderBatchToolbar('todo', 'normal') + `
+        <div class="empty-state">
+          <span class="empty-icon">✅</span>
+          <p>暂无待办事项</p>
+          <p style="font-size:12px;margin-top:4px">试试输入「明天交综测材料」或「记得去拿快递」</p>
+        </div>`;
+      this._bindBatchToolbarEvents('todo', 'normal');
+      return;
+    }
+
+    // 未完成在前，已完成在后
+    const active = items.filter(i => !i.done);
+    const done = items.filter(i => i.done);
+    const sorted = [...active, ...done];
+
+    panel.innerHTML = this._renderBatchToolbar('todo', 'normal') + sorted.map(item => this._renderCard(item, true)).join('');
+    this._bindCardEvents(panel);
+    this._syncBatchCheckboxes('todo');
+    this._bindBatchToolbarEvents('todo', 'normal');
+  },
+
+  /** 随笔 */
+  renderEssay() {
+    const panel = this._el('panel-essay');
+    const items = DB.getAll().filter(i => (i.categories || []).includes('essay'));
+
+    if (items.length === 0) {
+      panel.innerHTML = this._renderBatchToolbar('essay', 'normal') + `
+        <div class="empty-state">
+          <span class="empty-icon">✍️</span>
+          <p>暂无随笔</p>
+          <p style="font-size:12px;margin-top:4px">试试输入「今天看了一本好书，有些感触…」或「最近在想一个问题…」</p>
+        </div>`;
+      this._bindBatchToolbarEvents('essay', 'normal');
+      return;
+    }
+
+    panel.innerHTML = this._renderBatchToolbar('essay', 'normal') + items.map(item => this._renderCard(item)).join('');
+    this._bindCardEvents(panel);
+    this._syncBatchCheckboxes('essay');
+    this._bindBatchToolbarEvents('essay', 'normal');
+  },
+
+  /** 知识卡片 */
+  renderKnowledge() {
+    const panel = this._el('panel-knowledge');
+    const items = DB.getAll().filter(i => (i.categories || []).includes('knowledge'));
+
+    if (items.length === 0) {
+      panel.innerHTML = this._renderBatchToolbar('knowledge', 'normal') + `
+        <div class="empty-state">
+          <span class="empty-icon">📚</span>
+          <p>暂无知识卡片</p>
+          <p style="font-size:12px;margin-top:4px">试试输入「能带理论的核心是布里渊区…」或粘贴一段论文摘要</p>
+        </div>`;
+      this._bindBatchToolbarEvents('knowledge', 'normal');
+      return;
+    }
+
+    panel.innerHTML = this._renderBatchToolbar('knowledge', 'normal') + items.map(item => this._renderCard(item, false, true)).join('');
+    this._bindCardEvents(panel);
+    this._syncBatchCheckboxes('knowledge');
+    this._bindBatchToolbarEvents('knowledge', 'normal');
+  },
+
+  /** 回收站 */
+  renderTrash() {
+    const panel = this._el('panel-trash');
+    const trashItems = TrashDB.getAll();
+    const MS_7_DAYS = 7 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+
+    if (trashItems.length === 0) {
+      panel.innerHTML = this._renderBatchToolbar('trash', 'trash') + `
+        <div class="empty-state">
+          <span class="empty-icon">🗑️</span>
+          <p>回收站是空的</p>
+        </div>`;
+      this._bindBatchToolbarEvents('trash', 'trash');
+      return;
+    }
+
+    const cardsHtml = trashItems.map(item => {
+      const deletedTime = new Date(item.deletedAt).getTime();
+      const remaining = MS_7_DAYS - (now - deletedTime);
+      const daysLeft = Math.max(0, Math.ceil(remaining / (24 * 60 * 60 * 1000)));
+      const timeStr = new Date(item.deletedAt).toLocaleString('zh-CN', {
+        month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'
+      });
+      const originalCats = (item.categories || []).filter(c => c !== 'inbox').join(' · ') || '未分类';
+      const batchChecked = this._selectedIds.has(item.id) ? ' checked' : '';
+
+      return `
+        <div class="card" style="opacity:0.75;">
+          <div class="card-header">
+            <input type="checkbox" class="batch-select" data-id="${item.id}"${batchChecked}>
+            <span class="card-title">${this._escape(item.title || '无标题')}</span>
+            <span style="font-size:11px;color:var(--text3);">删除于 ${timeStr}</span>
+          </div>
+          <div class="card-meta">
+            <span style="font-size:11px;color:var(--text2);">原分类: ${originalCats}</span>
+            <span style="font-size:11px;color:${daysLeft <= 1 ? 'var(--danger)' : 'var(--text3)'};">
+              ⏳ ${daysLeft}天后自动清除
+            </span>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-primary btn-sm trash-restore" data-id="${item.id}">↩️ 恢复</button>
+            <button class="btn btn-ghost btn-sm trash-delete" data-id="${item.id}" style="color:var(--danger);">彻底删除</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    panel.innerHTML = this._renderBatchToolbar('trash', 'trash') + cardsHtml;
+
+    // 批量选择 change 事件
+    panel.querySelectorAll('.batch-select').forEach(cb => {
+      cb.addEventListener('change', () => {
+        if (cb.checked) this._selectedIds.add(cb.dataset.id);
+        else this._selectedIds.delete(cb.dataset.id);
+        this._updateBatchToolbarDOM('trash');
+      });
+    });
+
+    // 恢复按钮
+    panel.querySelectorAll('.trash-restore').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const restored = TrashDB.restore(btn.dataset.id);
+        if (restored) {
+          DB.add(restored);
+          UI._showToast('✅ 已恢复');
+          UI.renderAll();
+        }
+      });
+    });
+
+    // 彻底删除按钮
+    panel.querySelectorAll('.trash-delete').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const ok = await showConfirm('彻底删除', '此操作不可撤销，确认彻底删除？', '⚠️', '彻底删除');
+        if (ok) {
+          TrashDB.removeForever(btn.dataset.id);
+          UI._showToast('已彻底删除');
+          UI.renderAll();
+        }
+      });
+    });
+
+    // 清空回收站
+    const emptyBtn = document.createElement('button');
+    emptyBtn.className = 'btn btn-ghost btn-sm';
+    emptyBtn.style.cssText = 'margin-top:12px;color:var(--danger);width:100%;';
+    emptyBtn.textContent = '🗑️ 清空回收站';
+    emptyBtn.addEventListener('click', async () => {
+      const ok = await showConfirm('清空回收站', '将彻底删除回收站中所有条目，不可恢复。', '⚠️', '全部清空');
+      if (ok) {
+        TrashDB.emptyAll();
+        UI._showToast('回收站已清空');
+        UI.renderAll();
+      }
+    });
+
+    const btnWrap = document.createElement('div');
+    btnWrap.style.cssText = 'text-align:center;';
+    btnWrap.appendChild(emptyBtn);
+    panel.appendChild(btnWrap);
+
+    this._bindBatchToolbarEvents('trash', 'trash');
+  },
+
+  /** 更新所有计数（含回收站） */
+  updateCounts() {
+    const items = DB.getAll();
+    let cInbox = 0, cTodo = 0, cKnow = 0, cEssay = 0;
+
+    items.forEach(item => {
+      const cats = item.categories || [];
+      // 收件箱计数：只算纯未分类的
+      if (cats.length === 0 || (cats.length === 1 && cats[0] === 'inbox')) cInbox++;
+      if (cats.includes('todo') || cats.includes('calendar')) cTodo++;
+      if (cats.includes('knowledge')) cKnow++;
+      if (cats.includes('essay')) cEssay++;
+    });
+
+    this._el('countInbox').textContent = cInbox;
+    this._el('countTodo').textContent = cTodo;
+    this._el('countKnowledge').textContent = cKnow;
+    this._el('countEssay').textContent = cEssay;
+
+    // 回收站计数
+    const trashCount = TrashDB.getAll().length;
+    this._el('trashHint').textContent = trashCount > 0 ? `(${trashCount})` : '';
+  },
+
+  /**
+   * 渲染单张卡片
+   */
+  _renderCard(item, showCheckbox = false, isKnowledge = false) {
+    const cats = item.categories || [];
+    const isTodo = cats.includes('todo');
+    const isCal = cats.includes('calendar');
+    const isKnow = cats.includes('knowledge');
+    const isEssay = cats.includes('essay');
+
+    let borderClass = 'inbox-card';
+    if (isKnow || isKnowledge) borderClass = 'knowledge-card';
+    else if (isEssay) borderClass = 'essay-card';
+    else if (isTodo) borderClass = 'todo-card';
+
+    const doneClass = item.done ? ' completed' : '';
+
+    // 日期显示：区分截止日期（⏰）和事件日期（📅）
+    let dateHtml = '';
+    if (item.deadline) {
+      const urgency = Brain.dateUrgency(item.deadline);
+      const dateLabel = Brain.formatDate(new Date(item.deadline));
+      let urgencyClass = '';
+      if (urgency === 'overdue') urgencyClass = '';
+      else if (urgency === 'soon') urgencyClass = 'soon';
+      else urgencyClass = 'ok';
+      dateHtml += `<span class="date-badge ${urgencyClass}">⏰ 截止: ${dateLabel}</span>`;
+    }
+    if (item.eventDate) {
+      const dateLabel = Brain.formatDate(new Date(item.eventDate));
+      dateHtml += `<span class="date-badge ok">📅 ${dateLabel}</span>`;
+    }
+    // 时间显示
+    if (item.time && item.timeDisplay) {
+      dateHtml += `<span class="date-badge ok">🕐 ${item.timeDisplay}</span>`;
+    } else if (item.time) {
+      dateHtml += `<span class="date-badge ok">🕐 ${item.time}</span>`;
+    }
+
+    // 分类徽章
+    let badgesHtml = cats.map(cat => {
+      if (cat === 'todo') return '<span class="badge badge-todo">待办</span>';
+      if (cat === 'calendar') return '<span class="badge badge-calendar">日历</span>';
+      if (cat === 'knowledge') return '<span class="badge badge-knowledge">知识</span>';
+      if (cat === 'essay') return '<span class="badge badge-essay">随笔</span>';
+      if (cat === 'inbox') return '<span class="badge badge-inbox">收件</span>';
+      return '';
+    }).filter(Boolean).join('');
+
+    // 知识标签
+    if (item.tags && item.tags.length > 0) {
+      badgesHtml += item.tags.map(t => `<span class="badge badge-knowledge">${t}</span>`).join('');
+    }
+
+    // 正文（截断）
+    const bodyText = item.summary || item.content || '';
+    const isLong = bodyText.length > 150;
+    const displayText = isLong ? bodyText.slice(0, 150) + '…' : bodyText;
+
+    const timeStr = new Date(item.createdAt).toLocaleString('zh-CN', {
+      month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'
+    });
+
+    const batchChecked = this._selectedIds.has(item.id) ? ' checked' : '';
+    const batchCheckboxHtml = `<input type="checkbox" class="batch-select" data-id="${item.id}"${batchChecked}>`;
+
+    const checkboxHtml = (showCheckbox || isTodo || isCal)
+      ? `<input type="checkbox" class="card-checkbox" data-id="${item.id}" ${item.done ? 'checked' : ''}
+          style="width:20px;height:20px;cursor:pointer;accent-color:var(--todo);flex-shrink:0;margin-top:2px">`
+      : '';
+
+    // 分类移动下拉
+    const CAT_OPTIONS = [
+      { key: 'todo', icon: '✅', label: '待办' },
+      { key: 'knowledge', icon: '📚', label: '知识' },
+      { key: 'essay', icon: '✍️', label: '随笔' },
+      { key: 'inbox', icon: '📥', label: '收件' },
+    ];
+    const catSelectorHtml = `
+      <div class="card-category-selector">
+        <button class="card-cat-trigger" data-id="${item.id}" title="移动到其他类目">📂</button>
+        <div class="cat-dropdown" data-id="${item.id}">
+          ${CAT_OPTIONS.map(opt => `
+            <label>
+              <input type="radio" class="cat-radio" data-id="${item.id}" name="cat-${item.id}" value="${opt.key}"
+                ${cats.includes(opt.key) ? 'checked' : ''}>
+              ${opt.icon} ${opt.label}
+            </label>
+          `).join('')}
+        </div>
+      </div>`;
+
+    return `
+      <div class="card ${borderClass}${doneClass}" data-id="${item.id}">
+        <div class="card-header">
+          ${batchCheckboxHtml}
+          ${checkboxHtml}
+          <span class="card-title" data-id="${item.id}" title="点击编辑标题">${this._escape(item.title || '无标题')}</span>
+          ${catSelectorHtml}
+          <button class="btn btn-ghost btn-sm card-delete" data-id="${item.id}" title="删除">🗑</button>
+        </div>
+        ${(badgesHtml || dateHtml) ? `<div class="card-meta">${badgesHtml}${dateHtml}</div>` : ''}
+        ${bodyText ? `<div class="card-body" data-id="${item.id}">${this._escape(displayText)}</div>` : ''}
+        ${isLong ? `<span class="card-body-toggle" data-id="${item.id}">展开全部 ↓</span>` : ''}
+        <div class="card-time">${timeStr}${item.aiClassified ? ' · 🤖 AI' : ''}</div>
+      </div>`;
+  },
+
+  _escape(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  },
+
+  /** 绑定卡片事件（checkbox、删除、展开、标题编辑） */
+  _bindCardEvents(panel) {
+    // --- 批量选择 checkbox ---
+    panel.querySelectorAll('.batch-select').forEach(cb => {
+      cb.addEventListener('change', () => {
+        if (cb.checked) this._selectedIds.add(cb.dataset.id);
+        else this._selectedIds.delete(cb.dataset.id);
+        // 从 panel id 反推当前 tab
+        const tabId = panel.id.replace('panel-', '');
+        this._updateBatchToolbarDOM(tabId);
+      });
+    });
+
+    // --- 标题点击编辑 ---
+    panel.querySelectorAll('.card-title').forEach(titleEl => {
+      titleEl.addEventListener('click', () => {
+        if (titleEl.classList.contains('editing')) return;
+        const itemId = titleEl.dataset.id;
+        const item = DB.getAll().find(i => i.id === itemId);
+        if (!item) return;
+
+        // 替换为 input
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'card-title-input';
+        input.value = item.title || '';
+        input.placeholder = '输入标题…';
+        titleEl.replaceWith(input);
+        input.focus();
+        input.select();
+
+        const save = () => {
+          const newTitle = input.value.trim() || '无标题';
+          DB.update(itemId, { title: newTitle });
+          input.replaceWith(titleEl);
+          titleEl.textContent = newTitle;
+          titleEl.classList.remove('editing');
+        };
+
+        input.addEventListener('blur', save);
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+          if (e.key === 'Escape') { input.value = item.title || ''; input.blur(); }
+        });
+      });
+    });
+    // Checkbox
+    panel.querySelectorAll('.card-checkbox').forEach(cb => {
+      cb.addEventListener('change', () => {
+        DB.update(cb.dataset.id, { done: cb.checked });
+        UI.renderAll();
+      });
+    });
+
+    // 删除按钮
+    panel.querySelectorAll('.card-delete').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const items = DB.getAll();
+        const item = items.find(i => i.id === btn.dataset.id);
+        if (!item) return;
+        const ok = await showConfirm('移到回收站', `「${item.title || '无标题'}」将在回收站保留7天，可随时恢复。`, '🗑️', '移入回收站');
+        if (ok) {
+          TrashDB.moveIn(item);
+          DB.remove(btn.dataset.id);
+          UI.renderAll();
+          UI._showToast('已移入回收站 🗑️');
+        }
+      });
+    });
+
+    // 展开/收起
+    panel.querySelectorAll('.card-body-toggle').forEach(toggle => {
+      toggle.addEventListener('click', () => {
+        const body = panel.querySelector(`.card-body[data-id="${toggle.dataset.id}"]`);
+        if (body) {
+          const item = DB.getAll().find(i => i.id === toggle.dataset.id);
+          if (body.classList.contains('expanded')) {
+            body.classList.remove('expanded');
+            toggle.textContent = '展开全部 ↓';
+            if (item) body.textContent = (item.summary || item.content || '').slice(0,150) + '…';
+          } else {
+            body.classList.add('expanded');
+            toggle.textContent = '收起 ↑';
+            if (item) body.textContent = item.summary || item.content || '';
+          }
+        }
+      });
+    });
+
+    // --- 分类移动下拉 ---
+    panel.querySelectorAll('.card-cat-trigger').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const dropdown = btn.nextElementSibling;
+        // 关闭其他下拉
+        document.querySelectorAll('.cat-dropdown.show').forEach(d => {
+          if (d !== dropdown) d.classList.remove('show');
+        });
+        dropdown.classList.toggle('show');
+      });
+    });
+
+    panel.querySelectorAll('.cat-radio').forEach(radio => {
+      radio.addEventListener('change', () => {
+        if (!radio.checked) return;
+        const itemId = radio.dataset.id;
+        const item = DB.getAll().find(i => i.id === itemId);
+        if (!item) return;
+        const newCat = radio.value;
+        DB.update(itemId, { categories: [newCat] });
+        UI.renderAll();
+        UI._showToast('✅ 分类已更新');
+      });
+    });
+  },
+
+  /** Toast 消息 */
+  _showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  },
+
+  // ========== 批量操作 ==========
+  _selectedIds: new Set(),
+
+  /** 渲染批量工具栏 HTML */
+  _renderBatchToolbar(panelId, mode) {
+    // mode: 'normal' (收件箱/待办/知识/随笔) | 'trash' (回收站)
+    const selectedInPanel = this._getSelectedInPanel(panelId);
+    const count = selectedInPanel.length;
+    const activeClass = count > 0 ? ' active' : '';
+
+    let actionsHtml = '';
+    if (mode === 'trash') {
+      actionsHtml = `
+        <button class="btn btn-primary btn-sm batch-restore-all" data-panel="${panelId}">↩️ 批量恢复 (${count})</button>
+        <button class="btn btn-danger btn-sm batch-delete-forever" data-panel="${panelId}">⚠️ 批量彻底删除 (${count})</button>`;
+    } else {
+      actionsHtml = `
+        <select class="batch-move-select" data-panel="${panelId}">
+          <option value="">📂 批量移动到…</option>
+          <option value="todo">✅ 待办清单</option>
+          <option value="knowledge">📚 知识卡片</option>
+          <option value="essay">✍️ 随笔</option>
+          <option value="inbox">📥 收件箱</option>
+        </select>
+        <button class="btn btn-ghost btn-sm batch-delete-all" data-panel="${panelId}" style="color:var(--danger);">🗑 批量删除 (${count})</button>`;
+    }
+
+    return `
+      <div class="batch-toolbar${activeClass}" id="batchToolbar-${panelId}">
+        <span class="batch-count">☑ 已选 ${count} 项</span>
+        <span style="flex:1;"></span>
+        <div class="batch-actions">
+          <button class="btn btn-ghost btn-sm batch-select-all" data-panel="${panelId}">全选</button>
+          <button class="btn btn-ghost btn-sm batch-deselect-all" data-panel="${panelId}">取消全选</button>
+          ${actionsHtml}
+        </div>
+      </div>`;
+  },
+
+  /** 获取某面板中被选中的 ID 列表 */
+  _getSelectedInPanel(panelId) {
+    const allItems = DB.getAll();
+    const trashItems = TrashDB.getAll();
+    const selected = [];
+
+    for (const id of this._selectedIds) {
+      if (panelId === 'trash') {
+        if (trashItems.some(i => i.id === id)) selected.push(id);
+      } else {
+        if (allItems.some(i => i.id === id)) selected.push(id);
+      }
+    }
+    return selected;
+  },
+
+  /** 同步面板中 checkbox 的勾选状态 */
+  _syncBatchCheckboxes(panelId) {
+    const panel = this._el(`panel-${panelId}`);
+    if (!panel) return;
+    panel.querySelectorAll('.batch-select').forEach(cb => {
+      cb.checked = this._selectedIds.has(cb.dataset.id);
+    });
+    // 更新工具栏
+    this._updateBatchToolbarDOM(panelId);
+  },
+
+  /** 更新工具栏 DOM */
+  _updateBatchToolbarDOM(panelId) {
+    const toolbar = document.getElementById(`batchToolbar-${panelId}`);
+    if (!toolbar) return;
+    const selectedInPanel = this._getSelectedInPanel(panelId);
+    const count = selectedInPanel.length;
+
+    // 更新计数
+    const countEl = toolbar.querySelector('.batch-count');
+    if (countEl) countEl.textContent = `☑ 已选 ${count} 项`;
+
+    // 更新批量按钮文字
+    const restoreBtn = toolbar.querySelector('.batch-restore-all');
+    if (restoreBtn) restoreBtn.textContent = `↩️ 批量恢复 (${count})`;
+    const deleteForeverBtn = toolbar.querySelector('.batch-delete-forever');
+    if (deleteForeverBtn) deleteForeverBtn.textContent = `⚠️ 批量彻底删除 (${count})`;
+    const deleteBtn = toolbar.querySelector('.batch-delete-all');
+    if (deleteBtn) deleteBtn.textContent = `🗑 批量删除 (${count})`;
+
+    // 显示/隐藏
+    toolbar.classList.toggle('active', count > 0);
+  },
+
+  /** 清空所有选中 */
+  _clearAllSelections() {
+    this._selectedIds.clear();
+    // 更新所有面板
+    ['inbox', 'todo', 'knowledge', 'essay', 'trash'].forEach(id => {
+      this._updateBatchToolbarDOM(id);
+      const panel = this._el(`panel-${id}`);
+      if (panel) panel.querySelectorAll('.batch-select').forEach(cb => { cb.checked = false; });
+    });
+  },
+
+  /** 绑定批量工具栏事件 */
+  _bindBatchToolbarEvents(panelId, mode) {
+    const toolbar = document.getElementById(`batchToolbar-${panelId}`);
+    if (!toolbar) return;
+
+    // 全选
+    toolbar.querySelector('.batch-select-all')?.addEventListener('click', () => {
+      const panel = this._el(`panel-${panelId}`);
+      if (!panel) return;
+      panel.querySelectorAll('.batch-select').forEach(cb => {
+        cb.checked = true;
+        this._selectedIds.add(cb.dataset.id);
+      });
+      this._updateBatchToolbarDOM(panelId);
+    });
+
+    // 取消全选
+    toolbar.querySelector('.batch-deselect-all')?.addEventListener('click', () => {
+      const panel = this._el(`panel-${panelId}`);
+      if (!panel) return;
+      panel.querySelectorAll('.batch-select').forEach(cb => {
+        cb.checked = false;
+        this._selectedIds.delete(cb.dataset.id);
+      });
+      this._updateBatchToolbarDOM(panelId);
+    });
+
+    if (mode === 'trash') {
+      // 批量恢复
+      toolbar.querySelector('.batch-restore-all')?.addEventListener('click', async () => {
+        const ids = this._getSelectedInPanel(panelId);
+        if (ids.length === 0) return;
+        const ok = await showConfirm('批量恢复', `确认恢复 ${ids.length} 个条目？`, '↩️', '确认恢复');
+        if (!ok) return;
+        let restoredCount = 0;
+        for (const id of ids) {
+          const restored = TrashDB.restore(id);
+          if (restored) { DB.add(restored); restoredCount++; }
+        }
+        ids.forEach(id => this._selectedIds.delete(id));
+        UI.renderAll();
+        this._showToast(`✅ 已恢复 ${restoredCount} 项`);
+      });
+
+      // 批量彻底删除
+      toolbar.querySelector('.batch-delete-forever')?.addEventListener('click', async () => {
+        const ids = this._getSelectedInPanel(panelId);
+        if (ids.length === 0) return;
+        const ok = await showConfirm('批量彻底删除', `⚠️ 此操作不可撤销！确认彻底删除 ${ids.length} 个条目？`, '⚠️', '彻底删除');
+        if (!ok) return;
+        ids.forEach(id => TrashDB.removeForever(id));
+        ids.forEach(id => this._selectedIds.delete(id));
+        UI.renderAll();
+        this._showToast(`🗑️ 已彻底删除 ${ids.length} 项`);
+      });
+    } else {
+      // 批量移动
+      toolbar.querySelector('.batch-move-select')?.addEventListener('change', async (e) => {
+        const targetCat = e.target.value;
+        if (!targetCat) return;
+        const ids = this._getSelectedInPanel(panelId);
+        if (ids.length === 0) return;
+        const catLabels = { todo: '待办清单', knowledge: '知识卡片', essay: '随笔', inbox: '收件箱' };
+        const ok = await showConfirm('批量移动', `确认将 ${ids.length} 个条目移动到「${catLabels[targetCat]}」？`, '📂', '确认移动');
+        if (!ok) { e.target.value = ''; return; }
+        ids.forEach(id => DB.update(id, { categories: [targetCat] }));
+        ids.forEach(id => this._selectedIds.delete(id));
+        UI.renderAll();
+        this._showToast(`📂 已移动 ${ids.length} 项到「${catLabels[targetCat]}」`);
+      });
+
+      // 批量删除
+      toolbar.querySelector('.batch-delete-all')?.addEventListener('click', async () => {
+        const ids = this._getSelectedInPanel(panelId);
+        if (ids.length === 0) return;
+        const ok = await showConfirm('批量删除', `确认将 ${ids.length} 个条目移入回收站？（7天内可恢复）`, '🗑️', '移入回收站');
+        if (!ok) return;
+        const items = DB.getAll();
+        let deletedCount = 0;
+        for (const id of ids) {
+          const item = items.find(i => i.id === id);
+          if (item) { TrashDB.moveIn(item); DB.remove(id); deletedCount++; }
+        }
+        ids.forEach(id => this._selectedIds.delete(id));
+        UI.renderAll();
+        this._showToast(`🗑️ 已移入回收站 ${deletedCount} 项`);
+      });
+    }
+  },
+
+};
+
+/* ============================================
+   应用控制器
+   ============================================ */
+const App = {
+  _mode: 'normal',     // 'normal' | 'essay'
+
+  init() {
+    // 首次访问时插入示例数据
+    if (!localStorage.getItem(DB.KEY)) {
+      this._seedData();
+    }
+
+    UI.renderAll();
+
+    // --- 事件绑定 ---
+    const inputText = UI._el('inputText');
+    const submitBtn = UI._el('submitBtn');
+
+    // 提交
+    submitBtn.addEventListener('click', () => this._handleSubmit());
+    inputText.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        this._handleSubmit();
+      }
+    });
+
+    // 实时预览分类（输入时）
+    let classifyTimer;
+    inputText.addEventListener('input', () => {
+      const text = inputText.value;
+      const aiHint = Settings.isAIReady() ? ' · 🤖 AI' : '';
+      UI._el('charHint').textContent = text.length > 0
+        ? `${text.length} 字 · Ctrl+Enter 提交${aiHint}`
+        : `Ctrl + Enter 快速提交${aiHint}`;
+
+      // 防抖后显示分类预览
+      clearTimeout(classifyTimer);
+      if (text.trim().length > 3) {
+        classifyTimer = setTimeout(() => this._previewClassify(text), 400);
+      } else {
+        UI._el('classifyPreview').classList.remove('active');
+      }
+    });
+
+    // 模式切换
+    UI._el('modeNormal').addEventListener('click', () => this._switchMode('normal'));
+    UI._el('modeEssay').addEventListener('click', () => this._switchMode('essay'));
+
+    // 标签栏切换
+    UI._el('tabBar').addEventListener('click', (e) => {
+      const btn = e.target.closest('.tab-btn');
+      if (!btn) return;
+      const tab = btn.dataset.tab;
+
+      // 激活标签样式
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      // 切换面板
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      UI._el(`panel-${tab}`).classList.add('active');
+    });
+
+    // --- 回收站按钮 ---
+    UI._el('btnTrash').addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      UI._el('panel-trash').classList.add('active');
+      UI.renderTrash();
+    });
+
+    // --- 启动时清理过期回收站条目 ---
+    const cleaned = TrashDB.cleanExpired();
+    if (cleaned > 0) console.log(`回收站清理: ${cleaned} 条过期`);
+
+    // --- 每日0点定时清理 ---
+    this._scheduleMidnightCleanup();
+
+    // --- 全局点击关闭分类下拉 ---
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.card-category-selector')) {
+        document.querySelectorAll('.cat-dropdown.show').forEach(d => d.classList.remove('show'));
+      }
+    });
+
+    // --- 设置面板事件绑定 ---
+    this._initSettings();
+    this._updateAIStatusBar();
+  },
+
+  /** 每日0点清理回收站过期条目 */
+  _scheduleMidnightCleanup() {
+    const msUntilMidnight = () => {
+      const now = new Date();
+      const midnight = new Date(now);
+      midnight.setHours(24, 0, 0, 0);
+      return midnight - now;
+    };
+
+    const runCleanup = () => {
+      const cleaned = TrashDB.cleanExpired();
+      if (cleaned > 0) {
+        console.log(`[${new Date().toLocaleString()}] 回收站自动清理: ${cleaned} 条过期`);
+      }
+      // 递归调度下一个0点
+      setTimeout(runCleanup, msUntilMidnight() + 1000);
+    };
+
+    // 等到下一个0点
+    setTimeout(runCleanup, msUntilMidnight() + 1000);
+  },
+
+  /** 初始化设置面板 */
+  _initSettings() {
+    const overlay = UI._el('settingsOverlay');
+    const btnSettings = UI._el('btnSettings');
+    const btnClose = UI._el('settingsClose');
+    const toggleAI = UI._el('toggleAI');
+    const btnSave = UI._el('btnSaveSettings');
+    const btnTest = UI._el('btnTestAPI');
+    const providerSelect = UI._el('aiProvider');
+    const modelSelect = UI._el('aiModel');
+
+    // 打开设置
+    btnSettings.addEventListener('click', () => {
+      this._loadSettingsToForm();
+      overlay.classList.add('show');
+    });
+
+    // 关闭设置
+    const closeSettings = () => overlay.classList.remove('show');
+    btnClose.addEventListener('click', closeSettings);
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeSettings();
+    });
+
+    // AI 开关
+    toggleAI.addEventListener('click', () => {
+      toggleAI.classList.toggle('on');
+    });
+
+    // 填充提供商下拉
+    const providerKeys = Object.keys(PROVIDERS);
+    providerSelect.innerHTML = providerKeys.map(k =>
+      `<option value="${k}">${PROVIDERS[k].name}</option>`
+    ).join('');
+
+    // 提供商切换 → 更新模型下拉
+    const updateModelSelect = () => {
+      const p = PROVIDERS[providerSelect.value];
+      if (!p) return;
+      modelSelect.innerHTML = p.models.map(m =>
+        `<option value="${m.val}">${m.label}</option>`
+      ).join('');
+    };
+    providerSelect.addEventListener('change', updateModelSelect);
+
+    // 测试连接
+    btnTest.addEventListener('click', async () => {
+      // 先临时保存当前设置
+      this._saveFormToSettings();
+      btnTest.textContent = '⏳ 测试中…';
+      btnTest.disabled = true;
+
+      const result = await AIClassifier.testConnection();
+
+      btnTest.textContent = '🔍 测试连接';
+      btnTest.disabled = false;
+
+      if (result.ok) {
+        UI._showToast('✅ 连接成功！AI 分类已就绪');
+      } else {
+        UI._showToast(`❌ 连接失败：${result.error}`);
+      }
+    });
+
+    // 保存设置
+    btnSave.addEventListener('click', () => {
+      this._saveFormToSettings();
+      this._updateAIStatusBar();
+      closeSettings();
+      UI._showToast(Settings.isAIReady() ? '✅ AI 分类已启用' : '💾 设置已保存（AI 未启用）');
+    });
+
+    // ESC 关闭
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && overlay.classList.contains('show')) {
+        closeSettings();
+      }
+    });
+  },
+
+  /** 加载设置到表单 */
+  _loadSettingsToForm() {
+    const s = Settings.getAll();
+    UI._el('toggleAI').classList.toggle('on', s.aiEnabled);
+    UI._el('aiProvider').value = s.provider;
+    UI._el('aiApiKey').value = s.apiKey;
+    UI._el('aiModel').value = s.model;
+    // 触发 provider change 以更新模型列表
+    UI._el('aiProvider').dispatchEvent(new Event('change'));
+  },
+
+  /** 保存表单到设置 */
+  _saveFormToSettings() {
+    Settings.setAll({
+      aiEnabled: UI._el('toggleAI').classList.contains('on'),
+      provider: UI._el('aiProvider').value,
+      apiKey: UI._el('aiApiKey').value.trim(),
+      model: UI._el('aiModel').value,
+    });
+  },
+
+  /** 更新顶部 AI 状态栏 */
+  _updateAIStatusBar() {
+    const bar = UI._el('aiStatusBar');
+    const text = UI._el('aiStatusText');
+    const dot = UI._el('aiDot');
+
+    if (Settings.isAIReady()) {
+      bar.className = 'ai-status-bar online';
+      const provider = Settings.get('provider');
+      const model = Settings.get('model');
+      const shortModel = model.length > 25 ? model.slice(0, 25) + '…' : model;
+      text.textContent = `🤖 AI 分类 · ${provider === 'anthropic' ? 'Claude' : provider === 'openai' ? 'GPT' : '自定义'} · ${shortModel}`;
+      dot.classList.add('active');
+    } else {
+      bar.className = 'ai-status-bar offline';
+      text.textContent = '📋 本地规则引擎';
+      dot.classList.remove('active');
+    }
+  },
+
+  /** 分类预览（输入时实时显示） */
+  _previewClassify(text) {
+    // 随笔模式：直接显示随笔
+    if (this._mode === 'essay') {
+      const container = UI._el('classifyPreview');
+      container.innerHTML = '<span class="badge badge-essay">✍️ 随笔</span>';
+      container.classList.add('active');
+      return;
+    }
+
+    const result = Brain.analyze(text);
+    const container = UI._el('classifyPreview');
+    container.innerHTML = '';
+
+    if (result.categories.length === 0 || (result.categories.length === 1 && result.categories[0] === 'inbox')) {
+      container.innerHTML = '<span class="badge badge-inbox">📥 收件箱</span>';
+      container.classList.add('active');
+      return;
+    }
+
+    let html = '';
+    if (result.categories.includes('todo')) html += '<span class="badge badge-todo">✅ 待办</span>';
+    if (result.categories.includes('knowledge')) html += '<span class="badge badge-knowledge">📚 知识</span>';
+    if (result.categories.includes('essay')) html += '<span class="badge badge-essay">✍️ 随笔</span>';
+    if (result.deadline) {
+      html += `<span class="badge badge-todo">截止: ${Brain.formatDate(result.deadline)}</span>`;
+    }
+    container.innerHTML = html;
+    container.classList.add('active');
+  },
+
+  /** 切换输入模式 */
+  _switchMode(mode) {
+    this._mode = mode;
+    const btnNormal = UI._el('modeNormal');
+    const btnEssay = UI._el('modeEssay');
+    const textarea = UI._el('inputText');
+
+    btnNormal.classList.toggle('active', mode === 'normal');
+    btnEssay.classList.toggle('active', mode === 'essay');
+    btnEssay.classList.toggle('essay-active', mode === 'essay');
+
+    if (mode === 'essay') {
+      textarea.placeholder = '随笔模式 — 无需分类，直接记录…\n随手写点什么：想法、感悟、吐槽、碎碎念……';
+    } else {
+      textarea.placeholder = '随便扔点什么进来…\n复制网页文字、待办事项、一闪而过的想法、论文片段……不用分类，直接丢进来就行。';
+    }
+
+    // 更新实时预览
+    const text = textarea.value.trim();
+    if (text.length > 3) {
+      this._previewClassify(text);
+    }
+  },
+
+  /** 核心：提交处理（本地优先，AI 兜底） */
+  async _handleSubmit() {
+    const inputText = UI._el('inputText');
+    const text = inputText.value.trim();
+    if (!text) return;
+
+    const processing = UI._el('processing');
+    let analysis;
+    let usedAI = false;
+
+    // --- 随笔模式：跳过全部分类，直接归入随笔 ---
+    if (this._mode === 'essay') {
+      const lines = text.trim().split(/[\n\r]+/);
+      const firstLine = lines[0].trim();
+      analysis = {
+        categories: ['essay'],
+        title: firstLine.length > 40 ? firstLine.slice(0, 40) + '…' : (firstLine || '随笔'),
+        deadline: null,
+        eventDate: null,
+        time: null,
+        timeDisplay: null,
+        tags: [],
+        summary: text.trim().length > 200 ? text.trim().slice(0, 200) + '…' : text.trim(),
+      };
+    } else {
+      // --- 第一步：本地引擎先分类 ---
+      analysis = Brain.analyze(text);
+      const isUnclassified = !analysis.categories
+        || analysis.categories.length === 0
+        || (analysis.categories.length === 1 && analysis.categories[0] === 'inbox');
+
+      // --- 第二步：本地无法分类时，交给 AI ---
+      if (isUnclassified && Settings.isAIReady()) {
+        processing.innerHTML = '<span>🤖 本地无法识别，交给 AI…</span><span class="dot-pulse"><span></span><span></span><span></span></span>';
+        processing.classList.add('active');
+
+        const aiResult = await AIClassifier.classify(text);
+        processing.classList.remove('active');
+
+        if (aiResult) {
+          usedAI = true;
+          analysis = {
+            categories: aiResult.categories,
+            title: aiResult.title,
+            deadline: aiResult.deadline ? new Date(aiResult.deadline + 'T00:00:00') : null,
+            eventDate: aiResult.eventDate ? new Date(aiResult.eventDate + 'T00:00:00') : null,
+            time: aiResult.time || null,
+            timeDisplay: aiResult.timeDisplay || null,
+            tags: aiResult.tags,
+            summary: aiResult.summary,
+          };
+        }
+      }
+    }
+
+    // 显示处理动画（本地模式）
+    if (!usedAI) {
+      processing.innerHTML = '<span>🧠 智能识别中</span><span class="dot-pulse"><span></span><span></span><span></span></span>';
+      processing.classList.add('active');
+      await this._sleep(300); // 短暂动画
+    }
+
+    // 如果没有内容但有图片，至少归入收件箱
+    if (!analysis.categories || analysis.categories.length === 0) {
+      analysis.categories = ['inbox'];
+    }
+
+    // 构建条目
+    const item = {
+      id: this._generateId(),
+      content: text,
+      title: analysis.title || '无标题',
+      summary: analysis.summary,
+      categories: analysis.categories,
+      deadline: analysis.deadline ? (
+        analysis.deadline instanceof Date
+          ? analysis.deadline.toISOString().split('T')[0]
+          : analysis.deadline
+      ) : null,
+      eventDate: analysis.eventDate ? (
+        analysis.eventDate instanceof Date
+          ? analysis.eventDate.toISOString().split('T')[0]
+          : analysis.eventDate
+      ) : null,
+      time: analysis.time || null,
+      timeDisplay: analysis.timeDisplay || null,
+      tags: analysis.tags || [],
+      done: false,
+      aiClassified: usedAI,
+      createdAt: new Date().toISOString(),
+    };
+
+    // 存入库
+    DB.add(item);
+
+    // 清理输入
+    inputText.value = '';
+    UI._el('classifyPreview').classList.remove('active');
+    UI._el('charHint').textContent = 'Ctrl + Enter 快速提交' + (Settings.isAIReady() ? ' · 🤖 AI' : '');
+
+    // 恢复处理动画默认文字
+    processing.innerHTML = '<span>🧠 智能识别中</span><span class="dot-pulse"><span></span><span></span><span></span></span>';
+    processing.classList.remove('active');
+
+    // 智能切换到对应标签页
+    this._smartSwitchTab(analysis.categories);
+
+    // 刷新所有视图
+    UI.renderAll();
+
+    // 反馈
+    const labels = [];
+    if (analysis.categories.includes('todo')) labels.push('待办清单');
+    if (analysis.categories.includes('calendar')) labels.push('待办清单');
+    if (analysis.categories.includes('knowledge')) labels.push('知识卡片');
+    if (analysis.categories.includes('essay')) labels.push('随笔');
+    if (labels.length === 0 || (labels.length === 1 && analysis.categories.includes('inbox'))) labels.push('收件箱');
+
+    const aiLabel = usedAI ? '🤖 AI' : '📋 本地';
+    UI._showToast(`✅ [${aiLabel}] 已分发到：${[...new Set(labels)].join('、')}`);
+
+    // 聚焦回输入框
+    inputText.focus();
+  },
+
+  /** 根据分类结果自动切换标签 */
+  _smartSwitchTab(categories) {
+    let targetTab = 'inbox';
+    // 优先级：待办 > 随笔 > 知识 > 收件箱
+    if (categories.includes('todo') || categories.includes('calendar')) targetTab = 'todo';
+    else if (categories.includes('essay')) targetTab = 'essay';
+    else if (categories.includes('knowledge')) targetTab = 'knowledge';
+
+    const btn = document.querySelector(`.tab-btn[data-tab="${targetTab}"]`);
+    if (btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      UI._el(`panel-${targetTab}`).classList.add('active');
+    }
+  },
+
+  _sleep(ms) { return new Promise(r => setTimeout(r, ms)); },
+
+  _generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  },
+
+  /** 示例数据 */
+  _seedData() {
+    const samples = [
+      {
+        content: '12月15日前交综测材料，需要打印成绩单和填写申请表',
+        analysis: Brain.analyze('12月15日前交综测材料，需要打印成绩单和填写申请表'),
+      },
+      {
+        content: '傅里叶变换可以与拉普拉斯变换相互转换，都是积分变换的特例，在信号处理和控制系统中有广泛应用',
+        analysis: Brain.analyze('傅里叶变换可以与拉普拉斯变换相互转换，都是积分变换的特例，在信号处理和控制系统中有广泛应用'),
+      },
+      {
+        content: '记得明天去拿快递，取件码3-2-108，在菜鸟驿站',
+        analysis: Brain.analyze('记得明天去拿快递，取件码3-2-108，在菜鸟驿站'),
+      },
+      {
+        content: '半导体物理笔记：能带理论的核心是布里渊区，通过薛定谔方程在周期势场中求解得到电子色散关系 E(k)',
+        analysis: Brain.analyze('半导体物理笔记：能带理论的核心是布里渊区，通过薛定谔方程在周期势场中求解得到电子色散关系 E(k)'),
+      },
+      {
+        content: '读到一篇好文章：深度学习在固体物理中的应用——用图神经网络预测材料能带结构 [1]',
+        analysis: Brain.analyze('读到一篇好文章：深度学习在固体物理中的应用——用图神经网络预测材料能带结构 [1]'),
+      },
+      {
+        content: '下班前记得回复老板的邮件，确认下周例会时间',
+        analysis: Brain.analyze('下班前记得回复老板的邮件，确认下周例会时间'),
+      },
+    ];
+
+    const now = Date.now();
+    samples.forEach((s, i) => {
+      const item = {
+        id: `seed_${i}`,
+        content: s.content,
+        title: s.analysis.title,
+        summary: s.analysis.summary,
+        categories: s.analysis.categories,
+        deadline: s.analysis.deadline ? s.analysis.deadline.toISOString().split('T')[0] : null,
+        eventDate: s.analysis.eventDate ? s.analysis.eventDate.toISOString().split('T')[0] : null,
+        tags: s.analysis.tags,
+        done: false,
+        createdAt: new Date(now - (samples.length - i) * 3600000).toISOString(),
+      };
+      DB.add(item);
+    });
+  },
+};
+
+// ============ 启动 ============
+document.addEventListener('DOMContentLoaded', () => App.init());
+</script>
+
+</body>
+</html>

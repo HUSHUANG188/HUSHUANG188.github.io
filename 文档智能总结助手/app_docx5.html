@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>文档智能总结助手（PDF修复版）</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+        body {
+            background: #f4f7fa;
+            padding: 30px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            padding: 30px;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .summary-limit {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .summary-limit input {
+            width: 120px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .drop-area {
+            border: 2px dashed #dfe3e9;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .drop-area.dragover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+        .drop-area p {
+            color: #666;
+            margin-bottom: 15px;
+        }
+        .btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn:hover {
+            background: #2563eb;
+        }
+        .btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+        .card {
+            border: 1px solid #eaeef5;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+        .card h4 {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 18px;
+        }
+        .info {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+            color: #555;
+            font-size: 14px;
+        }
+        .preview {
+            background: #f9fafb;
+            padding: 12px;
+            border-radius: 6px;
+            max-height: 160px;
+            overflow-y: auto;
+            margin: 10px 0;
+            font-size: 13px;
+        }
+        .summary {
+            background: #eff6ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #3b82f6;
+            color: #2c3e50;
+        }
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+        .char-count {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>📄 文档智能总结助手</h2>
+
+        <div class="summary-limit">
+            <label>总结字数限制：</label>
+            <input type="number" id="wordLimit" value="300" min="50" max="500">
+            <span>字（50–500）</span>
+        </div>
+
+        <div class="drop-area" id="dropArea">
+            <p>拖拽 DOCX / TXT / PDF 文件到此处</p>
+            <button class="btn" id="selectBtn">选择文件</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <!-- 1. 先加载 DOCX 处理库 -->
+    <script src="https://unpkg.com/mammoth@1.4.18/mammoth.browser.min.js"></script>
+
+    <!-- 2. 再加载 PDF.js 主库 -->
+    <script src="https://unpkg.com/pdfjs-dist@3.11.176/build/pdf.min.js"></script>
+
+    <!-- 3. 配置 PDF.js Worker（必须在主库之后） -->
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "https://unpkg.com/pdfjs-dist@3.11.176/build/pdf.worker.min.js";
+    </script>
+
+    <!-- 4. 最后是你的主业务代码 -->
+    <script>
+        // ===================== 在这里填入你的 Deepseek API Key =====================
+        const DEEPSEEK_API_KEY = "yours API key";
+        const DEEPSEEK_URL = "https://api.deepseek.com/chat/completions";
+        const MODEL_NAME = "deepseek-chat";
+        // ====================================================================
+
+        const wordLimitInput = document.getElementById("wordLimit");
+        const dropArea = document.getElementById("dropArea");
+        const selectBtn = document.getElementById("selectBtn");
+        const resultsDiv = document.getElementById("results");
+
+        // 全局阻止浏览器默认打开文件
+        window.addEventListener("dragover", e => e.preventDefault());
+        window.addEventListener("drop", e => e.preventDefault());
+
+        // 拖拽效果
+        dropArea.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            dropArea.classList.add("dragover");
+        });
+        dropArea.addEventListener("dragleave", () => {
+            dropArea.classList.remove("dragover");
+        });
+        dropArea.addEventListener("drop", (e) => {
+            e.preventDefault();
+            dropArea.classList.remove("dragover");
+            processFiles(Array.from(e.dataTransfer.files));
+        });
+
+        // 点击选择文件
+        selectBtn.addEventListener("click", () => {
+            const inp = document.createElement("input");
+            inp.type = "file";
+            inp.multiple = true;
+            inp.accept = ".docx,.txt,.pdf";
+            inp.onchange = e => processFiles(Array.from(e.target.files));
+            inp.click();
+        });
+
+        // 统计字数、段落、句子
+        function statText(text) {
+            const pure = text.replace(/\s+/g, "");
+            const paras = text.split("\n").filter(p => p.trim());
+            const sents = text.split(/[。！？；\n]/).filter(s => s.trim());
+            return {
+                chars: pure.length,
+                paraCnt: paras.length,
+                sentCnt: sents.length
+            };
+        }
+
+        // 读取 TXT
+        async function readTxt(file) {
+            return new Promise((resolve, reject) => {
+                const r = new FileReader();
+                r.onload = () => resolve(r.result);
+                r.onerror = reject;
+                r.readAsText(file, "utf-8");
+            });
+        }
+
+        // 读取 DOCX
+        async function readDocx(file) {
+            const buf = await file.arrayBuffer();
+            const r = await mammoth.extractRawText({ arrayBuffer: buf });
+            return r.value;
+        }
+
+        // PDF 彻底修复版
+        async function readPdf(file) {
+            try {
+                const buf = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument(new Uint8Array(buf)).promise;
+                let txt = "";
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const content = await page.getTextContent();
+                    // 按 y 坐标排序，保证文字顺序
+                    const sortedItems = content.items.sort((a, b) => b.transform[5] - a.transform[5]);
+                    txt += sortedItems.map(it => it.str).join(" ") + "\n";
+                }
+                return txt;
+            } catch (e) {
+                console.error("PDF 读取失败:", e);
+                return "PDF 读取失败: " + e.message;
+            }
+        }
+
+        // AI 总结
+        async function aiSummary(text) {
+            const max = parseInt(wordLimitInput.value) || 300;
+            const prompt = `请把下面内容简洁总结，严格控制在${max}字以内：\n` + text;
+
+            const res = await fetch(DEEPSEEK_URL, {
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + DEEPSEEK_API_KEY,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: MODEL_NAME,
+                    messages: [{ role: "user", content: prompt }],
+                    temperature: 0.7,
+                    max_tokens: 1000
+                })
+            });
+
+            const data = await res.json();
+            if (data.error) throw new Error(data.error.message);
+            let out = data.choices[0].message.content;
+            if (out.length > max) out = out.slice(0, max) + "…";
+            return out;
+        }
+
+        // 渲染卡片（已删除导出按钮）
+        function renderCard(item) {
+            const cnt = item.summary ? `<div class="char-count">${item.summary.length} 字</div>` : "";
+            return `
+            <div class="card">
+                <h4>${item.filename}</h4>
+                <div class="info">
+                    <div>字数：${item.chars}</div>
+                    <div>段落：${item.paraCnt}</div>
+                    <div>句子：${item.sentCnt}</div>
+                    <div>类型：${item.ext}</div>
+                </div>
+                <div class="preview"><pre>${item.preview}</pre></div>
+                <div class="summary">${item.summary || '<span class="loading">生成总结中…</span>'}${cnt}</div>
+            </div>`;
+        }
+
+        // 处理文件
+        async function processFiles(files) {
+            if (!DEEPSEEK_API_KEY || DEEPSEEK_API_KEY.includes("粘贴")) {
+                alert("请先填写 API Key");
+                return;
+            }
+            const wl = parseInt(wordLimitInput.value);
+            if (wl < 50 || wl > 500) {
+                alert("字数 50–500");
+                return;
+            }
+
+            resultsDiv.innerHTML = "";
+            selectBtn.disabled = true;
+
+            for (const f of files) {
+                const ext = f.name.split(".").pop().toLowerCase();
+                const id = "c" + Date.now();
+                resultsDiv.innerHTML += `<div id="${id}">${renderCard({
+                    filename: f.name, ext, chars: "-", paraCnt: "-", sentCnt: "-",
+                    preview: "读取中…", summary: null
+                })}</div>`;
+                const el = document.getElementById(id);
+
+                try {
+                    let c = "";
+                    if (ext === "txt") c = await readTxt(f);
+                    else if (ext === "docx") c = await readDocx(f);
+                    else if (ext === "pdf") c = await readPdf(f);
+                    else throw new Error("不支持");
+
+                    const st = statText(c);
+                    const prev = c.slice(0, 600) + (c.length > 600 ? "…" : "");
+                    el.innerHTML = renderCard({
+                        filename: f.name, ext, ...st, preview: prev, summary: null
+                    });
+
+                    const sum = await aiSummary(c);
+                    el.innerHTML = renderCard({
+                        filename: f.name, ext, ...st, preview: prev, summary: sum
+                    });
+                } catch (e) {
+                    el.innerHTML = renderCard({
+                        filename: f.name, ext, chars: "-", paraCnt: "-", sentCnt: "-",
+                        preview: "失败", summary: e.message
+                    });
+                }
+            }
+            selectBtn.disabled = false;
+        }
+    </script>
+</body>
+</html>

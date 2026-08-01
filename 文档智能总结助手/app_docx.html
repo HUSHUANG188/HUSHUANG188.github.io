@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>纯前端拖拽上传 + Deepseek 文档总结</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+        body {
+            background: #f4f7fa;
+            padding: 30px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            padding: 30px;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .api-key-input {
+            margin-bottom: 20px;
+        }
+        .api-key-input input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .drop-area {
+            border: 2px dashed #dfe3e9;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .drop-area.dragover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+        .drop-area p {
+            color: #666;
+            margin-bottom: 15px;
+        }
+        .btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #2563eb;
+        }
+        .btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+        .card {
+            border: 1px solid #eaeef5;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+        .card h4 {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 18px;
+        }
+        .info {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+            color: #555;
+            font-size: 14px;
+        }
+        .preview {
+            background: #f9fafb;
+            padding: 12px;
+            border-radius: 6px;
+            max-height: 160px;
+            overflow-y: auto;
+            margin: 10px 0;
+            font-size: 13px;
+            color: #444;
+        }
+        .summary {
+            background: #eff6ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #3b82f6;
+            color: #2c3e50;
+        }
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>📄 纯前端拖拽上传 + Deepseek 文档总结</h2>
+
+        <div class="api-key-input">
+            <label for="apiKey">Deepseek API Key：</label>
+            <input type="text" id="apiKey" placeholder="请输入你的 Deepseek API Key（sk-...）">
+        </div>
+
+        <div class="drop-area" id="dropArea">
+            <p>拖拽 DOCX / TXT / PDF 文件到此处，或点击选择文件</p>
+            <input type="file" id="fileInput" multiple accept=".docx,.txt,.pdf" style="display: none;">
+            <button class="btn" id="selectBtn">选择文件</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <!-- 外部库 -->
+    <script src="https://unpkg.com/mammoth@1.4.18/mammoth.browser.min.js"></script>
+    <script src="https://unpkg.com/pdfjs-dist@3.11.176/build/pdf.min.js"></script>
+    <script src="https://unpkg.com/docx@7.1.1/build/docx.bundle.js"></script>
+    <script src="https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
+    <script>
+        // Deepseek API 配置
+        const DEEPSEEK_URL = "https://api.deepseek.com/chat/completions";
+        const MODEL_NAME = "deepseek-chat";
+
+        // DOM 元素
+        const apiKeyInput = document.getElementById("apiKey");
+        const dropArea = document.getElementById("dropArea");
+        const fileInput = document.getElementById("fileInput");
+        const selectBtn = document.getElementById("selectBtn");
+        const resultsDiv = document.getElementById("results");
+
+        // 统计文本信息
+        function statText(text) {
+            const pure = text.replace(/\s+/g, "");
+            const chars = pure.length;
+            const paras = text.split("\n").filter(p => p.trim() !== "");
+            const paraCnt = paras.length;
+            const sentCnt = text.split(/[。！？；\n]/).filter(s => s.trim() !== "").length;
+            return { chars, paraCnt, sentCnt };
+        }
+
+        // 读取 TXT
+        async function readTxt(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsText(file, "utf-8");
+            });
+        }
+
+        // 读取 DOCX
+        async function readDocx(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const result = await mammoth.convertToHtml({ arrayBuffer });
+            return result.value.replace(/<[^>]+>/g, "");
+        }
+
+        // 读取 PDF
+        async function readPdf(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+            let text = "";
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                text += content.items.map(item => item.str).join(" ") + "\n";
+            }
+            return text;
+        }
+
+        // 调用 Deepseek AI 总结
+        async function aiSummary(text, apiKey) {
+            if (!text.trim()) return "文档内容为空";
+            const prompt = `请对下面的文档内容进行简洁、清晰、要点完整的总结：\n${text}`;
+
+            const resp = await fetch(DEEPSEEK_URL, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${apiKey}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: MODEL_NAME,
+                    messages: [{ role: "user", content: prompt }]
+                })
+            });
+
+            const data = await resp.json();
+            if (data.error) throw new Error(data.error.message);
+            return data.choices[0].message.content;
+        }
+
+        // 导出总结为 Word
+        async function exportToWord(filename, summary) {
+            const { Document, Paragraph, HeadingLevel, TextRun } = window.docx;
+
+            const doc = new Document({
+                sections: [{
+                    properties: {},
+                    children: [
+                        new Paragraph({
+                            heading: HeadingLevel.TITLE,
+                            children: [new TextRun(`文档：${filename}`)]
+                        }),
+                        new Paragraph({
+                            heading: HeadingLevel.HEADING_1,
+                            children: [new TextRun("智能总结")]
+                        }),
+                        new Paragraph({ children: [new TextRun(summary)] })
+                    ]
+                }]
+            });
+
+            const blob = await window.docx.Packer.toBlob(doc);
+            saveAs(blob, `总结_${filename.replace(/\.[^/.]+$/, "")}.docx`);
+        }
+
+        // 渲染结果卡片
+        function renderCard(item) {
+            return `
+                <div class="card">
+                    <h4>${item.filename}</h4>
+                    <div class="info">
+                        <div>字数：${item.chars}</div>
+                        <div>段落：${item.paraCnt}</div>
+                        <div>句子：${item.sentCnt}</div>
+                        <div>类型：${item.ext}</div>
+                    </div>
+                    <div class="preview"><pre>${item.preview}</pre></div>
+                    <div class="summary">${item.summary || '<span class="loading">正在生成总结...</span>'}</div>
+                    ${item.summary ? `<button class="btn export-btn" data-filename="${item.filename}" data-summary="${item.summary.replace(/"/g, '&quot;')}">导出总结为Word</button>` : ''}
+                </div>
+            `;
+        }
+
+        // 处理文件
+        async function processFiles(files) {
+            const apiKey = apiKeyInput.value.trim();
+            if (!apiKey) {
+                alert("请先输入 Deepseek API Key！");
+                return;
+            }
+
+            if (files.length === 0) {
+                alert("请选择要上传的文件！");
+                return;
+            }
+
+            resultsDiv.innerHTML = "";
+            selectBtn.disabled = true;
+
+            for (const file of files) {
+                const ext = file.name.split(".").pop().toLowerCase();
+                const cardId = `card-${Date.now()}-${Math.random()}`;
+
+                // 先渲染空卡片
+                const cardHtml = renderCard({
+                    filename: file.name,
+                    ext,
+                    chars: "-",
+                    paraCnt: "-",
+                    sentCnt: "-",
+                    preview: "正在读取文件...",
+                    summary: null
+                });
+                resultsDiv.innerHTML += `<div id="${cardId}">${cardHtml}</div>`;
+                const cardEl = document.getElementById(cardId);
+
+                try {
+                    // 1. 读取文件内容
+                    let content = "";
+                    if (ext === "txt") content = await readTxt(file);
+                    else if (ext === "docx") content = await readDocx(file);
+                    else if (ext === "pdf") content = await readPdf(file);
+                    else throw new Error("不支持的文件类型");
+
+                    // 2. 统计信息
+                    const { chars, paraCnt, sentCnt } = statText(content);
+                    const preview = content.slice(0, 600) + (content.length > 600 ? "..." : "");
+
+                    // 更新卡片为统计信息
+                    cardEl.innerHTML = renderCard({
+                        filename: file.name,
+                        ext,
+                        chars,
+                        paraCnt,
+                        sentCnt,
+                        preview,
+                        summary: null
+                    });
+
+                    // 3. AI 总结
+                    const summary = await aiSummary(content, apiKey);
+
+                    // 4. 更新卡片为最终结果
+                    cardEl.innerHTML = renderCard({
+                        filename: file.name,
+                        ext,
+                        chars,
+                        paraCnt,
+                        sentCnt,
+                        preview,
+                        summary
+                    });
+
+                    // 绑定导出按钮
+                    cardEl.querySelector(".export-btn").addEventListener("click", () => {
+                        exportToWord(file.name, summary);
+                    });
+                } catch (err) {
+                    cardEl.innerHTML = renderCard({
+                        filename: file.name,
+                        ext,
+                        chars: "-",
+                        paraCnt: "-",
+                        sentCnt: "-",
+                        preview: "读取失败",
+                        summary: `错误：${err.message}`
+                    });
+                }
+            }
+
+            selectBtn.disabled = false;
+        }
+
+        // 拖拽事件
+        dropArea.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            dropArea.classList.add("dragover");
+        });
+
+        dropArea.addEventListener("dragleave", () => {
+            dropArea.classList.remove("dragover");
+        });
+
+        dropArea.addEventListener("drop", (e) => {
+            e.preventDefault();
+            dropArea.classList.remove("dragover");
+            const files = Array.from(e.dataTransfer.files);
+            processFiles(files);
+        });
+
+        // 点击选择文件
+        selectBtn.addEventListener("click", () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener("change", () => {
+            const files = Array.from(fileInput.files);
+            processFiles(files);
+        });
+    </script>
+</body>
+</html>

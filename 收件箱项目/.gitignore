@@ -1,0 +1,7 @@
+# 本地设置
+.claude/settings.local.json
+
+# 系统文件
+Thumbs.db
+Desktop.ini
+.DS_Store
