@@ -1,0 +1,1134 @@
+<!--
+THESIS: 冰箱门承接生活，库存、账本与餐桌建议把每一份食物的来处和去处串起来。
+OWN-WORLD: 雾面浅绿门板、深绿结构、暖纸便签与克制橙色细节。
+STORY: 先看见生活留下的痕迹，再管理库存；买菜后可由一张小票确认并批量入库。
+FIRST VIEWPORT: 门板仍是第一屏；库存内以三段视图连接当前食物、处理记录和小票账本。
+FORM: 现有 Operate 模式中的库存驱动饮食建议；v7-nutrition-meals.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+-->
+<view class="page-shell {{elderMode ? 'elder-mode' : ''}} {{elderMode || reduceMotion ? 'motion-reduced' : ''}}">
+  <navigation-bar back="{{false}}" color="#173b2d" background="#f4f1e8">
+    <button wx:if="{{showSettingsPage}}" slot="left" class="settings-back" bindtap="closeSettingsPage" aria-label="返回冰箱">
+      <view class="settings-back-icon"></view><text>返回</text>
+    </button>
+    <button wx:else slot="left" class="settings-nav" bindtap="openSettingsPage" aria-label="打开设置">
+      <image class="settings-gear-image" src="/settings.svg" mode="aspectFit"></image>
+    </button>
+    <text wx:if="{{showSettingsPage}}" slot="center" class="settings-nav-title">设置</text>
+    <button wx:else slot="center" class="family-nav" bindtap="openFamilySheet" aria-label="打开家庭冰箱管理">
+      <text>{{familyMode ? familyFridgeTitle : '我的冰箱'}}</text><text class="family-nav-arrow">⌄</text>
+    </button>
+  </navigation-bar>
+
+  <block wx:if="{{showSettingsPage}}">
+    <scroll-view class="settings-page" scroll-y enhanced show-scrollbar="{{false}}">
+      <view class="settings-content">
+        <view class="settings-intro">
+          <text class="settings-intro-title">{{elderMode ? '设置' : '让冰箱更适合你'}}</text>
+          <text wx:if="{{!elderMode}}" class="settings-intro-copy">显示、提醒和个人数据都集中在这里管理。</text>
+        </view>
+
+        <view class="settings-section">
+          <text class="settings-section-title">显示与使用</text>
+          <view class="settings-group">
+            <view class="settings-row">
+              <view class="settings-row-copy"><text class="settings-row-title">长辈模式</text><text class="settings-row-note">{{elderMode ? '已开启大字简洁界面' : '大字、简洁按钮和更少动画'}}</text></view>
+              <switch checked="{{elderMode}}" color="#1f6046" bindchange="onElderModeChange" aria-label="长辈模式开关"></switch>
+            </view>
+            <view wx:if="{{!elderMode}}" class="settings-divider"></view>
+            <view wx:if="{{!elderMode}}" class="settings-row">
+              <view class="settings-row-copy"><text class="settings-row-title">减少动画</text><text class="settings-row-note">{{elderMode ? '长辈模式已自动减少界面动画。' : '关闭开门和页面切换动画，功能保持不变。'}}</text></view>
+              <switch checked="{{elderMode || reduceMotion}}" disabled="{{elderMode}}" color="#1f6046" bindchange="onReduceMotionChange" aria-label="减少动画开关"></switch>
+            </view>
+          </view>
+        </view>
+
+        <view class="settings-section">
+          <text class="settings-section-title">提醒设置</text>
+          <view class="settings-group">
+            <button class="settings-link-row" bindtap="openReminderSettings" aria-label="打开保鲜提醒设置">
+              <view class="settings-link-row-layout"><view class="settings-row-copy"><text class="settings-row-title">保鲜提醒</text><text class="settings-row-note">{{reminderSettings.enabled && reminderSettings.permission === 'accepted' ? '已开启 · ' + reminderSettings.time : '当前未开启'}}</text></view><view class="settings-chevron"></view></view>
+            </button>
+          </view>
+        </view>
+
+        <view class="settings-section">
+          <text class="settings-section-title">个人数据与备份</text>
+          <view class="settings-group">
+            <button class="settings-link-row" bindtap="openPersonalBackups" aria-label="管理个人备份与恢复">
+              <view class="settings-link-row-layout"><view class="settings-row-copy"><text class="settings-row-title">个人备份与恢复</text><text class="settings-row-note">{{elderMode ? '备份或找回冰箱数据' : '最多保留 3 个普通备份，恢复前自动保存当前状态。'}}</text></view><view class="settings-chevron"></view></view>
+            </button>
+            <view class="settings-divider"></view>
+            <button class="settings-link-row" bindtap="openPersonalExports" aria-label="导出我的数据">
+              <view class="settings-link-row-layout"><view class="settings-row-copy"><text class="settings-row-title">导出我的数据</text><text class="settings-row-note">{{elderMode ? '下载保存自己的数据' : '生成可下载的 ZIP，下载地址 24 小时内有效。'}}</text></view><view class="settings-chevron"></view></view>
+            </button>
+            <view class="settings-divider"></view>
+            <button class="settings-link-row" bindtap="openPrivacyGuide" aria-label="查看隐私保护指引">
+              <view class="settings-link-row-layout"><view class="settings-row-copy"><text class="settings-row-title">隐私保护指引</text><text class="settings-row-note">{{elderMode ? '查看数据使用说明' : '查看个人信息的收集、使用和删除说明。'}}</text></view><view class="settings-chevron"></view></view>
+            </button>
+          </view>
+          <view class="settings-danger-group">
+            <view class="settings-row-copy"><text class="settings-row-title settings-danger-title">删除我的数据</text><text class="settings-row-note">{{familyMode ? '请先处理家庭关系' : elderMode ? '删除后无法恢复' : '删除本机数据、照片、个人备份及相关云端记录，无法恢复。'}}</text></view>
+            <button class="settings-delete" bindtap="deleteMyData">删除我的数据</button>
+          </view>
+        </view>
+
+        <view class="settings-section">
+          <text class="settings-section-title">关于</text>
+          <view class="settings-group">
+            <view class="settings-row"><view class="settings-row-copy"><text class="settings-row-title">当前版本</text><text class="settings-row-note">一格鲜活 V{{appVersion}}</text></view></view>
+            <view wx:if="{{!elderMode}}" class="settings-divider"></view>
+            <button wx:if="{{!elderMode}}" class="settings-link-row" bindtap="showFeatureIntroduction"><view class="settings-link-row-layout"><text class="settings-row-title">功能介绍</text><view class="settings-chevron"></view></view></button>
+            <view class="settings-divider"></view>
+            <button class="settings-link-row" open-type="feedback"><view class="settings-link-row-layout"><text class="settings-row-title">意见反馈</text><view class="settings-chevron"></view></view></button>
+            <view wx:if="{{!elderMode}}" class="settings-divider"></view>
+            <button wx:if="{{!elderMode}}" class="settings-link-row" bindtap="showServiceDescription"><view class="settings-link-row-layout"><text class="settings-row-title">服务说明</text><view class="settings-chevron"></view></view></button>
+          </view>
+        </view>
+        <view class="settings-bottom-space"></view>
+      </view>
+    </scroll-view>
+  </block>
+
+  <block wx:else>
+  <block wx:if="{{surface === 'door'}}">
+    <scroll-view wx:if="{{elderMode}}" class="elder-home" scroll-y enhanced show-scrollbar="{{false}}">
+      <view class="elder-home-content">
+        <view class="elder-home-summary">
+          <text class="elder-home-title">我的冰箱</text>
+          <view class="elder-home-stats">
+            <view class="elder-home-stat">
+              <text class="elder-home-number">{{allFoods.length}}</text>
+              <text class="elder-home-label">库存食物</text>
+            </view>
+            <view class="elder-home-stat">
+              <text class="elder-home-number {{soonCount ? 'urgent' : ''}}">{{soonCount}}</text>
+              <text class="elder-home-label">快到期</text>
+            </view>
+          </view>
+          <button class="elder-inventory-entry" bindtap="openElderStock">查看全部库存<view class="elder-entry-arrow"></view></button>
+        </view>
+
+        <text class="elder-home-section-title">常用操作</text>
+        <view class="elder-task-grid">
+          <button class="elder-task-card add" bindtap="openElderAdd"><text class="elder-task-title">添加食物</text><text class="elder-task-note">手动填写</text></button>
+          <button class="elder-task-card receipt" bindtap="openElderReceipt"><text class="elder-task-title">小票录入</text><text class="elder-task-note">拍照识别</text></button>
+          <button class="elder-task-card meal" bindtap="openElderMeal"><text class="elder-task-title">家常菜</text><text class="elder-task-note">根据库存推荐</text></button>
+          <button class="elder-task-card history" bindtap="openElderHistory"><text class="elder-task-title">处理记录</text><text class="elder-task-note">吃完与丢弃</text></button>
+        </view>
+
+        <text class="elder-home-section-title elder-secondary-title">提醒与饮食</text>
+        <view class="elder-quick-list">
+          <button class="elder-quick-row" bindtap="openReminderSettings">
+            <view><text class="elder-quick-title">保鲜提醒</text><text class="elder-quick-note">{{reminderSettings.enabled && reminderSettings.permission === 'accepted' ? '已开启 · ' + reminderSettings.time : '当前未开启'}}</text></view>
+            <view class="elder-entry-arrow"></view>
+          </button>
+          <view class="elder-quick-divider"></view>
+          <button class="elder-quick-row" bindtap="openDietSettings">
+            <view><text class="elder-quick-title">饮食设置</text><text class="elder-quick-note">偏好、过敏与忌口</text></view>
+            <view class="elder-entry-arrow"></view>
+          </button>
+        </view>
+      </view>
+    </scroll-view>
+    <view wx:else class="door-scene {{doorOpening ? 'opening' : ''}}">
+      <view class="door-heading">
+        <view class="door-copy">
+          <text class="door-title">把今天留在这里。</text>
+          <text class="door-subtitle">{{magnets.length ? '门上有 ' + magnets.length + ' 枚冰箱贴' : '写一句话，或贴上一张照片'}}</text>
+        </view>
+        <button class="direct-stock" bindtap="openInventory" aria-label="直接查看库存">看库存</button>
+      </view>
+
+      <view class="fridge-door">
+        <view class="door-seam"></view>
+        <view class="door-brand">HOME · 24</view>
+        <view id="magnet-area" class="magnet-area">
+          <view wx:if="{{!hasDoorMemories}}" class="door-empty">
+            <view class="empty-magnet-mark"><view></view></view>
+            <text class="door-empty-title">还没有便签或照片</text>
+            <text class="door-empty-copy">先留一句话，让这里开始像家。</text>
+          </view>
+
+          <view
+            wx:for="{{magnets}}"
+            wx:key="id"
+            class="magnet-item magnet-{{item.type}} {{item.isDragging ? 'dragging' : ''}} {{item.dragBlocked ? 'drag-blocked' : ''}}"
+            style="left: {{item.x}}px; top: {{item.y}}px; z-index: {{item.isDragging ? 999 : item.z}};"
+            data-id="{{item.id}}"
+            bindtouchstart="onMagnetTouchStart"
+            catchtouchmove="onMagnetTouchMove"
+            bindtouchend="onMagnetTouchEnd"
+            bindtap="openMagnetEditor"
+            aria-role="button"
+            aria-label="{{item.type === 'note' ? '文字便签，轻触编辑，拖动摆放' : item.type === 'photo' ? '照片便签，轻触编辑，拖动摆放' : item.type === 'album' ? '照片集便签，轻触查看，拖动摆放' : '装饰贴纸，轻触编辑，拖动摆放'}}"
+          >
+            <block wx:if="{{item.type === 'note'}}">
+              <view class="note-pin"></view>
+              <text class="note-content">{{item.content}}</text>
+              <text class="magnet-edit-hint">按住拖动 · 轻触编辑</text>
+            </block>
+            <block wx:elif="{{item.type === 'photo'}}">
+              <view class="photo-tape"></view>
+              <image class="door-photo" src="{{item.content}}" mode="aspectFit"></image>
+              <text class="magnet-edit-hint photo-hint">按住拖动 · 轻触编辑</text>
+            </block>
+            <block wx:elif="{{item.type === 'album'}}">
+              <view class="album-stack album-stack-back"></view>
+              <view class="album-stack album-stack-middle"></view>
+              <image class="album-cover" src="{{item.content}}" mode="aspectFill"></image>
+              <view class="album-caption">
+                <text class="album-title">{{item.title}}</text>
+                <text class="album-count">{{item.photos.length}} 张 · 轻触翻看</text>
+              </view>
+            </block>
+            <view wx:else class="sticker-art sticker-{{item.content}} {{item.content === 'diy' ? 'diy-' + item.diyShape + ' diy-' + item.diyColor : ''}}">
+              <view class="sticker-part sticker-part-a"></view>
+              <view class="sticker-part sticker-part-b"></view>
+              <view class="sticker-part sticker-part-c"></view>
+              <text wx:if="{{item.content === 'diy'}}" class="diy-sticker-text">{{item.diyText}}</text>
+            </view>
+          </view>
+        </view>
+
+        <button class="door-open-control" catchtouchstart="onDoorTouchStart" catchtouchend="onDoorTouchEnd" aria-label="向左滑动打开冰箱">
+          <view class="door-handle"></view>
+          <view class="door-open-copy">
+            <text class="door-open-title">滑动打开冰箱</text>
+            <text class="door-open-note">向左滑动打开</text>
+          </view>
+        </button>
+      </view>
+
+      <view class="door-tools" aria-label="添加冰箱贴">
+        <button class="door-tool" bindtap="openNoteComposer">文字便签</button>
+        <button class="door-tool" bindtap="openPhotoPicker">照片便签</button>
+        <button class="door-tool" bindtap="openStickerPicker">装饰贴纸</button>
+      </view>
+    </view>
+  </block>
+
+  <block wx:else>
+  <view class="inventory-surface {{doorClosing ? 'closing' : ''}}">
+  <view wx:if="{{elderMode}}" class="view-tabs elder-view-tabs" aria-label="页面切换">
+    <button class="view-tab {{activeView === 'stock' ? 'active' : ''}}" data-view="stock" bindtap="switchView" aria-role="tab" aria-selected="{{activeView === 'stock'}}">库存</button>
+    <button class="view-tab {{activeView === 'history' ? 'active' : ''}}" data-view="history" bindtap="switchView" aria-role="tab" aria-selected="{{activeView === 'history'}}">记录</button>
+    <button class="view-tab {{activeView === 'receipt' ? 'active' : ''}}" data-view="receipt" bindtap="switchView" aria-role="tab" aria-selected="{{activeView === 'receipt'}}">小票</button>
+    <button class="view-tab {{activeView === 'meal' ? 'active' : ''}}" data-view="meal" bindtap="switchView" aria-role="tab" aria-selected="{{activeView === 'meal'}}">家常菜</button>
+  </view>
+  <view wx:else class="view-tabs" aria-label="页面切换">
+    <button class="view-tab {{activeView === 'stock' ? 'active' : ''}}" data-view="stock" bindtap="switchView" aria-role="tab" aria-selected="{{activeView === 'stock'}}">当前库存</button>
+    <button class="view-tab {{activeView === 'history' ? 'active' : ''}}" data-view="history" bindtap="switchView" aria-role="tab" aria-selected="{{activeView === 'history'}}">处理记录</button>
+    <button class="view-tab {{activeView === 'receipt' ? 'active' : ''}}" data-view="receipt" bindtap="switchView" aria-role="tab" aria-selected="{{activeView === 'receipt'}}">小票账本</button>
+    <button class="view-tab {{activeView === 'meal' ? 'active' : ''}}" data-view="meal" bindtap="switchView" aria-role="tab" aria-selected="{{activeView === 'meal'}}">今天吃什么</button>
+  </view>
+
+  <view wx:if="{{elderMode}}" class="elder-back-home-row">
+    <button class="elder-back-home" bindtap="showDoor">返回首页</button>
+  </view>
+  <view wx:else class="close-door-row">
+    <button class="close-door-control" catchtouchstart="onCloseDoorTouchStart" catchtouchend="onCloseDoorTouchEnd" aria-label="向右滑动关上冰箱门">
+      <view class="close-door-knob"><view></view></view>
+      <view class="close-door-copy">
+        <text class="close-door-title">滑动关上冰箱</text>
+        <text class="close-door-note">向右滑动关门</text>
+      </view>
+    </button>
+  </view>
+
+  <view wx:if="{{activeView === 'history' && history.length}}" class="history-clear-row">
+    <button class="history-clear-control" bindtap="clearHistoryNow" aria-label="立即清理处理记录">立即清理记录</button>
+  </view>
+
+  <scroll-view class="content {{viewTransitionClass}}" scroll-y bindtouchstart="onViewSwipeStart" bindtouchend="onViewSwipeEnd">
+    <block wx:if="{{activeView === 'stock'}}">
+      <view class="overview">
+        <block wx:if="{{elderMode}}"><text class="overview-title">冰箱库存</text></block>
+        <block wx:else><text class="overview-title">先吃快到期的，</text><text class="overview-title">也不辜负每一份新鲜。</text></block>
+        <view class="overview-stats">
+          <view class="stat">
+            <text class="stat-value">{{allFoods.length}}</text>
+            <text class="stat-label">冰箱里的食物</text>
+          </view>
+          <view class="stat-divider"></view>
+          <view class="stat">
+            <text class="stat-value stat-value-warm">{{soonCount}}</text>
+            <text class="stat-label">三天内到期</text>
+          </view>
+        </view>
+        <button wx:if="{{!elderMode}}" class="reminder-entry" bindtap="openReminderSettings" aria-label="打开保鲜提醒设置">
+          <view class="reminder-entry-copy">
+            <text class="reminder-entry-title">保鲜提醒</text>
+            <text class="reminder-entry-status">{{reminderSettings.enabled && reminderSettings.permission === 'accepted' ? '已授权 · ' + reminderSettings.time : '当前未开启'}}</text>
+          </view>
+          <text class="reminder-entry-action">设置</text>
+        </button>
+      </view>
+
+      <view class="finder">
+        <input class="search-input" value="{{query}}" placeholder="搜索食物名称" placeholder-class="input-placeholder" bindinput="onSearchInput" aria-label="按名称搜索食物" />
+
+        <view wx:if="{{!elderMode}}" class="filter-line">
+          <text class="filter-label">位置</text>
+          <scroll-view class="filter-scroll" scroll-x show-scrollbar="{{false}}" catchtouchstart="cancelViewSwipe">
+            <view class="filter-options">
+              <button class="filter-chip {{zoneFilter === 'all' ? 'active' : ''}}" data-value="all" bindtap="setZoneFilter" aria-pressed="{{zoneFilter === 'all'}}">全部</button>
+              <button class="filter-chip {{zoneFilter === 'fridge' ? 'active' : ''}}" data-value="fridge" bindtap="setZoneFilter" aria-pressed="{{zoneFilter === 'fridge'}}">冷藏</button>
+              <button class="filter-chip {{zoneFilter === 'freezer' ? 'active' : ''}}" data-value="freezer" bindtap="setZoneFilter" aria-pressed="{{zoneFilter === 'freezer'}}">冷冻</button>
+              <button class="filter-chip {{zoneFilter === 'room' ? 'active' : ''}}" data-value="room" bindtap="setZoneFilter" aria-pressed="{{zoneFilter === 'room'}}">常温</button>
+            </view>
+          </scroll-view>
+        </view>
+
+        <view class="filter-line">
+          <text class="filter-label">状态</text>
+          <scroll-view class="filter-scroll" scroll-x show-scrollbar="{{false}}" catchtouchstart="cancelViewSwipe">
+            <view class="filter-options">
+              <button class="filter-chip {{statusFilter === 'all' ? 'active' : ''}}" data-value="all" bindtap="setStatusFilter" aria-pressed="{{statusFilter === 'all'}}">全部</button>
+              <button class="filter-chip {{statusFilter === 'soon' ? 'active' : ''}}" data-value="soon" bindtap="setStatusFilter" aria-pressed="{{statusFilter === 'soon'}}">三天内</button>
+              <button class="filter-chip {{statusFilter === 'expired' ? 'active' : ''}}" data-value="expired" bindtap="setStatusFilter" aria-pressed="{{statusFilter === 'expired'}}">已过期</button>
+            </view>
+          </scroll-view>
+        </view>
+
+        <view wx:if="{{!elderMode}}" class="category-filter">
+          <text class="filter-label">分类</text>
+          <picker class="category-picker" range="{{categoryFilters}}" value="{{categoryFilterIndex}}" bindchange="onCategoryFilterChange" aria-label="按分类筛选">
+            <view class="category-picker-control">{{categoryFilters[categoryFilterIndex]}}<text class="picker-arrow">选择</text></view>
+          </picker>
+          <button wx:if="{{query || zoneFilter !== 'all' || statusFilter !== 'all' || categoryFilter !== 'all'}}" class="clear-filter" bindtap="clearFilters">清除</button>
+        </view>
+      </view>
+
+      <view class="list-section">
+        <view class="section-heading">
+          <text class="section-title">当前库存</text>
+          <view class="inventory-heading-actions">
+            <text wx:if="{{!elderMode}}" class="section-note">找到 {{foods.length}} 种</text>
+            <button wx:if="{{!elderMode && allFoods.length}}" class="batch-mode-button {{batchMode ? 'active' : ''}}" bindtap="toggleBatchMode">{{batchMode ? '取消' : '批量处理'}}</button>
+          </view>
+        </view>
+
+        <view wx:if="{{allFoods.length === 0}}" class="empty-state">
+          <view class="empty-fridge">
+            <view class="empty-line"></view>
+            <view class="empty-handle"></view>
+          </view>
+          <text class="empty-title">冰箱里还没有记录</text>
+          <text class="empty-copy">把第一样食物放进来，到期前就能及时看见。</text>
+          <button class="empty-action" bindtap="openAdd">添加第一样食物</button>
+        </view>
+
+        <view wx:elif="{{foods.length === 0}}" class="empty-state compact-empty">
+          <text class="empty-title">没有符合条件的食物</text>
+          <text class="empty-copy">换个名称或筛选条件再试试。</text>
+          <button class="empty-action" bindtap="clearFilters">清除筛选</button>
+        </view>
+
+        <view wx:else class="food-list">
+          <view class="food-item {{batchMode ? 'batch-mode' : ''}} {{item.batchSelected ? 'batch-selected' : ''}}" wx:for="{{foods}}" wx:key="id">
+            <button wx:if="{{batchMode}}" class="batch-check {{item.batchSelected ? 'selected' : ''}}" data-id="{{item.id}}" bindtap="toggleBatchFood" aria-label="{{item.batchSelected ? '取消选择' : '选择'}}{{item.name}}" aria-pressed="{{item.batchSelected}}"><view></view></button>
+            <view wx:else class="category-mark">{{item.categoryShort}}</view>
+            <view class="food-main">
+              <view class="food-topline">
+                <text class="food-name">{{item.name}}</text>
+                <text class="expiry-tag {{item.expiryClass}}">{{item.expiryLabel}}</text>
+              </view>
+              <text wx:if="{{elderMode}}" class="food-meta">{{item.zoneLabel}} · {{item.quantity}}{{item.unit}}</text>
+              <text wx:else class="food-meta">{{item.zoneLabel}} · {{item.category}} · {{item.quantity}}{{item.unit}} · {{item.expireDate}}</text>
+              <view wx:if="{{!elderMode}}" class="freshness-block" aria-label="{{item.name}}新鲜度{{item.freshnessPercent}}%">
+                <view class="freshness-heading">
+                  <text class="freshness-label">新鲜度</text>
+                  <text class="freshness-value {{item.freshnessClass}}">{{item.freshnessPercent}}%</text>
+                </view>
+                <view class="freshness-track">
+                  <view class="freshness-fill {{item.freshnessClass}}" style="width: {{item.freshnessPercent}}%;"></view>
+                </view>
+                <text class="best-use-label">{{item.bestUseLabel}}</text>
+              </view>
+              <text wx:if="{{!elderMode && item.note}}" class="food-note">{{item.note}}</text>
+              <view wx:if="{{!batchMode}}" class="food-actions">
+                <button class="text-action edit" data-id="{{item.id}}" bindtap="openEdit" aria-label="修改{{item.name}}">修改</button>
+                <button class="text-action finish" data-id="{{item.id}}" bindtap="finishFood" aria-label="标记{{item.name}}已吃完">吃完</button>
+                <button class="text-action waste" data-id="{{item.id}}" bindtap="wasteFood" aria-label="标记{{item.name}}已浪费">丢弃</button>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <view wx:elif="{{activeView === 'history'}}" class="history-section">
+      <view class="history-intro">
+        <text class="history-title">{{elderMode ? '处理记录' : '每一次处理，都有去处。'}}</text>
+        <text wx:if="{{!elderMode}}" class="history-copy">“吃完”与“浪费”分开记录；仅显示最近三天。</text>
+      </view>
+
+      <view wx:if="{{history.length === 0}}" class="empty-state history-empty">
+        <text class="empty-title">还没有处理记录</text>
+          <text class="empty-copy">{{elderMode ? '还没有吃完或丢弃的记录' : '最近三天没有处理记录；新的“吃完”或“丢弃”会显示在这里。'}}</text>
+      </view>
+
+      <view wx:else class="history-list">
+        <view class="history-item" wx:for="{{history}}" wx:key="id">
+          <view class="history-main">
+            <view class="history-topline">
+              <text class="history-food-name">{{item.food.name}}</text>
+              <text class="outcome-tag {{item.outcomeClass}}">{{item.outcomeLabel}}</text>
+            </view>
+            <text class="history-meta">{{item.food.quantity}}{{item.food.unit}} · {{item.food.zoneLabel}} · {{item.handledDate}}</text>
+          </view>
+          <button class="undo-button" data-id="{{item.id}}" bindtap="undoHistory" aria-label="撤销处理{{item.food.name}}">撤销</button>
+        </view>
+      </view>
+    </view>
+
+    <view wx:elif="{{activeView === 'receipt'}}" class="receipt-workspace">
+      <view class="receipt-hero">
+        <view class="receipt-hero-copy">
+          <text class="receipt-title">{{elderMode ? '小票录入' : '买回家的东西，一次记清。'}}</text>
+          <text wx:if="{{!elderMode}}" class="receipt-copy">拍一张购物小票，核对后再批量放进冰箱。</text>
+        </view>
+        <view class="receipt-actions">
+          <button class="receipt-scan" bindtap="startReceiptScan" aria-label="拍摄或上传购物小票">拍摄或上传小票</button>
+          <button class="receipt-manual" bindtap="openManualReceipt" aria-label="手动记录买菜商品">手动记录</button>
+        </view>
+        <view wx:if="{{!elderMode}}" class="receipt-rule">
+          <text>识别</text><view></view><text>核对修改</text><view></view><text>选择入库</text>
+        </view>
+      </view>
+
+      <block wx:if="{{!elderMode}}">
+      <view class="receipt-period">
+        <view>
+          <text class="receipt-period-title">{{receiptMonth}} 的厨房账本</text>
+          <text class="receipt-period-note">消费按购买月；吃完与浪费按处理月</text>
+        </view>
+        <picker mode="date" fields="month" value="{{receiptMonth}}" bindchange="onReceiptMonthChange" aria-label="选择统计月份">
+          <view class="receipt-month-control">换月份</view>
+        </picker>
+      </view>
+
+      <view class="receipt-ledger">
+        <view class="ledger-total">
+          <text class="ledger-label">本月入库金额</text>
+          <text class="ledger-value">¥ {{receiptStats.monthlyTotalText}}</text>
+          <text class="ledger-note">{{receiptStats.purchaseCount}} 次买菜记录</text>
+        </view>
+        <view class="ledger-divider"></view>
+        <view class="ledger-outcomes">
+          <view class="ledger-outcome">
+            <text class="ledger-outcome-value">{{receiptStats.eatenCount}}</text>
+            <text class="ledger-outcome-label">吃完条目</text>
+          </view>
+          <view class="ledger-outcome">
+            <text class="ledger-outcome-value waste-value">{{receiptStats.discardedCount}}</text>
+            <text class="ledger-outcome-label">浪费条目</text>
+          </view>
+          <view class="ledger-outcome">
+            <text class="ledger-outcome-value waste-value">¥{{receiptStats.wasteAmountText}}</text>
+            <text class="ledger-outcome-label">可追溯浪费</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="category-spend">
+        <view class="receipt-section-heading">
+          <text class="receipt-section-title">分类消费</text>
+          <text class="receipt-section-note">按确认入库金额计算</text>
+        </view>
+        <view wx:if="{{receiptStats.categoryRows.length === 0}}" class="receipt-quiet-empty">这个月还没有可统计的小票。</view>
+        <view wx:else class="category-ledger">
+          <view class="category-ledger-row" wx:for="{{receiptStats.categoryRows}}" wx:key="category">
+            <text class="category-ledger-name">{{item.category}}</text>
+            <view class="category-ledger-track"><view style="width: {{item.share}}%;"></view></view>
+            <view class="category-ledger-values">
+              <text class="category-ledger-share">{{item.share}}%</text>
+              <text class="category-ledger-amount">¥{{item.amountText}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="purchase-records">
+        <view class="receipt-section-heading">
+          <text class="receipt-section-title">买菜记录</text>
+          <text class="receipt-section-note">{{purchases.length}} 笔</text>
+        </view>
+        <view wx:if="{{purchases.length === 0}}" class="empty-state receipt-empty">
+          <text class="empty-title">还没有买菜记录</text>
+          <text class="empty-copy">从一张小票开始，确认过的商品才会进入库存。</text>
+        </view>
+        <view wx:else class="purchase-list">
+          <view class="purchase-row" wx:for="{{purchases}}" wx:key="id">
+            <view class="purchase-heading">
+              <view>
+                <text class="purchase-date">{{item.purchasedDate}}</text>
+                <text class="purchase-source">{{item.sourceLabel}} · {{item.items.length}} 项入库</text>
+              </view>
+              <text class="purchase-total">¥{{item.selectedTotalText}}</text>
+            </view>
+            <text class="purchase-summary">{{item.itemSummary}}</text>
+            <view class="purchase-lines">
+              <view class="purchase-line" wx:for="{{item.items}}" wx:for-item="food" wx:key="id">
+                <text>{{food.name}} · {{food.quantity}}{{food.unit}}</text>
+                <text>¥{{food.amount}}</text>
+              </view>
+            </view>
+            <text wx:if="{{item.receiptTotal !== item.selectedTotal}}" class="purchase-receipt-total">小票原合计 ¥{{item.receiptTotalText}}</text>
+          </view>
+        </view>
+      </view>
+      </block>
+    </view>
+
+    <view wx:else class="meal-workspace">
+      <view class="meal-hero">
+        <view>
+          <text class="meal-title">{{elderMode ? '家常菜建议' : '先吃冰箱里真正有的。'}}</text>
+          <text wx:if="{{!elderMode}}" class="meal-copy">用现有食材，做几道熟悉的家常菜。</text>
+        </view>
+      </view>
+
+      <view class="meal-section meal-settings-section">
+        <view class="meal-settings-copy">
+          <text class="meal-section-title">饮食设置</text>
+          <text class="meal-settings-summary">{{dietSummary}}</text>
+        </view>
+        <button class="meal-settings-action" bindtap="openDietSettings" aria-label="设置饮食偏好、过敏原和忌口">修改</button>
+      </view>
+
+      <view wx:if="{{!elderMode}}" class="meal-section">
+        <view class="meal-section-heading">
+          <text class="meal-section-title">库存食材营养</text>
+          <text class="meal-section-note">常见食材简要信息</text>
+        </view>
+        <view wx:if="{{nutritionRows.length === 0}}" class="meal-empty">当前库存中还没有可匹配的常见食材资料。</view>
+        <view wx:else class="nutrition-list">
+          <view class="nutrition-row" wx:for="{{visibleNutritionRows}}" wx:key="key">
+            <view class="nutrition-heading">
+              <text class="nutrition-name">{{item.name}}</text>
+            </view>
+            <text class="nutrition-summary">{{item.summary}}</text>
+          </view>
+          <button wx:if="{{nutritionRows.length > 3}}" class="nutrition-toggle" bindtap="toggleNutritionExpanded">{{nutritionExpanded ? '收起' : '展开全部（' + nutritionRows.length + '）'}}</button>
+        </view>
+      </view>
+
+      <view class="meal-section">
+        <view class="meal-section-heading meal-recipe-heading">
+          <view class="meal-section-title-row">
+            <text class="meal-section-title">家常菜建议</text>
+            <button class="meal-ai-generate" bindtap="generateAiInsights" disabled="{{aiInsightsBusy}}" aria-label="根据当前库存推荐菜谱">{{aiInsightsBusy ? '生成中…' : '智能推荐'}}</button>
+          </view>
+        </view>
+        <view wx:if="{{aiInsightsState !== 'idle'}}" class="meal-ai-status {{aiInsightsState}}" aria-live="polite">
+          <view class="meal-ai-status-dot"></view>
+          <text>{{aiInsightsMessage}}</text>
+          <button wx:if="{{aiInsightsState === 'fallback'}}" bindtap="generateAiInsights">重试</button>
+        </view>
+        <view wx:if="{{mealRecommendations.length === 0}}" class="meal-empty">点击“智能推荐”，生成 3–4 道不重复的家常菜。</view>
+        <view wx:else class="meal-list">
+          <view class="meal-card" wx:for="{{mealRecommendations}}" wx:key="title">
+            <view class="meal-card-heading">
+              <text class="meal-card-title">{{item.title}}</text>
+              <text class="meal-reason">{{item.reason}}</text>
+            </view>
+            <text class="meal-line"><text class="meal-line-label">库存可用</text>{{item.usedText}}</text>
+            <text class="meal-line missing"><text class="meal-line-label">还缺</text>{{item.missingText}}</text>
+            <view wx:if="{{item.durationText || item.servingsText}}" class="meal-detail-meta">
+              <text wx:if="{{item.durationText}}">{{item.durationText}}</text>
+              <text wx:if="{{item.servingsText}}">{{item.servingsText}}</text>
+            </view>
+            <view wx:if="{{item.steps.length}}" class="meal-steps">
+              <text class="meal-steps-title">简单做法</text>
+              <text class="meal-step" wx:for="{{item.steps}}" wx:for-item="step" wx:for-index="stepIndex" wx:key="*this">{{stepIndex + 1}}. {{step}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{aiInsightsState === 'success'}}" class="ai-feedback-panel">
+        <text class="ai-feedback-question">这次建议有用吗？</text>
+        <view wx:if="{{!aiInsightFeedback}}" class="ai-feedback-actions">
+          <button data-id="{{aiInsightId}}" data-kind="insight" data-value="helpful" bindtap="recordAiFeedback">有用</button>
+          <button data-id="{{aiInsightId}}" data-kind="insight" data-value="unhelpful" bindtap="recordAiFeedback">没帮助</button>
+        </view>
+        <text wx:else class="ai-feedback-thanks">已记录：{{aiInsightFeedback === 'helpful' ? '有用' : '没帮助'}}</text>
+      </view>
+
+      <view class="health-disclaimer">
+        <text class="health-disclaimer-title">饮食信息仅供日常参考</text>
+        <text>{{elderMode ? '过敏或疾病饮食，请以包装信息和医生建议为准。' : '营养信息不能替代包装标签、医生诊断或个体化医疗建议；如有严重不适或明确疾病，请及时就医。'}}</text>
+      </view>
+    </view>
+
+    <view class="bottom-space {{activeView !== 'stock' ? 'history-space' : ''}} {{activeView === 'history' && history.length ? 'with-history-clear' : ''}}"></view>
+  </scroll-view>
+
+  <view wx:if="{{activeView === 'stock'}}" class="fixed-action">
+    <view wx:if="{{batchMode}}" class="batch-action-bar">
+      <button class="batch-action eaten" bindtap="finishSelectedFoods" disabled="{{selectedFoodIds.length === 0}}">批量吃完（{{selectedFoodIds.length}}）</button>
+      <button class="batch-action discarded" bindtap="wasteSelectedFoods" disabled="{{selectedFoodIds.length === 0}}">批量丢弃（{{selectedFoodIds.length}}）</button>
+    </view>
+    <button wx:else class="primary-button" bindtap="openAdd" aria-label="添加食物">
+      <view class="plus-icon"></view>
+      <text>添加食物</text>
+    </button>
+  </view>
+  </view>
+  </block>
+  </block>
+
+  <view wx:if="{{showAdd}}" class="sheet-mask" bindtap="closeAdd">
+    <view class="sheet" catchtap="stopTap" aria-role="dialog" aria-label="{{editingId ? '修改食物' : '添加食物'}}">
+      <view class="sheet-handle"></view>
+      <view class="sheet-heading">
+        <view>
+          <text class="sheet-title">{{editingId ? '修改食物' : '放进冰箱'}}</text>
+          <text class="sheet-subtitle">名称、位置和数量都可以随时调整</text>
+        </view>
+        <button class="close-button" bindtap="closeAdd" aria-label="关闭表单">关闭</button>
+      </view>
+
+      <view class="form-field">
+        <text class="field-label">食物名称</text>
+        <input class="text-input" placeholder="例如：鲜牛奶" placeholder-class="input-placeholder" value="{{form.name}}" maxlength="20" focus="{{showAdd}}" bindinput="onNameInput" aria-label="食物名称" />
+      </view>
+
+      <view class="form-row">
+        <view class="form-field form-field-half">
+          <text class="field-label">分类</text>
+          <picker range="{{categories}}" value="{{categoryIndex}}" bindchange="onCategoryChange" aria-label="食物分类">
+            <view class="picker-control">{{categories[categoryIndex]}}<text class="picker-arrow">选择</text></view>
+          </picker>
+        </view>
+        <view class="form-field form-field-half">
+          <text class="field-label">存放位置</text>
+          <picker range="{{zones}}" range-key="label" value="{{zoneIndex}}" bindchange="onZoneChange" aria-label="存放位置">
+            <view class="picker-control">{{zones[zoneIndex].label}}<text class="picker-arrow">选择</text></view>
+          </picker>
+        </view>
+      </view>
+
+      <view class="form-row">
+        <view class="form-field form-field-half">
+          <text class="field-label">数量</text>
+          <view class="stepper">
+            <button class="step-button" bindtap="decreaseQuantity" aria-label="减少数量">−</button>
+            <text class="step-value">{{form.quantity}}</text>
+            <button class="step-button" bindtap="increaseQuantity" aria-label="增加数量">＋</button>
+          </view>
+        </view>
+        <view class="form-field form-field-half">
+          <text class="field-label">单位</text>
+          <picker range="{{units}}" value="{{unitIndex}}" bindchange="onUnitChange" aria-label="数量单位">
+            <view class="picker-control">{{units[unitIndex]}}<text class="picker-arrow">选择</text></view>
+          </picker>
+        </view>
+      </view>
+
+      <view class="form-row">
+        <view class="form-field form-field-half">
+          <text class="field-label">入库日期</text>
+          <picker mode="date" value="{{form.storedAt}}" bindchange="onStoredAtChange" aria-label="入库日期">
+            <view class="picker-control">{{form.storedAt}}<text class="picker-arrow">选择</text></view>
+          </picker>
+        </view>
+        <view class="form-field form-field-half">
+          <text class="field-label">参考到期日</text>
+          <picker mode="date" value="{{form.expireDate}}" bindchange="onDateChange" aria-label="到期日期">
+            <view class="picker-control">{{form.expireDate}}<text class="picker-arrow">选择</text></view>
+          </picker>
+        </view>
+      </view>
+
+      <view class="suggestion-note">
+        <view class="suggestion-copy">
+          <text class="suggestion-title">{{shelfLifeSuggestion.label}} · 参考 {{shelfLifeSuggestion.days}} 天</text>
+          <text wx:if="{{dateManuallyEdited}}" class="suggestion-manual">已使用手动日期</text>
+          <text class="suggestion-warning">仅供参考，请优先依据包装说明，并结合气味、外观和实际保存条件判断。</text>
+        </view>
+        <button wx:if="{{dateManuallyEdited}}" class="reset-suggestion" bindtap="resetDateSuggestion">恢复建议</button>
+      </view>
+
+      <view class="form-field">
+        <text class="field-label">备注 <text class="optional">选填</text></text>
+        <input class="text-input" placeholder="例如：开封后冷藏" placeholder-class="input-placeholder" value="{{form.note}}" maxlength="40" bindinput="onNoteInput" aria-label="备注，选填" />
+      </view>
+
+      <button class="save-button" bindtap="saveFood">{{editingId ? '保存修改' : '保存到冰箱'}}</button>
+      <button wx:if="{{editingId}}" class="delete-record" data-id="{{editingId}}" bindtap="deleteFood">删除误添加的记录</button>
+    </view>
+  </view>
+
+  <view wx:if="{{showReminderSettings}}" class="sheet-mask" bindtap="closeReminderSettings">
+    <view class="sheet reminder-sheet" catchtap="stopTap" aria-role="dialog" aria-label="保鲜提醒设置">
+      <view class="sheet-handle"></view>
+      <view class="sheet-heading">
+        <view>
+          <text class="sheet-title">保鲜提醒</text>
+          <text class="sheet-subtitle">在食物临期前，给自己留一点余地</text>
+        </view>
+        <button class="close-button" bindtap="closeReminderSettings" aria-label="关闭提醒设置">关闭</button>
+      </view>
+
+      <view class="setting-row">
+        <view class="setting-copy">
+          <text class="setting-title">订阅消息提醒</text>
+          <text class="setting-description">{{reminderSettings.permission === 'unconfigured' ? '需先在公众平台配置模板' : reminderSettings.permission === 'sent' ? '本次提醒已发送，需要时可再次开启' : '开启时会请求一次微信授权'}}</text>
+        </view>
+        <switch checked="{{reminderSettings.enabled}}" color="#1f6046" bindchange="onReminderToggle" aria-label="订阅消息提醒开关"></switch>
+      </view>
+
+      <view class="setting-row">
+        <view class="setting-copy">
+          <text class="setting-title">提醒时间</text>
+          <text class="setting-description">保存偏好，不影响库存与到期计算</text>
+        </view>
+        <picker mode="time" value="{{reminderSettings.time}}" bindchange="onReminderTimeChange" aria-label="提醒时间">
+          <view class="time-control">{{reminderSettings.time}}</view>
+        </picker>
+      </view>
+
+      <view class="reminder-boundary">
+        <text class="reminder-boundary-title">当前接入状态</text>
+        <text class="reminder-boundary-copy">{{reminderSettings.enabled ? '已获得订阅授权；仍需云端任务按时间发送。' : '提醒未开启。授权失败或未配置时，库存功能照常使用。'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{showDietSettings}}" class="sheet-mask" bindtap="closeDietSettings">
+    <scroll-view class="sheet diet-sheet" scroll-y enhanced show-scrollbar="{{false}}" catchtap="stopTap" aria-role="dialog" aria-label="饮食偏好、过敏与不耐受、忌口设置">
+      <view class="sheet-handle"></view>
+      <view class="sheet-heading diet-sheet-heading">
+        <view>
+          <text class="sheet-title">饮食设置</text>
+          <text class="sheet-subtitle">安全限制优先过滤，饮食偏好只影响排序</text>
+        </view>
+        <button class="close-button" bindtap="closeDietSettings" aria-label="关闭饮食设置">关闭</button>
+      </view>
+
+      <view class="diet-group">
+        <text class="diet-group-title">饮食偏好</text>
+        <text class="diet-group-note">少盐、少糖等只影响推荐排序，不代表医学饮食标准。</text>
+        <checkbox-group class="diet-options" bindchange="onDietPreferencesChange" aria-label="选择饮食偏好">
+          <label class="diet-option" wx:for="{{dietPreferenceChoices}}" wx:key="value">
+            <checkbox value="{{item.value}}" checked="{{item.checked}}" color="#1f6046" />
+            <text>{{item.label}}</text>
+          </label>
+        </checkbox-group>
+      </view>
+
+      <view class="diet-group">
+        <text class="diet-group-title">过敏与不耐受</text>
+        <text class="diet-group-note">含有已标注过敏原的菜谱会在推荐前排除。</text>
+        <checkbox-group class="diet-options" bindchange="onDietAllergensChange" aria-label="选择过敏原">
+          <label class="diet-option" wx:for="{{dietAllergenChoices}}" wx:key="value">
+            <checkbox value="{{item.value}}" checked="{{item.checked}}" color="#1f6046" />
+            <text>{{item.label}}</text>
+          </label>
+        </checkbox-group>
+      </view>
+
+      <view class="diet-group">
+        <text class="diet-group-title">忌口</text>
+        <text class="diet-group-note">已标注的主要食材和常用做法会在推荐前排除。</text>
+        <checkbox-group class="diet-options" bindchange="onDietAvoidsChange" aria-label="选择忌口">
+          <label class="diet-option" wx:for="{{dietAvoidChoices}}" wx:key="value">
+            <checkbox value="{{item.value}}" checked="{{item.checked}}" color="#1f6046" />
+            <text>{{item.label}}</text>
+          </label>
+        </checkbox-group>
+      </view>
+
+      <view class="reminder-boundary">
+        <text class="reminder-boundary-title">安全边界</text>
+        <text class="reminder-boundary-copy">仅按已标注的主要食材和常用做法过滤；无法判断包装食品隐藏配料、交叉污染或清真认证。严重过敏或疾病饮食请以包装信息和医生建议为准。</text>
+      </view>
+
+      <button class="save-button" bindtap="saveDietSettings">保存饮食设置</button>
+    </scroll-view>
+  </view>
+
+  <view wx:if="{{showReceiptSheet}}" class="sheet-mask" bindtap="closeReceiptSheet">
+    <scroll-view class="sheet receipt-sheet" scroll-y enhanced show-scrollbar="{{false}}" scroll-with-animation scroll-into-view="{{receiptScrollTarget}}" catchtap="stopTap" aria-role="dialog" aria-label="小票确认与批量入库">
+      <view class="sheet-handle"></view>
+      <view class="sheet-heading receipt-sheet-heading">
+        <view>
+          <text class="sheet-title">{{receiptBusy ? '正在识别小票' : receiptDraft.source === 'ocr' ? '核对识别结果' : '记录这次买菜'}}</text>
+          <text class="sheet-subtitle">确认前不会写入库存</text>
+        </view>
+        <button class="close-button" bindtap="closeReceiptSheet" aria-label="关闭小票确认">关闭</button>
+      </view>
+
+      <view wx:if="{{receiptBusy}}" class="receipt-loading">
+        <view class="receipt-loading-mark"></view>
+        <text class="receipt-loading-title">正在读取商品和金额</text>
+      </view>
+
+      <block wx:else>
+        <view wx:if="{{receiptError}}" class="receipt-error">
+          <text class="receipt-error-title">需要手动补充</text>
+          <text class="receipt-error-copy">{{receiptError}}</text>
+        </view>
+
+        <view class="receipt-summary-form">
+          <view class="form-field form-field-half">
+            <text class="field-label">购买日期</text>
+            <picker mode="date" value="{{receiptDraft.purchasedDate}}" bindchange="onReceiptPurchasedDateChange" aria-label="购买日期">
+              <view class="picker-control">{{receiptDraft.purchasedDate}}<text class="picker-arrow">选择</text></view>
+            </picker>
+          </view>
+          <view class="form-field form-field-half">
+            <text class="field-label">小票合计</text>
+            <view class="money-input-wrap"><text>¥</text><input type="digit" value="{{receiptDraft.receiptTotal}}" bindinput="onReceiptTotalInput" aria-label="小票合计金额" /></view>
+          </view>
+        </view>
+
+        <view class="receipt-draft-heading">
+          <view>
+            <text class="receipt-draft-title">识别到的商品</text>
+            <text class="receipt-draft-note">已选择 ¥{{receiptDraft.selectedTotal}}</text>
+          </view>
+          <button class="receipt-add-line" bindtap="addReceiptDraftItem">添加一项</button>
+        </view>
+
+        <view class="receipt-draft-list">
+          <view class="receipt-draft-item {{item.selected ? 'selected' : ''}}" wx:for="{{receiptDraft.items}}" wx:key="id">
+            <view class="receipt-item-heading">
+              <button class="receipt-check {{item.selected ? 'selected' : ''}}" data-index="{{index}}" bindtap="toggleReceiptItem" aria-label="{{item.selected ? '取消选择' : '选择'}}第{{index + 1}}项商品" aria-pressed="{{item.selected}}">
+                <view class="receipt-check-mark"></view>
+              </button>
+              <text class="receipt-item-number">商品 {{index + 1}}</text>
+              <button class="receipt-remove-line" data-index="{{index}}" bindtap="removeReceiptDraftItem" aria-label="删除第{{index + 1}}项商品">移除</button>
+            </view>
+
+            <view class="form-field receipt-name-field">
+              <text class="field-label">商品名称</text>
+              <input class="text-input" value="{{item.name}}" maxlength="20" placeholder="例如：鲜牛奶" placeholder-class="input-placeholder" data-index="{{index}}" data-field="name" bindinput="onReceiptItemInput" aria-label="第{{index + 1}}项商品名称" />
+            </view>
+
+            <view class="receipt-field-grid">
+              <view class="form-field">
+                <text class="field-label">数量</text>
+                <input class="receipt-compact-input" type="digit" value="{{item.quantity}}" data-index="{{index}}" data-field="quantity" bindinput="onReceiptItemInput" aria-label="{{item.name}}数量" />
+              </view>
+              <view class="form-field">
+                <text class="field-label">单位</text>
+                <picker range="{{units}}" value="{{item.unitIndex}}" data-index="{{index}}" data-field="unit" bindchange="onReceiptPickerChange" aria-label="{{item.name}}数量单位">
+                  <view class="receipt-compact-control">{{item.unit}}<text>选择</text></view>
+                </picker>
+              </view>
+              <view class="form-field">
+                <text class="field-label">单价</text>
+                <view class="receipt-compact-money"><text>¥</text><input type="digit" value="{{item.unitPrice}}" data-index="{{index}}" data-field="unitPrice" bindinput="onReceiptItemInput" aria-label="第{{index + 1}}项商品单价" /></view>
+              </view>
+              <view class="form-field">
+                <text class="field-label">金额</text>
+                <view class="receipt-compact-money"><text>¥</text><input type="digit" value="{{item.amount}}" data-index="{{index}}" data-field="amount" bindinput="onReceiptItemInput" aria-label="第{{index + 1}}项商品金额" /></view>
+              </view>
+            </view>
+
+            <view class="receipt-field-grid receipt-field-grid-meta">
+              <view class="form-field">
+                <text class="field-label">商品类型</text>
+                <picker range="{{receiptTypeOptions}}" range-key="label" value="{{item.inventoryTypeIndex}}" data-index="{{index}}" data-field="inventoryType" bindchange="onReceiptPickerChange" aria-label="{{item.name}}商品类型">
+                  <view class="receipt-compact-control">{{item.inventoryTypeLabel}}<text>选择</text></view>
+                </picker>
+              </view>
+              <view wx:if="{{item.inventoryType === 'food'}}" class="form-field">
+                <text class="field-label">分类</text>
+                <picker range="{{categories}}" value="{{item.categoryIndex}}" data-index="{{index}}" data-field="category" bindchange="onReceiptPickerChange" aria-label="{{item.name}}分类">
+                  <view class="receipt-compact-control">{{item.category}}<text>选择</text></view>
+                </picker>
+              </view>
+              <view wx:if="{{item.inventoryType === 'food'}}" class="form-field">
+                <text class="field-label">位置</text>
+                <picker range="{{zones}}" range-key="label" value="{{item.zoneIndex}}" data-index="{{index}}" data-field="zone" bindchange="onReceiptPickerChange" aria-label="{{item.name}}存放位置">
+                  <view class="receipt-compact-control">{{zones[item.zoneIndex].label}}<text>选择</text></view>
+                </picker>
+              </view>
+            </view>
+
+            <text wx:if="{{item.inventoryType === 'nonfood'}}" class="receipt-classification-note">不属于食物库存，默认不加入<text wx:if="{{item.excludedCategory}}"> · {{item.excludedCategory}}</text></text>
+            <text wx:elif="{{item.inventoryType === 'pending'}}" class="receipt-classification-note">暂不确定，请选择商品类型后再入库</text>
+
+            <view wx:if="{{item.inventoryType === 'food'}}" class="form-field receipt-expiry-field">
+              <text class="field-label">参考到期日</text>
+              <picker mode="date" value="{{item.expireDate}}" data-index="{{index}}" bindchange="onReceiptItemDateChange" aria-label="{{item.name}}参考到期日">
+                <view class="receipt-compact-control">{{item.expireDate}}<text>选择</text></view>
+              </picker>
+            </view>
+          </view>
+        </view>
+
+        <view id="receipt-confirm-target" class="receipt-confirm-boundary">
+          <text class="receipt-confirm-title">最后确认</text>
+          <text class="receipt-confirm-copy">只把勾选的商品加入库存；识别内容、分类和日期都可以先修改。</text>
+        </view>
+        <button class="save-button receipt-commit" bindtap="commitReceipt" disabled="{{receiptSaving}}">{{receiptSaving ? '正在保存…' : '确认并批量入库'}}</button>
+      </block>
+    </scroll-view>
+    <view wx:if="{{!receiptBusy && receiptDraft.source === 'ocr'}}" class="receipt-jump-bottom" catchtap="jumpReceiptToBottom" aria-role="button" aria-label="滑到确认并批量入库按钮"><view class="receipt-jump-arrow"><view></view></view></view>
+  </view>
+
+  <view wx:if="{{showMagnetSheet}}" class="sheet-mask" bindtap="closeMagnetSheet">
+    <view class="sheet magnet-sheet" catchtap="stopTap" aria-role="dialog" aria-label="冰箱贴编辑">
+      <view class="sheet-handle"></view>
+      <view class="sheet-heading">
+        <view>
+          <text wx:if="{{magnetSheetMode === 'note'}}" class="sheet-title">{{editingMagnetId ? '编辑便签' : '新建便签'}}</text>
+          <text wx:elif="{{magnetSheetMode === 'sticker'}}" class="sheet-title">{{editingMagnetId ? '更换贴纸' : '选择装饰贴纸'}}</text>
+          <text wx:elif="{{magnetSheetMode === 'diy'}}" class="sheet-title">{{editingMagnetId ? '编辑文字贴纸' : '做一枚文字贴纸'}}</text>
+          <text wx:elif="{{magnetSheetMode === 'photo-choice'}}" class="sheet-title">选择照片便签形式</text>
+          <text wx:elif="{{magnetSheetMode === 'album-create'}}" class="sheet-title">制作照片集</text>
+          <text wx:elif="{{magnetSheetMode === 'album'}}" class="sheet-title">管理照片集</text>
+          <text wx:else class="sheet-title">照片便签</text>
+          <text class="sheet-subtitle">所有内容共用边界与防重叠规则</text>
+        </view>
+        <button class="close-button" bindtap="closeMagnetSheet" aria-label="关闭冰箱贴编辑">关闭</button>
+      </view>
+
+      <view wx:if="{{magnetSheetMode === 'note'}}" class="form-field">
+        <text class="field-label">写给家里</text>
+        <textarea class="note-input" placeholder="例如：牛奶快喝完啦，回家记得带一盒。" placeholder-class="note-placeholder" value="{{magnetForm.text}}" maxlength="80" auto-height="{{false}}" focus="{{showMagnetSheet}}" bindinput="onMagnetTextInput" aria-label="便签内容"></textarea>
+        <text class="field-count">{{magnetForm.text.length}} / 80</text>
+        <button class="save-button magnet-save" bindtap="saveNoteMagnet">{{editingMagnetId ? '保存修改' : '贴到冰箱门'}}</button>
+      </view>
+
+      <view wx:elif="{{magnetSheetMode === 'sticker'}}" class="sticker-picker">
+        <button class="sticker-option diy-entry" bindtap="openDiySticker" aria-label="制作DIY装饰贴纸">
+          <view class="diy-entry-mark"><text>DIY</text></view>
+          <text>文字贴纸（基础）</text>
+        </button>
+        <button class="sticker-option" wx:for="{{stickerOptions}}" wx:key="value" data-value="{{item.value}}" bindtap="chooseSticker" aria-label="选择{{item.label}}贴纸">
+          <view class="sticker-preview sticker-art sticker-{{item.value}}">
+            <view class="sticker-part sticker-part-a"></view>
+            <view class="sticker-part sticker-part-b"></view>
+            <view class="sticker-part sticker-part-c"></view>
+          </view>
+          <text>{{item.label}}</text>
+        </button>
+      </view>
+
+      <view wx:elif="{{magnetSheetMode === 'diy'}}" class="diy-editor">
+        <view class="diy-workbench">
+          <view class="sticker-art sticker-diy diy-{{magnetForm.diyShape}} diy-{{magnetForm.diyColor}}">
+            <text class="diy-sticker-text">{{magnetForm.diyText || '生活'}}</text>
+          </view>
+        </view>
+        <view class="form-field compact-field">
+          <text class="field-label">贴纸上的字</text>
+          <input class="form-input" value="{{magnetForm.diyText}}" maxlength="6" placeholder="最多六个字" bindinput="onDiyTextInput" aria-label="DIY贴纸文字" />
+          <text class="field-count">{{magnetForm.diyText.length}} / 6</text>
+        </view>
+        <text class="field-label option-label">外形</text>
+        <view class="diy-options">
+          <button class="diy-choice {{magnetForm.diyShape === item.value ? 'active' : ''}}" wx:for="{{diyShapeOptions}}" wx:key="value" data-value="{{item.value}}" bindtap="chooseDiyShape">{{item.label}}</button>
+        </view>
+        <text class="field-label option-label">颜色</text>
+        <view class="diy-colors">
+          <button class="diy-color color-{{item.value}} {{magnetForm.diyColor === item.value ? 'active' : ''}}" wx:for="{{diyColorOptions}}" wx:key="value" data-value="{{item.value}}" bindtap="chooseDiyColor" aria-label="选择{{item.label}}"></button>
+        </view>
+        <button class="save-button magnet-save" bindtap="saveDiySticker">{{editingMagnetId ? '保存DIY贴纸' : '贴到冰箱门'}}</button>
+      </view>
+
+      <view wx:elif="{{magnetSheetMode === 'photo-choice'}}" class="photo-choice-list">
+        <view class="photo-choice-row">
+          <button class="photo-choice-card" bindtap="choosePhoto" disabled="{{mediaSaving}}">
+            <view class="photo-choice-visual single-photo-visual"><view></view></view>
+            <view class="photo-choice-copy">
+              <text class="photo-choice-title">单张照片</text>
+              <text class="photo-choice-note">把一个瞬间独立贴在门上</text>
+            </view>
+            <text class="photo-choice-arrow">›</text>
+          </button>
+        </view>
+        <view class="photo-choice-row">
+          <button class="photo-choice-card" bindtap="chooseAlbumPhotos" disabled="{{mediaSaving}}">
+            <view class="photo-choice-visual album-choice-visual"><view></view><view></view><view></view></view>
+            <view class="photo-choice-copy">
+              <text class="photo-choice-title">照片集</text>
+              <text class="photo-choice-note">选择 2–9 张，做成可翻看的相册</text>
+            </view>
+            <text class="photo-choice-arrow">›</text>
+          </button>
+        </view>
+      </view>
+
+      <view wx:elif="{{magnetSheetMode === 'album-create' || magnetSheetMode === 'album'}}" class="album-editor">
+        <scroll-view wx:if="{{magnetSheetMode === 'album-create'}}" class="album-draft-strip" scroll-x enhanced show-scrollbar="{{false}}">
+          <image wx:for="{{albumDraftPhotos}}" wx:key="*this" class="album-draft-photo" src="{{item}}" mode="aspectFill"></image>
+        </scroll-view>
+        <view class="form-field compact-field">
+          <text class="field-label">照片集名称</text>
+          <input class="form-input" value="{{magnetForm.albumTitle}}" maxlength="20" placeholder="例如：旅行回忆" bindinput="onAlbumTitleInput" aria-label="照片集名称" />
+          <text class="field-count">{{magnetForm.albumTitle.length}} / 20</text>
+        </view>
+        <text wx:if="{{magnetSheetMode === 'album-create'}}" class="album-create-note">已选择 {{albumDraftPhotos.length}} 张照片。保存后以封面卡片进入，轻触即可逐张翻看。</text>
+        <button class="save-button magnet-save" bindtap="saveAlbumMagnet" disabled="{{mediaSaving}}">{{mediaSaving ? '正在保存…' : editingMagnetId ? '保存名称' : '制作并贴上'}}</button>
+      </view>
+
+      <view wx:elif="{{magnetSheetMode === 'photo'}}" class="photo-editor">
+        <image class="photo-editor-preview" src="{{editingMagnet.content}}" mode="aspectFit" bindtap="previewSinglePhoto" aria-role="button" aria-label="打开照片并缩放查看"></image>
+        <text class="photo-preview-hint">轻触照片可放大、缩小查看</text>
+        <button class="save-button magnet-save" bindtap="replacePhotoMagnet" disabled="{{mediaSaving}}">{{mediaSaving ? '正在保存…' : '更换照片'}}</button>
+      </view>
+
+      <button wx:if="{{editingMagnetId}}" class="delete-record" bindtap="deleteMagnet">取下这枚冰箱贴</button>
+    </view>
+  </view>
+
+  <view wx:if="{{showAlbumViewer}}" class="album-viewer-mask" bindtap="closeAlbumViewer">
+    <view class="album-viewer" catchtap="stopTap" aria-role="dialog" aria-label="照片集查看器">
+      <view class="album-viewer-heading">
+        <view>
+          <text class="album-viewer-title">{{activeAlbum.title}}</text>
+          <text class="album-viewer-count">{{albumPhotoIndex + 1}} / {{activeAlbum.photos.length}} · 轻触放大</text>
+        </view>
+        <view class="album-close-row">
+          <button class="close-button light-close" bindtap="closeAlbumViewer" aria-label="关闭照片集">关闭</button>
+        </view>
+      </view>
+      <swiper class="album-swiper" current="{{albumPhotoIndex}}" circular="{{activeAlbum.photos.length > 2}}" bindchange="onAlbumSlideChange">
+        <swiper-item wx:for="{{activeAlbum.photos}}" wx:key="*this">
+          <image class="album-viewer-photo" src="{{item}}" mode="aspectFit" bindtap="previewAlbumPhoto" aria-role="button" aria-label="打开当前照片并缩放查看"></image>
+        </swiper-item>
+      </swiper>
+      <scroll-view class="album-thumb-strip" scroll-x enhanced show-scrollbar="{{false}}">
+        <image wx:for="{{activeAlbum.photos}}" wx:key="*this" class="album-thumb {{albumPhotoIndex === index ? 'active' : ''}}" src="{{item}}" mode="aspectFill"></image>
+      </scroll-view>
+      <view class="album-manage-row">
+        <button class="album-manage" bindtap="manageActiveAlbum">管理这个照片集</button>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{showFamilySheet}}" class="sheet-mask" bindtap="closeFamilySheet">
+    <view class="sheet family-sheet family-sheet-{{familyPanelMode}}" catchtap="stopTap" aria-role="dialog" aria-label="家庭冰箱管理">
+      <view class="sheet-handle"></view>
+      <view class="sheet-heading">
+        <view>
+          <text class="sheet-title">{{familyMode ? family.name : '家庭冰箱'}}</text>
+          <text class="sheet-subtitle">{{familyMode ? familySyncMessage : '和家人共同维护同一个冰箱'}}</text>
+        </view>
+        <button class="close-button" bindtap="closeFamilySheet">关闭</button>
+      </view>
+
+      <scroll-view class="family-sheet-scroll" scroll-y enhanced enable-flex show-scrollbar="{{false}}">
+        <view class="family-sheet-scroll-content">
+      <block wx:if="{{familyPanelMode === 'start'}}">
+        <view class="family-intro">创建或加入家庭后，库存、处理记录、小票账本和冰箱门会由成员共同维护。</view>
+        <button class="save-button" bindtap="showCreateFamily">创建家庭</button>
+        <button class="family-secondary" bindtap="showJoinFamily">使用邀请码加入</button>
+        <text class="family-privacy">提醒、饮食限制和 AI 反馈仍只属于你自己。</text>
+      </block>
+
+      <block wx:elif="{{familyPanelMode === 'create'}}">
+        <view class="form-field"><text class="field-label">家庭名称</text><input class="form-input" maxlength="20" value="{{familyForm.name}}" placeholder="例如：小林家" bindinput="onFamilyNameInput" /></view>
+        <view class="form-field"><text class="field-label">你在家里的称呼</text><input class="form-input" maxlength="12" value="{{familyForm.nickname}}" placeholder="例如：妈妈、阿杰" bindinput="onFamilyNicknameInput" /></view>
+        <button class="save-button" disabled="{{familyBusy}}" bindtap="submitCreateFamily">{{familyBusy ? '正在创建…' : '确认创建'}}</button>
+        <button class="family-link" bindtap="showFamilyStart">返回</button>
+      </block>
+
+      <block wx:elif="{{familyPanelMode === 'join'}}">
+        <view class="form-field"><text class="field-label">8 位邀请码</text><input class="form-input family-code" maxlength="8" value="{{familyForm.code}}" placeholder="输入邀请码" bindinput="onFamilyCodeInput" bindblur="previewInviteCode" /></view>
+        <view wx:if="{{invitePreview}}" class="family-preview"><text>{{invitePreview.familyName}}</text><text>邀请将在 24 小时内有效</text></view>
+        <view class="form-field"><text class="field-label">你在家里的称呼</text><input class="form-input" maxlength="12" value="{{familyForm.nickname}}" placeholder="例如：妈妈、阿杰" bindinput="onFamilyNicknameInput" /></view>
+        <button class="save-button" disabled="{{familyBusy}}" bindtap="submitJoinFamily">{{familyBusy ? '正在加入…' : '确认加入'}}</button>
+        <button class="family-link" bindtap="showFamilyStart">返回</button>
+      </block>
+
+      <block wx:elif="{{familyPanelMode === 'invite'}}">
+        <view class="family-invite-card"><text class="family-invite-label">家庭邀请码</text><text class="family-invite-code">{{familyInvite.code}}</text><text class="family-invite-note">24 小时内有效，也可以直接分享当前页面。</text></view>
+        <button class="save-button" open-type="share">分享给家人</button>
+        <button class="family-danger" bindtap="revokeFamilyInvite">立即作废邀请码</button>
+        <button class="family-link" bindtap="showFamilyStart">返回管理</button>
+      </block>
+
+      <block wx:elif="{{familyPanelMode === 'activity'}}">
+        <view wx:if="{{familyActivity.length}}" class="family-activity-list">
+          <view wx:for="{{familyActivity}}" wx:key="id" class="family-activity-row"><view><text class="family-activity-name">{{item.nickname}}</text><text class="family-activity-action">{{item.targetText}}</text></view><text class="family-activity-time">{{item.timeText}}</text></view>
+        </view>
+        <view wx:else class="family-empty">还没有家庭操作记录</view>
+        <button class="family-link" bindtap="showFamilyStart">返回管理</button>
+      </block>
+
+      <block wx:else>
+        <view class="family-manage-stack">
+          <view class="family-status" bindtap="refreshFamily"><view><text class="family-status-title">{{familySyncState === 'synced' ? '已同步' : familySyncState === 'syncing' ? '同步中' : '离线缓存'}}</text><text class="family-status-note">{{familySyncMessage}}</text></view><text class="family-status-action">刷新</text></view>
+
+          <view wx:if="{{familyMember.role === 'admin'}}" class="family-name-card">
+            <text class="family-card-title">家庭名称</text>
+            <view class="family-rename-row"><input class="form-input" maxlength="20" value="{{familyRename}}" bindinput="onFamilyRenameInput" aria-label="家庭名称" /><button bindtap="saveFamilyName">保存</button></view>
+          </view>
+
+          <view class="family-manage-section">
+            <view class="family-section-heading"><view><text>家庭成员</text><text class="family-section-note">共 {{familyMembers.length}} 人</text></view><button wx:if="{{familyMember.role === 'admin'}}" bindtap="createFamilyInvite">邀请成员</button></view>
+            <view class="family-member-list">
+              <view wx:for="{{familyMembers}}" wx:key="memberId" class="family-member-row">
+                <view><text class="family-member-name">{{item.nickname}}{{item.memberId === familyMember.memberId ? '（我）' : ''}}</text><text class="family-role">{{item.role === 'admin' ? '管理员' : '成员'}}</text></view>
+                <view wx:if="{{familyMember.role === 'admin' && item.memberId !== familyMember.memberId}}" class="family-member-actions"><button data-id="{{item.memberId}}" bindtap="transferFamilyAdmin">转让</button><button data-id="{{item.memberId}}" bindtap="removeFamilyMember">移除</button></view>
+              </view>
+            </view>
+          </view>
+
+          <view class="family-activity-card">
+            <view><text class="family-card-title">家庭动态</text><text class="family-card-note">查看最近 20 条共同操作</text></view>
+            <button class="family-activity-button" bindtap="showFamilyActivity" aria-label="查看最近 20 条家庭动态">查看</button>
+          </view>
+
+          <view wx:if="{{familyMember.role === 'admin'}}" class="family-privacy-card">
+            <view class="family-card-copy"><text class="family-card-title">家庭备份与恢复</text><text class="family-card-note">最多保留 3 个普通备份；仅管理员可以管理。</text></view>
+            <button class="family-activity-button" bindtap="openFamilyBackups">管理备份</button>
+          </view>
+
+          <view class="family-boundary-section">
+            <text class="family-card-title">家庭关系</text>
+            <text class="family-card-note">{{familyMember.role === 'member' ? '退出后，共享数据仍由其他成员保留。' : '解散会删除全部家庭数据和云端照片，且无法恢复。'}}</text>
+            <button wx:if="{{familyMember.role === 'member'}}" class="family-danger" bindtap="leaveCurrentFamily">退出这个家庭</button>
+            <button wx:else class="family-danger" bindtap="dissolveCurrentFamily">解散这个家庭</button>
+          </view>
+
+        </view>
+      </block>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+
+  <view wx:if="{{showBackupSheet}}" class="sheet-mask" bindtap="closeBackupSheet">
+    <view class="sheet backup-sheet" catchtap="stopTap" aria-role="dialog" aria-label="备份版本管理">
+      <view class="sheet-handle"></view>
+      <view class="sheet-heading">
+        <view><text class="sheet-title">{{backupScope === 'family' ? '家庭备份' : backupEntryMode === 'export' ? '导出我的数据' : '个人备份'}}</text><text class="sheet-subtitle">{{backupEntryMode === 'export' && backupScope === 'personal' ? '选择一个备份，点击导出生成 ZIP' : '最多 3 个普通备份和 1 个恢复前自动备份'}}</text></view>
+        <button class="close-button" bindtap="closeBackupSheet">关闭</button>
+      </view>
+      <button class="save-button" disabled="{{backupBusy}}" bindtap="createCurrentBackup">{{backupBusy ? '处理中…' : backupEntryMode === 'export' && backupScope === 'personal' ? '创建最新备份' : '立即备份'}}</button>
+      <text class="backup-warning">恢复会覆盖当前{{backupScope === 'family' ? '家庭冰箱' : '个人冰箱'}}，不会合并；恢复前会自动保存当前状态。</text>
+      <text class="backup-warning">导出 ZIP 仅用于保存和查看，当前版本不能导入；下载地址 24 小时内有效。</text>
+      <text wx:if="{{backupError}}" class="backup-error">{{backupError}}</text>
+      <view wx:if="{{!backupBusy && backups.length === 0}}" class="family-empty">还没有可用备份</view>
+      <view class="backup-list">
+        <view wx:for="{{backups}}" wx:key="backupId" class="backup-row">
+          <view><text class="family-card-title">{{item.createdAtText}}</text><text class="backup-kind">{{item.kindText}}</text><text class="family-card-note">{{item.summaryText}}</text></view>
+          <view class="backup-actions"><button class="backup-export" data-id="{{item.backupId}}" bindtap="exportCurrentBackup">导出</button><button class="backup-restore" data-id="{{item.backupId}}" bindtap="restoreCurrentBackup">恢复</button><button data-id="{{item.backupId}}" bindtap="deleteCurrentBackup">删除</button></view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{showMigrationSheet}}" class="sheet-mask migration-mask">
+    <view class="sheet migration-sheet" aria-role="dialog" aria-label="复制本机数据到家庭冰箱">
+      <view class="sheet-handle"></view>
+      <text class="sheet-title">复制到家庭冰箱</text>
+      <text class="sheet-subtitle">只有确认后才会上传；原本机数据和带时间戳备份都会保留。</text>
+      <button class="migration-option {{migrationDraft.includeRecords ? 'active' : ''}}" data-key="includeRecords" bindtap="toggleMigrationOption"><view><text>库存、处理记录和小票账本</text><text>{{migrationDraft.recordCount}} 条</text></view><text>{{migrationDraft.includeRecords ? '✓' : ''}}</text></button>
+      <button class="migration-option {{migrationDraft.includeDoorNotes ? 'active' : ''}}" data-key="includeDoorNotes" bindtap="toggleMigrationOption"><view><text>门板便签与贴纸</text><text>{{migrationDraft.doorNoteCount}} 枚</text></view><text>{{migrationDraft.includeDoorNotes ? '✓' : ''}}</text></button>
+      <button class="migration-option {{migrationDraft.includeDoorPhotos ? 'active' : ''}}" data-key="includeDoorPhotos" bindtap="toggleMigrationOption"><view><text>照片与相册</text><text>默认不勾选 · {{migrationDraft.doorPhotoCount}} 项</text></view><text>{{migrationDraft.includeDoorPhotos ? '✓' : ''}}</text></button>
+      <button class="save-button" disabled="{{migrationBusy}}" bindtap="copyLocalDataToFamily">{{migrationBusy ? '正在复制…' : '确认复制'}}</button>
+      <button class="family-link" disabled="{{migrationBusy}}" bindtap="skipMigration">暂不复制</button>
+    </view>
+  </view>
+</view>

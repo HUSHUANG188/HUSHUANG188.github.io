@@ -1,0 +1,82 @@
+{
+  "setting": {
+    "es6": true,
+    "postcss": true,
+    "minified": true,
+    "uglifyFileName": false,
+    "enhance": true,
+    "packNpmRelationList": [],
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    },
+    "useCompilerPlugins": false
+  },
+  "compileType": "miniprogram",
+  "cloudfunctionRoot": "cloudfunctions/",
+  "simulatorPluginLibVersion": {},
+  "packOptions": {
+    "ignore": [
+      {
+        "type": "folder",
+        "value": "tests"
+      },
+      {
+        "type": "folder",
+        "value": "artifacts"
+      },
+      {
+        "type": "folder",
+        "value": "cloudbase"
+      },
+      {
+        "type": "file",
+        "value": "DESIGN.md"
+      },
+      {
+        "type": "file",
+        "value": "REMINDER_SETUP.md"
+      },
+      {
+        "type": "file",
+        "value": "V5_SETUP.md"
+      },
+      {
+        "type": "file",
+        "value": "BACKUP_SETUP.md"
+      },
+      {
+        "type": "file",
+        "value": "virtual-fridge-code-review-2026-09-05.md"
+      },
+      {
+        "type": "file",
+        "value": "virtual-fridge-code-review-independent-2026-09-05.md"
+      },
+      {
+        "type": "file",
+        "value": "virtual-fridge-current-issues-2026-09-05.md"
+      },
+      {
+        "type": "file",
+        "value": "virtual-fridge-product-classification-rules-2026-09-06.md"
+      },
+      {
+        "type": "file",
+        "value": "virtual-fridge-v5-family-handoff-2026-09-04.md"
+      },
+      {
+        "type": "file",
+        "value": "virtual-fridge-v5-preview.png"
+      },
+      {
+        "type": "file",
+        "value": "virtual-fridge-avatar.png"
+      }
+    ],
+    "include": []
+  },
+  "appid": "wx3eccab634268fbef",
+  "editorSetting": {}
+}

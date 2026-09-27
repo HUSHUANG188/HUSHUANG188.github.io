@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "openapi": []
+  },
+  "timeout": 10,
+  "triggers": [
+    {
+      "name": "cleanup-expired-exports",
+      "type": "timer",
+      "config": "0 20 3 * * * *"
+    }
+  ]
+}

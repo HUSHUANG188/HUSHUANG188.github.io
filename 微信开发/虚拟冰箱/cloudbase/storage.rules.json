@@ -1,0 +1,4 @@
+{
+  "read": false,
+  "write": "auth != null && auth.loginType != 'ANONYMOUS' && (resource.openid == auth.openid || resource.openid == auth.uid)"
+}
