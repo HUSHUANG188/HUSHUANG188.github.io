@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NaCl标准晶胞可视化</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome图标 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 引入兼容版Three.js -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <!-- 自定义样式 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        crystal: {
+                            primary: '#2c5aa0',
+                            secondary: '#f0f2f5',
+                            text: '#333333',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Arial', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .sidebar-active {
+                @apply bg-crystal-primary text-white;
+            }
+            .card-shadow {
+                @apply shadow-md rounded-lg border border-gray-200;
+            }
+            .param-slider {
+                @apply w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer;
+            }
+            .param-slider::-webkit-slider-thumb {
+                @apply appearance-none w-4 h-4 rounded-full bg-crystal-primary cursor-pointer;
+            }
+            /* 新增：图标容器统一宽度，确保文字对齐 */
+            .icon-container {
+                @apply inline-block w-10 text-center;
+            }
+        }
+    </style>
+</head>
+<body class="bg-crystal-secondary font-sans text-crystal-text">
+    <div class="flex h-screen overflow-hidden">
+        <!-- 左侧侧边栏 -->
+        <aside class="w-64 bg-white border-r border-gray-200 h-full overflow-y-auto">
+            <div class="p-4 bg-crystal-primary text-white">
+                <h1 class="text-xl font-bold">晶胞可视化工具</h1>
+                <p class="text-sm opacity-80 mt-1">NaCl标准晶胞复刻</p>
+            </div>
+            
+            <nav class="mt-4">
+                <h3 class="px-4 py-2 text-sm font-semibold text-gray-500">基本立方晶胞</h3>
+                <ul>
+                    <li>
+                        <a id="nav-sc" class="sidebar-active flex items-center px-4 py-3 hover:bg-gray-100 transition cursor-pointer">
+                            <span class="icon-container"><i class="fas fa-cube"></i></span>
+                            简单立方 (SC)
+                        </a>
+                    </li>
+                    <li>
+                        <a id="nav-bcc" class="flex items-center px-4 py-3 hover:bg-gray-100 transition cursor-pointer">
+                            <span class="icon-container"><i class="fas fa-cube"></i></span>
+                            体心立方 (BCC)
+                        </a>
+                    </li>
+                    <li>
+                        <a id="nav-fcc" class="flex items-center px-4 py-3 hover:bg-gray-100 transition cursor-pointer">
+                            <span class="icon-container"><i class="fas fa-cube"></i></span>
+                            面心立方 (FCC)
+                        </a>
+                    </li>
+                    <li>
+                        <!-- HCP：双图标居中，容器宽度统一 -->
+                        <a id="nav-hcp" class="flex items-center px-4 py-3 hover:bg-gray-100 transition cursor-pointer">
+                            <span class="icon-container"><i class="fas fa-hexagon mr-1"></i><i class="fas fa-layer-group"></i></span>
+                            六方密堆积 (HCP)
+                        </a>
+                    </li>
+                </ul>
+                
+                <h3 class="px-4 py-2 text-sm font-semibold text-gray-500 mt-4">离子晶体</h3>
+                <ul>
+                    <li>
+                        <!-- NaCl：双图标居中，容器宽度统一 -->
+                        <a id="nav-nacl" class="flex items-center px-4 py-3 hover:bg-gray-100 transition cursor-pointer">
+                            <span class="icon-container"><i class="fas fa-salt mr-1"></i><i class="fas fa-atom"></i></span>
+                            氯化钠 (NaCl)
+                        </a>
+                    </li>
+                    <li>
+                        <a id="nav-cscl" class="flex items-center px-4 py-3 hover:bg-gray-100 transition cursor-pointer">
+                            <span class="icon-container"><i class="fas fa-atom"></i></span>
+                            氯化铯 (CsCl)
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="mt-8 px-4">
+                <h3 class="text-sm font-semibold mb-2">操作说明</h3>
+                <ul class="text-xs text-gray-600 space-y-1">
+                    <li><i class="fas fa-mouse-pointer mr-1"></i> 拖拽：旋转晶胞</li>
+                    <li><i class="fas fa-search-plus mr-1"></i> 滚轮：缩放视图</li>
+                    <li><i class="fas fa-sliders-h mr-1"></i> 参数：实时调整结构</li>
+                    <li><i class="fas fa-ruler mr-1"></i> 坐标轴：红X/绿Y/蓝Z</li>
+                </ul>
+            </div>
+        </aside>
+
+        <!-- 右侧主内容区 -->
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <div class="p-4 bg-white border-b border-gray-200 flex justify-between items-center">
+                <h2 id="main-title" class="text-xl font-bold">简单立方 (SC) 晶胞</h2>
+                <div class="flex items-center">
+                    <button id="reset-view" class="px-3 py-1 bg-crystal-primary text-white rounded hover:bg-blue-700 transition mr-2 cursor-pointer">
+                        <i class="fas fa-sync-alt mr-1"></i> 重置视图
+                    </button>
+                    <button id="toggle-axis" class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-100 transition cursor-pointer">
+                        <i class="fas fa-ruler mr-1"></i> 显示/隐藏坐标轴
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex-1 flex overflow-hidden">
+                <div class="w-2/3 h-full relative" id="canvas-container"></div>
+                
+                <div class="w-1/3 bg-white border-l border-gray-200 p-6 overflow-y-auto">
+                    <h3 class="text-lg font-semibold mb-6 pb-2 border-b border-gray-200">结构参数调整</h3>
+                    
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium mb-2" for="lattice-constant">
+                            晶格常数 (Å)
+                            <span id="lc-value" class="text-crystal-primary font-bold ml-2">5.64</span>
+                        </label>
+                        <input type="range" id="lattice-constant" class="param-slider" min="3.0" max="8.0" step="0.01" value="5.64">
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium mb-2" for="atom-radius">
+                            原子半径 (Å)
+                            <span id="ar-value" class="text-crystal-primary font-bold ml-2">0.5</span>
+                        </label>
+                        <input type="range" id="atom-radius" class="param-slider" min="0.2" max="1.0" step="0.01" value="0.5">
+                    </div>
+                    
+                    <div id="hcp-ratio-control" class="mb-6 hidden">
+                        <label class="block text-sm font-medium mb-2" for="hcp-ratio">
+                            HCP c/a 比值
+                            <span id="ratio-value" class="text-crystal-primary font-bold ml-2">1.633</span>
+                        </label>
+                        <input type="range" id="hcp-ratio" class="param-slider" min="1.5" max="1.8" step="0.001" value="1.633">
+                    </div>
+                    
+                    <!-- 晶胞信息卡片 -->
+                    <div class="card-shadow p-4 mt-8">
+                        <h4 class="font-semibold mb-2" id="cell-info-title">简单立方 (SC) 特征</h4>
+                        <ul class="text-sm space-y-1 text-gray-700" id="cell-info-content">
+                            <li>• 原子数：1</li>
+                            <li>• 配位数：6</li>
+                            <li>• 致密度：52%</li>
+                            <li>• 原子位置：立方体8个顶点</li>
+                        </ul>
+                    </div>
+                    
+                    <!-- 原子颜色说明 -->
+                    <div class="card-shadow p-4 mt-4">
+                        <h4 class="font-semibold mb-2">原子颜色说明</h4>
+                        <ul class="text-sm space-y-1 text-gray-700" id="color-info">
+                            <li>• <span class="inline-block w-3 h-3 bg-blue-600 rounded-full mr-2"></span> 单元素晶胞原子</li>
+                            <li>• <span class="inline-block w-3 h-3 bg-red-600 rounded-full mr-2"></span> Na⁺ 阳离子</li>
+                            <li>• <span class="inline-block w-3 h-3 bg-green-600 rounded-full mr-2"></span> Cl⁻ 阴离子</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // 全局变量
+        let scene, camera, renderer, controls;
+        let currentCellType = 'sc';
+        let latticeConstant = 5.64;  // NaCl标准晶格常数
+        let atomRadius = 0.5;
+        let showAxis = true;
+        let axisHelper;
+        let cellObjects = [];
+        
+        // 教科书级晶胞信息库
+        const cellInfo = {
+            sc: {
+                title: '简单立方 (SC) 特征',
+                content: [
+                    '• 原子数：1 (8个顶点×1/8)',
+                    '• 配位数：6',
+                    '• 致密度：52%',
+                    '• 原子位置：立方体8个顶点',
+                    '• 实例：Po（钋）'
+                ]
+            },
+            bcc: {
+                title: '体心立方 (BCC) 特征',
+                content: [
+                    '• 原子数：2 (8×1/8 + 1体心)',
+                    '• 配位数：8',
+                    '• 致密度：68%',
+                    '• 原子位置：8顶点 + 1体心',
+                    '• 实例：Fe、Na、W'
+                ]
+            },
+            fcc: {
+                title: '面心立方 (FCC) 特征',
+                content: [
+                    '• 原子数：4 (8×1/8 + 6×1/2)',
+                    '• 配位数：12',
+                    '• 致密度：74%',
+                    '• 原子位置：8顶点 + 6面心',
+                    '• 实例：Cu、Ag、Au、Al'
+                ]
+            },
+            hcp: {
+                title: '六方密堆积 (HCP) 特征',
+                content: [
+                    '• 原子数：6',
+                    '• 配位数：12',
+                    '• 致密度：74%',
+                    '• c/a理想比值：1.633',
+                    '• 实例：Mg、Zn、Cd'
+                ]
+            },
+            nacl: {
+                title: '氯化钠 (NaCl) 特征',
+                content: [
+                    '• 结构类型：面心立方（互嵌）',
+                    '• 配位数：Na⁺=6，Cl⁻=6',
+                    '• 晶胞原子数：Na⁺=4，Cl⁻=4',
+                    '• 键型：离子键',
+                    '• 晶格常数：5.64 Å',
+                    '• Na⁺位置：8顶点+6面心',
+                    '• Cl⁻位置：12棱心+1体心'
+                ]
+            },
+            cscl: {
+                title: '氯化铯 (CsCl) 特征',
+                content: [
+                    '• 结构类型：简单立方（互嵌）',
+                    '• 配位数：Cs⁺=8，Cl⁻=8',
+                    '• 晶胞原子数：Cs⁺=1，Cl⁻=1',
+                    '• 键型：离子键',
+                    '• 晶格常数：4.12 Å'
+                ]
+            }
+        };
+
+        // 初始化Three.js
+        function initThreeJS() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf0f2f5);
+            
+            const container = document.getElementById('canvas-container');
+            const aspectRatio = container.clientWidth / container.clientHeight;
+            camera = new THREE.PerspectiveCamera(75, aspectRatio, 0.1, 1000);
+            camera.position.set(12, 12, 12);
+            camera.lookAt(0, 0, 0);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+            
+            // 控制器：旋转中心固定在原点
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(0, 0, 0);
+            controls.update();
+            
+            // 坐标轴：原点在晶胞中心
+            axisHelper = new THREE.AxesHelper(8);
+            axisHelper.visible = true;
+            scene.add(axisHelper);
+            
+            // 增强光源
+            const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+            scene.add(ambientLight);
+            const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight1.position.set(20, 20, 15);
+            scene.add(directionalLight1);
+            const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
+            directionalLight2.position.set(-15, -10, -20);
+            scene.add(directionalLight2);
+            
+            // 初始创建SC晶胞
+            createCell('sc');
+            
+            // 动画循环
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update();
+                renderer.render(scene, camera);
+            }
+            animate();
+            
+            // 窗口适配
+            window.addEventListener('resize', () => {
+                const container = document.getElementById('canvas-container');
+                const aspectRatio = container.clientWidth / container.clientHeight;
+                camera.aspect = aspectRatio;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            });
+        }
+
+        // 创建晶胞
+        function createCell(type) {
+            // 清除旧晶胞
+            if (cellObjects.length > 0) {
+                cellObjects.forEach(obj => {
+                    if (obj.geometry) obj.geometry.dispose();
+                    if (obj.material) obj.material.dispose();
+                    scene.remove(obj);
+                });
+                cellObjects = [];
+            }
+            
+            currentCellType = type;
+            
+            // 更新UI
+            document.getElementById('main-title').textContent = {
+                sc: '简单立方 (SC) 晶胞',
+                bcc: '体心立方 (BCC) 晶胞',
+                fcc: '面心立方 (FCC) 晶胞',
+                hcp: '六方密堆积 (HCP) 晶胞',
+                nacl: '氯化钠 (NaCl) 晶胞',
+                cscl: '氯化铯 (CsCl) 晶胞'
+            }[type];
+            
+            document.getElementById('cell-info-title').textContent = cellInfo[type].title;
+            document.getElementById('cell-info-content').innerHTML = cellInfo[type].content.join('<br>');
+            
+            // 显示/隐藏HCP参数
+            document.getElementById('hcp-ratio-control').classList.toggle('hidden', type !== 'hcp');
+            
+            // 材质定义
+            const matSingle = new THREE.MeshPhongMaterial({ color: 0x2c5aa0, shininess: 100 });    // 蓝色：单元素
+            const matCation = new THREE.MeshPhongMaterial({ color: 0xe74c3c, shininess: 100 });    // 红色：Na⁺
+            const matAnion = new THREE.MeshPhongMaterial({ color: 0x2ecc71, shininess: 100 });    // 绿色：Cl⁻
+            const frameMat = new THREE.LineBasicMaterial({ color: 0x333333, linewidth: 2 });      // 框架材质
+            
+            // 创建教科书标准晶胞
+            switch(type) {
+                case 'sc': createSC(matSingle, frameMat); break;
+                case 'bcc': createBCC(matSingle, frameMat); break;
+                case 'fcc': createFCC(matSingle, frameMat); break;
+                case 'hcp': createHCP(matSingle, frameMat); break;
+                case 'nacl': createNaCl(matCation, matAnion, frameMat); break;
+                case 'cscl': createCsCl(matCation, matAnion, frameMat); break;
+            }
+        }
+
+        // 1. 简单立方（SC）
+        function createSC(atomMat, frameMat) {
+            const a = latticeConstant;
+            const halfA = a / 2;
+            const r = atomRadius;
+            
+            // 晶胞框架（中心在原点）
+            const frameGeo = new THREE.BoxGeometry(a, a, a);
+            const frameEdges = new THREE.EdgesGeometry(frameGeo);
+            const frame = new THREE.LineSegments(frameEdges, frameMat);
+            scene.add(frame);
+            cellObjects.push(frame);
+            
+            // 原子几何体
+            const atomGeo = new THREE.SphereGeometry(r, 32, 32);
+            
+            // 8个顶点原子
+            const vertexPositions = [
+                [-halfA, -halfA, -halfA], [ halfA, -halfA, -halfA],
+                [-halfA,  halfA, -halfA], [ halfA,  halfA, -halfA],
+                [-halfA, -halfA,  halfA], [ halfA, -halfA,  halfA],
+                [-halfA,  halfA,  halfA], [ halfA,  halfA,  halfA]
+            ];
+            
+            vertexPositions.forEach(pos => {
+                const atom = new THREE.Mesh(atomGeo, atomMat);
+                atom.position.set(pos[0], pos[1], pos[2]);
+                scene.add(atom);
+                cellObjects.push(atom);
+            });
+        }
+
+        // 2. 体心立方（BCC）
+        function createBCC(atomMat, frameMat) {
+            const a = latticeConstant;
+            const halfA = a / 2;
+            const r = atomRadius;
+            
+            // 晶胞框架
+            const frameGeo = new THREE.BoxGeometry(a, a, a);
+            const frameEdges = new THREE.EdgesGeometry(frameGeo);
+            const frame = new THREE.LineSegments(frameEdges, frameMat);
+            scene.add(frame);
+            cellObjects.push(frame);
+            
+            // 原子几何体
+            const atomGeo = new THREE.SphereGeometry(r, 32, 32);
+            
+            // 8个顶点原子
+            const vertexPositions = [
+                [-halfA, -halfA, -halfA], [ halfA, -halfA, -halfA],
+                [-halfA,  halfA, -halfA], [ halfA,  halfA, -halfA],
+                [-halfA, -halfA,  halfA], [ halfA, -halfA,  halfA],
+                [-halfA,  halfA,  halfA], [ halfA,  halfA,  halfA]
+            ];
+            
+            vertexPositions.forEach(pos => {
+                const atom = new THREE.Mesh(atomGeo, atomMat);
+                atom.position.set(pos[0], pos[1], pos[2]);
+                scene.add(atom);
+                cellObjects.push(atom);
+            });
+            
+            // 体心原子
+            const centerAtom = new THREE.Mesh(atomGeo, atomMat);
+            centerAtom.position.set(0, 0, 0);
+            scene.add(centerAtom);
+            cellObjects.push(centerAtom);
+        }
+
+        // 3. 面心立方（FCC）
+        function createFCC(atomMat, frameMat) {
+            const a = latticeConstant;
+            const halfA = a / 2;
+            const r = atomRadius;
+            
+            // 晶胞框架
+            const frameGeo = new THREE.BoxGeometry(a, a, a);
+            const frameEdges = new THREE.EdgesGeometry(frameGeo);
+            const frame = new THREE.LineSegments(frameEdges, frameMat);
+            scene.add(frame);
+            cellObjects.push(frame);
+            
+            // 原子几何体
+            const atomGeo = new THREE.SphereGeometry(r, 32, 32);
+            
+            // 8个顶点原子
+            const vertexPositions = [
+                [-halfA, -halfA, -halfA], [ halfA, -halfA, -halfA],
+                [-halfA,  halfA, -halfA], [ halfA,  halfA, -halfA],
+                [-halfA, -halfA,  halfA], [ halfA, -halfA,  halfA],
+                [-halfA,  halfA,  halfA], [ halfA,  halfA,  halfA]
+            ];
+            
+            vertexPositions.forEach(pos => {
+                const atom = new THREE.Mesh(atomGeo, atomMat);
+                atom.position.set(pos[0], pos[1], pos[2]);
+                scene.add(atom);
+                cellObjects.push(atom);
+            });
+            
+            // 6个面心原子
+            const facePositions = [
+                [0, 0, -halfA], [0, 0,  halfA],
+                [0, -halfA, 0], [0,  halfA, 0],
+                [-halfA, 0, 0], [ halfA, 0, 0]
+            ];
+            
+            facePositions.forEach(pos => {
+                const atom = new THREE.Mesh(atomGeo, atomMat);
+                atom.position.set(pos[0], pos[1], pos[2]);
+                scene.add(atom);
+                cellObjects.push(atom);
+            });
+        }
+
+        // 4. 六方密堆积（HCP）
+        function createHCP(atomMat, frameMat) {
+            const a = latticeConstant;
+            const c = a * parseFloat(document.getElementById('hcp-ratio').value);
+            const halfA = a / 2;
+            const halfC = c / 2;
+            const r = atomRadius;
+            
+            // 六方框架
+            const bottomPoints = [];
+            for (let i = 0; i < 6; i++) {
+                const angle = (i * 60) * Math.PI / 180;
+                bottomPoints.push(new THREE.Vector3(halfA * Math.cos(angle), -halfC, halfA * Math.sin(angle)));
+            }
+            bottomPoints.push(bottomPoints[0]);
+            const bottomGeo = new THREE.BufferGeometry().setFromPoints(bottomPoints);
+            const bottomFrame = new THREE.LineLoop(bottomGeo, frameMat);
+            scene.add(bottomFrame);
+            cellObjects.push(bottomFrame);
+            
+            const topPoints = [];
+            for (let i = 0; i < 6; i++) {
+                const angle = (i * 60 + 30) * Math.PI / 180;
+                topPoints.push(new THREE.Vector3(halfA * Math.cos(angle), halfC, halfA * Math.sin(angle)));
+            }
+            topPoints.push(topPoints[0]);
+            const topGeo = new THREE.BufferGeometry().setFromPoints(topPoints);
+            const topFrame = new THREE.LineLoop(topGeo, frameMat);
+            scene.add(topFrame);
+            cellObjects.push(topFrame);
+            
+            // 垂直棱边
+            for (let i = 0; i < 6; i++) {
+                const angle1 = (i * 60) * Math.PI / 180;
+                const angle2 = (i * 60 + 30) * Math.PI / 180;
+                const vertPoints = [
+                    new THREE.Vector3(halfA * Math.cos(angle1), -halfC, halfA * Math.sin(angle1)),
+                    new THREE.Vector3(halfA * Math.cos(angle2), halfC, halfA * Math.sin(angle2))
+                ];
+                const vertGeo = new THREE.BufferGeometry().setFromPoints(vertPoints);
+                const vertLine = new THREE.Line(vertGeo, frameMat);
+                scene.add(vertLine);
+                cellObjects.push(vertLine);
+            }
+            
+            // 原子
+            const atomGeo = new THREE.SphereGeometry(r, 32, 32);
+            
+            // 底部原子
+            for (let i = 0; i < 6; i++) {
+                const angle = (i * 60) * Math.PI / 180;
+                const atom = new THREE.Mesh(atomGeo, atomMat);
+                atom.position.set(halfA * Math.cos(angle), -halfC, halfA * Math.sin(angle));
+                scene.add(atom);
+                cellObjects.push(atom);
+            }
+            
+            // 中间层原子
+            const midAngles = [30, 150, 270];
+            midAngles.forEach(angle => {
+                const rad = angle * Math.PI / 180;
+                const atom = new THREE.Mesh(atomGeo, atomMat);
+                atom.position.set((halfA/2) * Math.cos(rad), 0, (halfA/2) * Math.sin(rad));
+                scene.add(atom);
+                cellObjects.push(atom);
+            });
+            
+            // 顶部原子
+            for (let i = 0; i < 6; i++) {
+                const angle = (i * 60 + 30) * Math.PI / 180;
+                const atom = new THREE.Mesh(atomGeo, atomMat);
+                atom.position.set(halfA * Math.cos(angle), halfC, halfA * Math.sin(angle));
+                scene.add(atom);
+                cellObjects.push(atom);
+            }
+        }
+
+        // 5. 氯化钠（NaCl）：严格按要求实现
+        function createNaCl(naMat, clMat, frameMat) {
+            const a = latticeConstant;
+            const halfA = a / 2;
+            const r = atomRadius * 0.8; // 适配视觉比例
+            
+            // 晶胞框架（中心在原点）
+            const frameGeo = new THREE.BoxGeometry(a, a, a);
+            const frameEdges = new THREE.EdgesGeometry(frameGeo);
+            const frame = new THREE.LineSegments(frameEdges, frameMat);
+            scene.add(frame);
+            cellObjects.push(frame);
+            
+            // 原子几何体
+            const atomGeo = new THREE.SphereGeometry(r, 32, 32);
+            
+            // ===== Na⁺ 位置：8个顶点 + 6个面心 =====
+            // 8个顶点
+            const naVertexPositions = [
+                [-halfA, -halfA, -halfA], [ halfA, -halfA, -halfA],
+                [-halfA,  halfA, -halfA], [ halfA,  halfA, -halfA],
+                [-halfA, -halfA,  halfA], [ halfA, -halfA,  halfA],
+                [-halfA,  halfA,  halfA], [ halfA,  halfA,  halfA]
+            ];
+            
+            // 6个面心
+            const naFacePositions = [
+                [0, 0, -halfA], [0, 0,  halfA],  // 前后表面心
+                [0, -halfA, 0], [0,  halfA, 0],  // 上下表面心
+                [-halfA, 0, 0], [ halfA, 0, 0]   // 左右表面心
+            ];
+            
+            // 绘制Na⁺（红色）
+            [...naVertexPositions, ...naFacePositions].forEach(pos => {
+                const atom = new THREE.Mesh(atomGeo, naMat);
+                atom.position.set(pos[0], pos[1], pos[2]);
+                scene.add(atom);
+                cellObjects.push(atom);
+            });
+            
+            // ===== Cl⁻ 位置：12个棱心 + 1个体心 =====
+            // 12个棱心（立方体12条棱的中心）
+            const clEdgePositions = [
+                // X轴方向棱（4条）
+                [0, -halfA, -halfA], [0,  halfA, -halfA],
+                [0, -halfA,  halfA], [0,  halfA,  halfA],
+                // Y轴方向棱（4条）
+                [-halfA, 0, -halfA], [ halfA, 0, -halfA],
+                [-halfA, 0,  halfA], [ halfA, 0,  halfA],
+                // Z轴方向棱（4条）
+                [-halfA, -halfA, 0], [ halfA, -halfA, 0],
+                [-halfA,  halfA, 0], [ halfA,  halfA, 0]
+            ];
+            
+            // 1个体心
+            const clCenterPosition = [0, 0, 0];
+            
+            // 绘制Cl⁻（绿色）
+            [...clEdgePositions, clCenterPosition].forEach(pos => {
+                const atom = new THREE.Mesh(atomGeo, clMat);
+                atom.position.set(pos[0], pos[1], pos[2]);
+                scene.add(atom);
+                cellObjects.push(atom);
+            });
+        }
+
+        // 6. 氯化铯（CsCl）
+        function createCsCl(csMat, clMat, frameMat) {
+            const a = latticeConstant;
+            const halfA = a / 2;
+            const r = atomRadius;
+            
+            // 晶胞框架（中心在原点）
+            const frameGeo = new THREE.BoxGeometry(a, a, a);
+            const frameEdges = new THREE.EdgesGeometry(frameGeo);
+            const frame = new THREE.LineSegments(frameEdges, frameMat);
+            scene.add(frame);
+            cellObjects.push(frame);
+            
+            // 原子几何体
+            const atomGeo = new THREE.SphereGeometry(r, 32, 32);
+            
+            // Cs⁺：体心
+            const csAtom = new THREE.Mesh(atomGeo, csMat);
+            csAtom.position.set(0, 0, 0);
+            scene.add(csAtom);
+            cellObjects.push(csAtom);
+            
+            // Cl⁻：8个顶点
+            const clPositions = [
+                [-halfA, -halfA, -halfA], [halfA, -halfA, -halfA],
+                [-halfA, halfA, -halfA], [halfA, halfA, -halfA],
+                [-halfA, -halfA, halfA], [halfA, -halfA, halfA],
+                [-halfA, halfA, halfA], [halfA, halfA, halfA]
+            ];
+            
+            clPositions.forEach(pos => {
+                const atom = new THREE.Mesh(atomGeo, clMat);
+                atom.position.set(pos[0], pos[1], pos[2]);
+                scene.add(atom);
+                cellObjects.push(atom);
+            });
+        }
+
+        // 更新参数
+        function updateCellParams() {
+            latticeConstant = parseFloat(document.getElementById('lattice-constant').value);
+            atomRadius = parseFloat(document.getElementById('atom-radius').value);
+            
+            document.getElementById('lc-value').textContent = latticeConstant.toFixed(2);
+            document.getElementById('ar-value').textContent = atomRadius.toFixed(2);
+            
+            if (currentCellType === 'hcp') {
+                const ratio = parseFloat(document.getElementById('hcp-ratio').value);
+                document.getElementById('ratio-value').textContent = ratio.toFixed(3);
+            }
+            
+            createCell(currentCellType);
+        }
+
+        // 初始化事件
+        function initEventListeners() {
+            // 晶胞切换（移除金刚石选项）
+            ['sc', 'bcc', 'fcc', 'hcp', 'nacl', 'cscl'].forEach(type => {
+                const navItem = document.getElementById(`nav-${type}`);
+                navItem.addEventListener('click', () => {
+                    // 重置导航样式
+                    ['sc', 'bcc', 'fcc', 'hcp', 'nacl', 'cscl'].forEach(t => {
+                        document.getElementById(`nav-${t}`).classList.remove('sidebar-active');
+                    });
+                    navItem.classList.add('sidebar-active');
+                    
+                    // 创建晶胞
+                    createCell(type);
+                });
+            });
+            
+            // 参数滑块
+            document.getElementById('lattice-constant').addEventListener('input', updateCellParams);
+            document.getElementById('atom-radius').addEventListener('input', updateCellParams);
+            document.getElementById('hcp-ratio').addEventListener('input', updateCellParams);
+            
+            // 重置视图
+            document.getElementById('reset-view').addEventListener('click', () => {
+                camera.position.set(12, 12, 12);
+                controls.reset();
+                controls.target.set(0, 0, 0);
+                controls.update();
+            });
+            
+            // 坐标轴切换
+            document.getElementById('toggle-axis').addEventListener('click', () => {
+                showAxis = !showAxis;
+                axisHelper.visible = showAxis;
+            });
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始化参数显示
+            document.getElementById('lc-value').textContent = document.getElementById('lattice-constant').value;
+            document.getElementById('ar-value').textContent = document.getElementById('atom-radius').value;
+            document.getElementById('ratio-value').textContent = document.getElementById('hcp-ratio').value;
+            
+            // 初始化3D和事件
+            initThreeJS();
+            initEventListeners();
+        });
+    </script>
+</body>
+</html>
