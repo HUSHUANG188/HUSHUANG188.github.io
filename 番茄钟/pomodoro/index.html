@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>番茄钟</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --panel-2: #273449;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --focus: #f87171;      /* 专注-红 */
+      --short: #38bdf8;      /* 短休息-蓝 */
+      --long: #34d399;       /* 长休息-绿 */
+      --accent: var(--focus);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+        "Microsoft YaHei", sans-serif;
+      background: radial-gradient(1200px 800px at 50% -10%, #1e293b, var(--bg));
+      color: var(--text);
+      transition: background 0.6s ease;
+      padding: 24px;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 420px;
+      background: var(--panel);
+      border-radius: 24px;
+      padding: 40px 32px 32px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+      text-align: center;
+    }
+
+    /* 模式切换 */
+    .modes {
+      display: flex;
+      gap: 6px;
+      background: var(--panel-2);
+      padding: 6px;
+      border-radius: 12px;
+      margin-bottom: 32px;
+    }
+    .mode {
+      flex: 1;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      padding: 10px 4px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .mode.active {
+      background: var(--panel);
+      color: var(--text);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    .mode.active::after {
+      content: "";
+      display: block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      margin: 4px auto 0;
+    }
+
+    /* 计时圆环 */
+    .timer-wrap {
+      position: relative;
+      width: 260px;
+      height: 260px;
+      margin: 0 auto 28px;
+    }
+    svg { transform: rotate(-90deg); }
+    .ring-bg { fill: none; stroke: var(--panel-2); stroke-width: 10; }
+    .ring {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: 10;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.3s linear, stroke 0.4s;
+    }
+    .time {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .time .mm-ss {
+      font-size: 56px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 2px;
+    }
+    .time .hint {
+      font-size: 14px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* 按钮 */
+    .controls {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+    .btn {
+      border: none;
+      cursor: pointer;
+      border-radius: 14px;
+      font-size: 15px;
+      transition: transform 0.1s, filter 0.2s;
+    }
+    .btn:active { transform: scale(0.95); }
+    .btn-primary {
+      background: var(--accent);
+      color: #0f172a;
+      font-weight: 700;
+      padding: 14px 42px;
+      font-size: 17px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+    .btn-primary:hover { filter: brightness(1.08); }
+    .btn-ghost {
+      background: var(--panel-2);
+      color: var(--muted);
+      padding: 14px 18px;
+    }
+    .btn-ghost:hover { color: var(--text); }
+
+    /* 统计 + 设置 */
+    .stats {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .stats .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--panel-2); }
+    .icon-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 6px;
+      border-radius: 8px;
+    }
+    .icon-btn:hover { color: var(--text); background: var(--panel-2); }
+
+    /* 设置弹窗 */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    .overlay.show { display: flex; }
+    .dialog {
+      background: var(--panel);
+      border-radius: 20px;
+      padding: 28px;
+      width: 320px;
+      text-align: left;
+    }
+    .dialog h2 { font-size: 18px; margin-bottom: 20px; }
+    .field {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+    .field input {
+      width: 70px;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-2);
+      background: var(--panel-2);
+      color: var(--text);
+      text-align: center;
+      font-size: 15px;
+    }
+    .dialog-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 24px;
+    }
+    .dialog-actions .btn { flex: 1; padding: 12px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- 模式切换 -->
+    <div class="modes">
+      <button class="mode active" data-mode="focus">专注</button>
+      <button class="mode" data-mode="short">短休息</button>
+      <button class="mode" data-mode="long">长休息</button>
+    </div>
+
+    <!-- 计时圆环 -->
+    <div class="timer-wrap">
+      <svg width="260" height="260">
+        <circle class="ring-bg" cx="130" cy="130" r="120"></circle>
+        <circle class="ring" id="ring" cx="130" cy="130" r="120"></circle>
+      </svg>
+      <div class="time">
+        <div class="mm-ss" id="time">25:00</div>
+        <div class="hint" id="hint">准备开始</div>
+      </div>
+    </div>
+
+    <!-- 控制按钮 -->
+    <div class="controls">
+      <button class="btn btn-ghost" id="reset" title="重置">↺</button>
+      <button class="btn btn-primary" id="start">开始</button>
+      <button class="btn btn-ghost" id="skip" title="跳过">⏭</button>
+    </div>
+
+    <!-- 统计 + 设置 -->
+    <div class="stats">
+      <span>今日 <b id="today">0</b> 🍅</span>
+      <span class="dot"></span>
+      <span>已完成 <b id="total">0</b> 轮</span>
+      <button class="icon-btn" id="settings" title="设置">⚙</button>
+    </div>
+  </div>
+
+  <!-- 设置弹窗 -->
+  <div class="overlay" id="overlay">
+    <div class="dialog">
+      <h2>设置</h2>
+      <div class="field">
+        <span>专注时长（分钟）</span>
+        <input type="number" id="set-focus" min="1" max="120" />
+      </div>
+      <div class="field">
+        <span>短休息（分钟）</span>
+        <input type="number" id="set-short" min="1" max="60" />
+      </div>
+      <div class="field">
+        <span>长休息（分钟）</span>
+        <input type="number" id="set-long" min="1" max="60" />
+      </div>
+      <div class="dialog-actions">
+        <button class="btn btn-ghost" id="cancel">取消</button>
+        <button class="btn btn-primary" id="save">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      // ---------- 配置 ----------
+      const DEFAULTS = { focus: 25, short: 5, long: 15 };
+      const MODE_INFO = {
+        focus: { color: "#f87171", label: "专注中" },
+        short: { color: "#38bdf8", label: "短休息" },
+        long:  { color: "#34d399", label: "长休息" },
+      };
+      const LONG_BREAK_EVERY = 4; // 每 4 个专注后进入长休息
+
+      // ---------- 状态 ----------
+      let settings = loadSettings();
+      let mode = "focus";          // focus | short | long
+      let remaining = settings.focus * 60; // 剩余秒数
+      let total = settings.focus * 60;     // 本轮总秒数
+      let timerId = null;
+      let finishedFocus = 0;       // 连续完成的专注数（用于判断长休息）
+
+      // 统计（按日期记录今日完成数）
+      const today = new Date().toISOString().slice(0, 10);
+      let todayCount = loadToday();
+      let totalCount = loadTotal();
+
+      // ---------- DOM ----------
+      const $ = (id) => document.getElementById(id);
+      const el = {
+        time: $("time"), hint: $("hint"), ring: $("ring"),
+        start: $("start"), reset: $("reset"), skip: $("skip"),
+        modes: document.querySelectorAll(".mode"),
+        today: $("today"), total: $("total"),
+        overlay: $("overlay"), settings: $("settings"),
+        cancel: $("cancel"), save: $("save"),
+        setFocus: $("set-focus"), setShort: $("set-short"), setLong: $("set-long"),
+      };
+
+      const R = 120;
+      const CIRCUMFERENCE = 2 * Math.PI * R;
+      el.ring.style.strokeDasharray = CIRCUMFERENCE;
+
+      // ---------- 渲染 ----------
+      function applyMode(m) {
+        mode = m;
+        document.documentElement.style.setProperty("--accent", MODE_INFO[m].color);
+        el.modes.forEach((b) => b.classList.toggle("active", b.dataset.mode === m));
+        remaining = settings[m] * 60;
+        total = settings[m] * 60;
+        el.hint.textContent = MODE_INFO[m].label;
+        render();
+      }
+
+      function render() {
+        const mm = String(Math.floor(remaining / 60)).padStart(2, "0");
+        const ss = String(remaining % 60).padStart(2, "0");
+        el.time.textContent = `${mm}:${ss}`;
+        // 圆环进度：从满到空
+        const progress = total > 0 ? remaining / total : 0;
+        el.ring.style.strokeDashoffset = CIRCUMFERENCE * (1 - progress);
+        document.title = running() ? `${mm}:${ss} · 番茄钟` : "番茄钟";
+      }
+
+      function running() { return timerId !== null; }
+
+      // ---------- 计时器 ----------
+      function start() {
+        if (running()) return;
+        timerId = setInterval(tick, 1000);
+        el.start.textContent = "暂停";
+        el.hint.textContent = MODE_INFO[mode].label;
+      }
+
+      function pause() {
+        if (!running()) return;
+        clearInterval(timerId);
+        timerId = null;
+        el.start.textContent = "开始";
+        el.hint.textContent = "已暂停";
+      }
+
+      function toggle() { running() ? pause() : start(); }
+
+      function reset() {
+        pause();
+        remaining = settings[mode] * 60;
+        total = settings[mode] * 60;
+        el.hint.textContent = "准备开始";
+        render();
+      }
+
+      function tick() {
+        if (remaining > 0) {
+          remaining--;
+          render();
+        } else {
+          complete();
+        }
+      }
+
+      function complete() {
+        pause();
+        notify();
+        if (mode === "focus") {
+          finishedFocus++;
+          todayCount++;
+          totalCount++;
+          saveToday(); saveTotal();
+          // 判断进入长休息还是短休息
+          const next = finishedFocus % LONG_BREAK_EVERY === 0 ? "long" : "short";
+          applyMode(next);
+          el.hint.textContent = "该休息啦 🎉";
+        } else {
+          applyMode("focus");
+          el.hint.textContent = "休息结束，继续专注 💪";
+        }
+        renderStats();
+      }
+
+      function skip() {
+        pause();
+        complete();
+      }
+
+      // ---------- 通知 + 提示音 ----------
+      function notify() {
+        // 声音（Web Audio 生成，无需外部文件）
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          [880, 1174].forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = "sine";
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.18);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.18 + 0.4);
+            osc.connect(gain).connect(ctx.destination);
+            osc.start(ctx.currentTime + i * 0.18);
+            osc.stop(ctx.currentTime + i * 0.18 + 0.4);
+          });
+        } catch (e) {}
+
+        // 浏览器通知
+        if ("Notification" in window) {
+          if (Notification.permission === "granted") {
+            new Notification(mode === "focus" ? "专注完成！" : "休息结束", {
+              body: mode === "focus" ? "干得好，休息一下吧 🍅" : "继续开始下一个专注吧",
+            });
+          } else if (Notification.permission === "default") {
+            Notification.requestPermission();
+          }
+        }
+      }
+
+      // ---------- 设置 ----------
+      function loadSettings() {
+        try {
+          const s = JSON.parse(localStorage.getItem("pomodoro-settings"));
+          if (s) return { ...DEFAULTS, ...s };
+        } catch (e) {}
+        return { ...DEFAULTS };
+      }
+      function saveSettings() {
+        localStorage.setItem("pomodoro-settings", JSON.stringify(settings));
+      }
+      function loadToday() {
+        const d = JSON.parse(localStorage.getItem("pomodoro-today") || "{}");
+        return d.date === today ? d.count : 0;
+      }
+      function saveToday() {
+        localStorage.setItem("pomodoro-today", JSON.stringify({ date: today, count: todayCount }));
+      }
+      function loadTotal() {
+        return parseInt(localStorage.getItem("pomodoro-total") || "0", 10);
+      }
+      function saveTotal() {
+        localStorage.setItem("pomodoro-total", String(totalCount));
+      }
+      function renderStats() {
+        el.today.textContent = todayCount;
+        el.total.textContent = totalCount;
+      }
+
+      // ---------- 事件 ----------
+      el.modes.forEach((b) => {
+        b.addEventListener("click", () => {
+          pause();
+          applyMode(b.dataset.mode);
+        });
+      });
+      el.start.addEventListener("click", toggle);
+      el.reset.addEventListener("click", reset);
+      el.skip.addEventListener("click", skip);
+
+      el.settings.addEventListener("click", () => {
+        el.setFocus.value = settings.focus;
+        el.setShort.value = settings.short;
+        el.setLong.value = settings.long;
+        el.overlay.classList.add("show");
+      });
+      el.cancel.addEventListener("click", () => el.overlay.classList.remove("show"));
+      el.overlay.addEventListener("click", (e) => {
+        if (e.target === el.overlay) el.overlay.classList.remove("show");
+      });
+      el.save.addEventListener("click", () => {
+        settings.focus = clamp(el.setFocus.value, 1, 120);
+        settings.short = clamp(el.setShort.value, 1, 60);
+        settings.long = clamp(el.setLong.value, 1, 60);
+        saveSettings();
+        el.overlay.classList.remove("show");
+        reset();
+      });
+
+      function clamp(v, min, max) {
+        v = parseInt(v, 10);
+        if (isNaN(v)) v = min;
+        return Math.min(Math.max(v, min), max);
+      }
+
+      // 键盘快捷键：空格 = 开始/暂停，R = 重置
+      document.addEventListener("keydown", (e) => {
+        if (e.target.tagName === "INPUT") return;
+        if (e.code === "Space") { e.preventDefault(); toggle(); }
+        else if (e.code === "KeyR") reset();
+      });
+
+      // 首次交互时请求通知权限
+      document.addEventListener("click", function once() {
+        if ("Notification" in window && Notification.permission === "default") {
+          Notification.requestPermission();
+        }
+        document.removeEventListener("click", once);
+      });
+
+      // ---------- 初始化 ----------
+      applyMode("focus");
+      renderStats();
+    })();
+  </script>
+</body>
+</html>

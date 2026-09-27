@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>番茄钟 · Pomodoro</title>
+<style>
+  :root {
+    --bg: #f5f0e8;
+    --card: #ffffff;
+    --ink: #2b2b33;
+    --muted: #9a9589;
+    --ring-track: #e9e2d6;
+    --primary: #e4572e;
+    --primary-ink: #ffffff;
+    --short: #3a9d8c;
+    --long: #4f6df5;
+    --soft: #f0e6dc;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    transition: background .5s ease;
+  }
+  body[data-mode="short"]  { --primary: var(--short); }
+  body[data-mode="long"]   { --primary: var(--long); }
+
+  .app {
+    background: var(--card);
+    border-radius: 28px;
+    box-shadow: 0 24px 60px rgba(43, 43, 51, .12);
+    padding: 36px 40px 32px;
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+  }
+
+  /* 顶部:标题 + 番茄计数 */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .header h1 { font-size: 18px; font-weight: 700; letter-spacing: .5px; }
+  .header .tomatos {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .header .tomatos svg { display: block; }
+
+  /* 模式切换 */
+  .tabs {
+    display: flex;
+    gap: 6px;
+    background: var(--soft);
+    border-radius: 999px;
+    padding: 4px;
+    margin: 18px 0 26px;
+  }
+  .tabs button {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 8px 4px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all .25s ease;
+  }
+  .tabs button.active {
+    background: var(--card);
+    color: var(--ink);
+    box-shadow: 0 2px 8px rgba(43, 43, 51, .10);
+  }
+  .tabs button:hover:not(.active) { color: var(--ink); }
+
+  /* 圆环 */
+  .ring-wrap { position: relative; width: 260px; height: 260px; margin: 0 auto; }
+  .ring-wrap svg { transform: rotate(-90deg); }
+  .ring-bg  { stroke: var(--ring-track); }
+  .ring-fg {
+    stroke: var(--primary);
+    stroke-linecap: round;
+    transition: stroke .5s ease;
+  }
+  .time-center {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  #time { font-size: 56px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+  #phase { margin-top: 6px; font-size: 13px; color: var(--muted); font-weight: 600; letter-spacing: 1px; }
+
+  /* 控制按钮 */
+  .controls { display: flex; gap: 14px; justify-content: center; margin-top: 26px; }
+  .btn {
+    border: none; cursor: pointer;
+    font-size: 15px; font-weight: 700;
+    border-radius: 999px;
+    transition: transform .12s ease, opacity .2s ease, background .3s ease;
+  }
+  .btn:active { transform: scale(.95); }
+  .btn-primary {
+    background: var(--primary); color: var(--primary-ink);
+    padding: 14px 48px;
+    box-shadow: 0 10px 24px -8px var(--primary);
+  }
+  .btn-ghost {
+    background: var(--soft); color: var(--ink);
+    padding: 14px 18px;
+  }
+  .btn-ghost:hover { background: #e6dccd; }
+
+  .footer { margin-top: 22px; font-size: 12px; color: var(--muted); }
+
+  /* 设置弹层 */
+  .settings-open { position: fixed; top: 20px; right: 20px; }
+  .gear {
+    background: none; border: none; cursor: pointer;
+    color: var(--muted); opacity: .7; padding: 6px;
+  }
+  .gear:hover { opacity: 1; }
+  .settings-open svg { display: block; }
+
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.35);
+    display: none; align-items: center; justify-content: center;
+    z-index: 10;
+  }
+  .overlay.show { display: flex; }
+  .panel {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 26px 28px;
+    width: 300px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.25);
+  }
+  .panel h2 { font-size: 16px; margin-bottom: 18px; }
+  .field { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .field label { font-size: 14px; font-weight: 600; color: var(--ink); }
+  .field input {
+    width: 76px; padding: 7px 10px;
+    border: 1px solid var(--ring-track); border-radius: 10px;
+    font-size: 14px; text-align: center;
+  }
+  .panel-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .panel-actions button {
+    flex: 1; padding: 10px; border: none; border-radius: 12px;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+  }
+  #saveSettings { background: var(--primary); color: #fff; }
+  #closeSettings { background: var(--soft); color: var(--ink); }
+</style>
+</head>
+<body data-mode="focus">
+
+  <button class="settings-open gear" id="openSettings" title="设置时长" aria-label="设置时长">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  </button>
+
+  <div class="app">
+    <div class="header">
+      <h1>🍅 番茄钟</h1>
+      <div class="tomatos" title="已完成的番茄数">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="#e4572e"><path d="M12 22C7 22 3 18.3 3 13.4 3 8.5 6.5 4 12 2c5.5 2 9 6.5 9 11.4C21 18.3 17 22 12 22z"/></svg>
+        <span id="tomatoCount">0</span>
+      </div>
+    </div>
+
+    <div class="tabs" role="tablist">
+      <button id="tabFocus" class="active" data-tab="focus">专注</button>
+      <button id="tabShort" data-tab="short">短休息</button>
+      <button id="tabLong" data-tab="long">长休息</button>
+    </div>
+
+    <div class="ring-wrap">
+      <svg width="260" height="260" viewBox="0 0 260 260">
+        <circle class="ring-bg" cx="130" cy="130" r="118" fill="none" stroke-width="10"/>
+        <circle class="ring-fg" id="ringFg" cx="130" cy="130" r="118" fill="none" stroke-width="10"
+                stroke-dasharray="741.4" stroke-dashoffset="0"/>
+      </svg>
+      <div class="time-center">
+        <div id="time">25:00</div>
+        <div id="phase">专注时间</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn btn-ghost" id="resetBtn" title="重置">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+        </svg>
+      </button>
+      <button class="btn btn-primary" id="startBtn">开始</button>
+    </div>
+
+    <div class="footer">一轮 = 专注 25 分钟 + 短休息 5 分钟<br>每 4 个番茄迎来一次长休息</div>
+  </div>
+
+  <!-- 设置面板 -->
+  <div class="overlay" id="overlay">
+    <div class="panel">
+      <h2>⏱️ 时长设置</h2>
+      <div class="field"><label>专注 (分钟)</label><input type="number" id="cfgFocus" min="1" max="120" step="1"></div>
+      <div class="field"><label>短休息 (分钟)</label><input type="number" id="cfgShort" min="1" max="60" step="1"></div>
+      <div class="field"><label>长休息 (分钟)</label><input type="number" id="cfgLong" min="1" max="60" step="1"></div>
+      <div class="panel-actions">
+        <button id="closeSettings">取消</button>
+        <button id="saveSettings">保存</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  const DEFAULTS = { focus: 25, short: 5, long: 15 };
+  const RING_LEN = 2 * Math.PI * 118; // 741.4
+
+  const $ = (id) => document.getElementById(id);
+  const timeEl = $("time"), phaseEl = $("phase"), ringFg = $("ringFg");
+  const startBtn = $("startBtn"), resetBtn = $("resetBtn"), tomatoEl = $("tomatoCount");
+  const tabs = { focus: $("tabFocus"), short: $("tabShort"), long: $("tabLong") };
+
+  let mode = "focus";
+  let settings = load("settings", DEFAULTS);
+  let completed = load("completed", 0);
+
+  let totalSec = settings[mode] * 60;
+  let remainSec = totalSec;
+  let timerId = null;
+  let running = false;
+  let completedThisCycle = completed; // 本轮周期内已完成的番茄数(1~4)
+
+  function load(key, fallback) {
+    try {
+      const raw = localStorage.getItem("pomodoro_" + key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch (e) { return fallback; }
+  }
+  function save(key, val) {
+    try { localStorage.setItem("pomodoro_" + key, JSON.stringify(val)); } catch (e) {}
+  }
+
+  /* ---------- 渲染 ---------- */
+  function fmt(s) {
+    const m = Math.floor(s / 60), sec = s % 60;
+    return m + ":" + String(sec).padStart(2, "0");
+  }
+
+  function render() {
+    timeEl.textContent = fmt(remainSec);
+    const progress = totalSec === 0 ? 0 : remainSec / totalSec;
+    ringFg.style.strokeDashoffset = String(RING_LEN * (1 - progress));
+    phaseEl.textContent =
+      mode === "focus" ? (running ? "专注中…" : "专注时间") :
+      mode === "short" ? "短休息" : "长休息";
+    document.body.dataset.mode = mode;
+    document.title = fmt(remainSec) + " · " + (mode === "focus" ? "专注" : "休息") + " — 番茄钟";
+    tomatoEl.textContent = completed;
+    // 当前显示的时间若与模式时长不符(被手动切换/重置过),同步一下
+    if (!running && remainSec !== totalSec && remainSec !== settings[mode] * 60) {
+      // 仅在用户刚切换模式时由 switchMode 处理,这里不做强改
+    }
+  }
+
+  function setActiveTab() {
+    for (const k in tabs) tabs[k].classList.toggle("active", k === mode);
+  }
+
+  /* ---------- 计时 ---------- */
+  function tick() {
+    remainSec--;
+    if (remainSec <= 0) {
+      remainSec = 0;
+      render();
+      stop();
+      onComplete();
+      return;
+    }
+    render();
+  }
+
+  function start() {
+    if (running) return;
+    // 第一次开始时若时间没被改过,从满时长开始
+    if (remainSec <= 0) remainSec = totalSec;
+    running = true;
+    startBtn.textContent = "暂停";
+    timerId = setInterval(tick, 1000);
+    render();
+  }
+
+  function pause() {
+    running = false;
+    clearInterval(timerId);
+    timerId = null;
+    startBtn.textContent = "继续";
+    render();
+  }
+
+  function stop() {
+    running = false;
+    clearInterval(timerId);
+    timerId = null;
+    startBtn.textContent = "开始";
+  }
+
+  function reset() {
+    stop();
+    remainSec = totalSec;
+    render();
+  }
+
+  /* ---------- 模式与完成 ---------- */
+  function switchMode(m) {
+    if (m === mode) return;
+    mode = m;
+    totalSec = settings[m] * 60;
+    remainSec = totalSec;
+    stop();
+    setActiveTab();
+    render();
+  }
+
+  function onComplete() {
+    beep();
+    try {
+      if ("Notification" in window && Notification.permission === "granted") {
+        const text = mode === "focus" ? "专注结束,去休息一下吧!" :
+                     "休息结束,开始新的专注吧!";
+        new Notification(text);
+      }
+    } catch (e) {}
+
+    if (mode === "focus") {
+      completed++;
+      completedThisCycle = completed % 4 === 0 ? 4 : completed % 4;
+      save("completed", completed);
+      // 每 4 个番茄进入长休息,否则短休息
+      switchMode(completed % 4 === 0 ? "long" : "short");
+      // switchMode 会重置计时,再启动
+      start();
+    } else {
+      switchMode("focus");
+      start();
+    }
+  }
+
+  /* ---------- 声音(Web Audio,无外部文件) ---------- */
+  let audioCtx = null;
+  function beep() {
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      const now = audioCtx.currentTime;
+      // 三连音提示
+      [[0, 880], [0.18, 880], [0.36, 880]].forEach(([t, freq]) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0, now + t);
+        gain.gain.linearRampToValueAtTime(0.5, now + t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + t + 0.22);
+        osc.connect(gain).connect(audioCtx.destination);
+        osc.start(now + t);
+        osc.stop(now + t + 0.24);
+      });
+    } catch (e) { /* 无音频环境时静默 */ }
+  }
+
+  /* ---------- 设置 ---------- */
+  function openSettings() {
+    $("cfgFocus").value = settings.focus;
+    $("cfgShort").value = settings.short;
+    $("cfgLong").value = settings.long;
+    $("overlay").classList.add("show");
+  }
+  function closeSettings() { $("overlay").classList.remove("show"); }
+  function saveSettings() {
+    const f = clampInt($("cfgFocus").value, 1, 120, DEFAULTS.focus);
+    const s = clampInt($("cfgShort").value, 1, 60, DEFAULTS.short);
+    const l = clampInt($("cfgLong").value, 1, 60, DEFAULTS.long);
+    settings = { focus: f, short: s, long: l };
+    save("settings", settings);
+    // 若正在计时,不打断;否则刷新当前模式时长
+    if (!running) {
+      totalSec = settings[mode] * 60;
+      remainSec = totalSec;
+      render();
+    }
+    closeSettings();
+  }
+  function clampInt(v, min, max, fallback) {
+    const n = parseInt(v, 10);
+    if (isNaN(n)) return fallback;
+    return Math.min(max, Math.max(min, n));
+  }
+
+  /* ---------- 事件 ---------- */
+  startBtn.addEventListener("click", () => (running ? pause() : start()));
+  resetBtn.addEventListener("click", reset);
+  $("tabFocus").addEventListener("click", () => switchMode("focus"));
+  $("tabShort").addEventListener("click", () => switchMode("short"));
+  $("tabLong").addEventListener("click", () => switchMode("long"));
+  $("openSettings").addEventListener("click", openSettings);
+  $("closeSettings").addEventListener("click", closeSettings);
+  $("saveSettings").addEventListener("click", saveSettings);
+  $("overlay").addEventListener("click", (e) => {
+    if (e.target === $("overlay")) closeSettings();
+  });
+
+  // 请求桌面通知权限
+  if ("Notification" in window && Notification.permission === "default") {
+    Notification.requestPermission();
+  }
+
+  /* ---------- 初始化 ---------- */
+  totalSec = settings[mode] * 60;
+  remainSec = totalSec;
+  setActiveTab();
+  render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#f5f1e8" />
+  <title>番茄钟 · 一次只做一件事</title>
+  <style>
+    :root { --paper:#f5f1e8; --ink:#25231f; --muted:#858078; --line:#ded8cc; --accent:#d95f43; --accent-soft:#f1b8a8; --panel:#fbf9f4; --shadow:0 18px 50px rgba(70,58,42,.10); --track:#e8e2d7; --soft:#f2eee6; --field:#f7f4ed; --divider:#ebe6dd; }
+    :root[data-theme="dark"] { --paper:#191815; --ink:#e9e5db; --muted:#8d887d; --line:#332f27; --accent:#e0704f; --accent-soft:rgba(224,112,79,.16); --panel:#23211c; --shadow:0 18px 50px rgba(0,0,0,.5); --track:#37322a; --soft:#2c2a24; --field:#2b2822; --divider:#37332b; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:var(--ink); background:var(--paper); font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; transition:background .3s ease,color .3s ease; }
+    button, input { font:inherit; }
+    button { cursor:pointer; }
+    .shell { width:min(1120px, calc(100% - 40px)); margin:0 auto; padding:30px 0 42px; }
+    header { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; margin-bottom:46px; }
+    .brand { display:flex; align-items:center; gap:12px; font-weight:750; letter-spacing:-.03em; }
+    .brand-mark { width:34px; height:34px; display:grid; place-items:center; border:2px solid var(--ink); border-radius:50%; position:relative; }
+    .brand-mark::after { content:""; width:9px; height:9px; background:var(--accent); border-radius:50%; }
+    .eyebrow { margin:0 0 8px; color:var(--accent); font-size:11px; font-weight:800; letter-spacing:.16em; text-transform:uppercase; }
+    .date { margin:0; color:var(--muted); font-size:13px; }
+    .date + .date { margin-top:3px; }
+    .theme-btn { margin-top:8px; width:32px; height:32px; border:1px solid var(--line); border-radius:50%; background:var(--panel); color:var(--ink); font-size:14px; line-height:1; cursor:pointer; transition:background .2s ease; }
+    .theme-btn:hover { background:var(--soft); }
+    .layout { display:grid; grid-template-columns:minmax(0, 1.15fr) minmax(300px, .85fr); gap:28px; align-items:stretch; }
+    .timer-panel, .side-panel { background:var(--panel); border:1px solid rgba(150,137,115,.22); box-shadow:var(--shadow); }
+    .timer-panel { min-height:640px; padding:34px; display:flex; flex-direction:column; justify-content:space-between; }
+    .mode-tabs { display:flex; gap:8px; flex-wrap:wrap; }
+    .mode-tabs button { border:1px solid transparent; background:transparent; color:var(--muted); padding:9px 13px; border-radius:6px; font-size:13px; transition:.2s ease; }
+    .mode-tabs button:hover { color:var(--ink); background:var(--soft); }
+    .mode-tabs button.active { color:var(--ink); background:var(--soft); border-color:var(--line); font-weight:700; }
+    .clock-wrap { display:grid; place-items:center; padding:24px 0 12px; }
+    .clock { --progress:0deg; width:min(330px, 72vw); aspect-ratio:1; border-radius:50%; display:grid; place-items:center; background:conic-gradient(var(--accent) var(--progress), var(--track) 0deg); position:relative; box-shadow:0 12px 34px rgba(150,80,50,.08); }
+    .clock::before { content:""; position:absolute; inset:11px; border-radius:50%; background:var(--panel); }
+    .clock-content { position:relative; text-align:center; }
+    .clock-label { color:var(--muted); font-size:13px; letter-spacing:.08em; margin-bottom:10px; }
+    .time { font-variant-numeric:tabular-nums; font-size:clamp(55px, 9vw, 82px); line-height:1; letter-spacing:-.07em; font-weight:760; }
+    .hint { color:var(--muted); font-size:13px; margin-top:14px; }
+    .controls { display:flex; justify-content:center; align-items:center; gap:12px; }
+    .primary, .secondary { border:0; border-radius:6px; padding:13px 27px; font-weight:750; transition:transform .18s ease, background .18s ease; }
+    .primary { background:var(--accent); color:white; min-width:126px; box-shadow:0 8px 16px rgba(217,95,67,.2); }
+    .primary:hover { filter:brightness(.93); transform:translateY(-1px); }
+    .secondary { background:transparent; color:var(--muted); padding-inline:13px; }
+    .secondary:hover { color:var(--ink); background:#f0ece4; }
+    .side-panel { padding:28px; display:flex; flex-direction:column; gap:28px; }
+    .section-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; }
+    h2 { margin:0; font-size:16px; letter-spacing:-.02em; }
+    .section-head span { color:var(--muted); font-size:12px; }
+    .task-form { display:flex; gap:8px; }
+    .task-input { min-width:0; flex:1; border:1px solid var(--line); background:var(--field); color:var(--ink); padding:11px 12px; border-radius:6px; outline:none; }
+    .task-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+    .add-btn { border:1px solid var(--ink); background:var(--ink); color:var(--paper); border-radius:6px; padding:0 14px; font-weight:700; }
+    .task-list { list-style:none; padding:0; margin:14px 0 0; display:grid; gap:8px; }
+    .task-list:empty::before { content:"还没有任务，写下今天要推进的一件事。"; color:var(--muted); font-size:13px; padding:10px 0; }
+    .task { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--divider); font-size:14px; }
+    .task input { accent-color:var(--accent); width:16px; height:16px; }
+    .task.done span { color:var(--muted); text-decoration:line-through; }
+    .delete { margin-left:auto; border:0; background:transparent; color:var(--muted); font-size:18px; line-height:1; }
+    .delete:hover { color:var(--accent); }
+    .stats { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+    .stat { padding:15px; background:var(--soft); border:1px solid var(--line); }
+    .stat strong { display:block; font-size:28px; letter-spacing:-.06em; }
+    .stat span { color:var(--muted); font-size:12px; }
+    .settings { margin-top:auto; border-top:1px solid var(--line); padding-top:22px; }
+    .setting-row { display:flex; align-items:center; justify-content:space-between; gap:15px; margin-top:12px; color:var(--muted); font-size:13px; }
+    .number-input { width:68px; border:1px solid var(--line); background:var(--field); color:var(--ink); padding:7px 8px; border-radius:5px; text-align:right; }
+    footer { margin-top:26px; display:flex; justify-content:space-between; color:var(--muted); font-size:12px; }
+    kbd { border:1px solid var(--line); border-bottom-width:2px; border-radius:4px; padding:2px 5px; background:var(--field); }
+    @media (max-width:760px) { .shell { width:min(100% - 24px, 520px); padding-top:20px; } header { margin-bottom:25px; } .layout { grid-template-columns:1fr; } .timer-panel { min-height:560px; padding:22px; } .side-panel { padding:22px; } footer { display:none; } }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>番茄钟</span></div>
+      <div style="text-align:right"><p class="eyebrow">FOCUS / 01</p><p class="date" id="date"></p><p class="date" id="clock-time"></p><button class="theme-btn" id="themeBtn" type="button" title="切换主题" aria-label="切换主题">🌙</button></div>
+    </header>
+    <div class="layout">
+      <section class="timer-panel" aria-label="计时器">
+        <div class="mode-tabs" role="tablist" aria-label="计时模式">
+          <button class="active" data-mode="focus" role="tab">专注</button><button data-mode="short" role="tab">短休息</button><button data-mode="long" role="tab">长休息</button>
+        </div>
+        <div class="clock-wrap"><div class="clock" id="clock"><div class="clock-content"><div class="clock-label" id="clock-label">专注时间</div><div class="time" id="time">25:00</div><div class="hint" id="hint">准备好后，开始这一轮专注</div></div></div></div>
+        <div class="controls"><button class="secondary" id="reset" type="button">重置</button><button class="primary" id="start" type="button">开始专注</button><button class="secondary" id="skip" type="button">跳过</button></div>
+      </section>
+      <aside class="side-panel">
+        <section>
+          <div class="section-head"><h2>今日任务</h2><span id="task-count">0 项</span></div>
+          <form class="task-form" id="task-form"><input class="task-input" id="task-input" placeholder="下一件要做的事" maxlength="60" autocomplete="off" /><button class="add-btn" type="submit">添加</button></form>
+          <ul class="task-list" id="task-list"></ul>
+        </section>
+        <section>
+          <div class="section-head"><h2>今日记录</h2><span>保持节奏</span></div>
+          <div class="stats"><div class="stat"><strong id="sessions">0</strong><span>完成轮次</span></div><div class="stat"><strong id="minutes">0</strong><span>专注分钟</span></div></div>
+        </section>
+        <section class="settings">
+          <div class="section-head"><h2>时长设置</h2><span>分钟</span></div>
+          <label class="setting-row">专注 <input class="number-input" id="focus-length" type="number" min="1" max="120" value="25" /></label>
+          <label class="setting-row">短休息 <input class="number-input" id="short-length" type="number" min="1" max="60" value="5" /></label>
+          <label class="setting-row">长休息 <input class="number-input" id="long-length" type="number" min="1" max="60" value="15" /></label>
+        </section>
+      </aside>
+    </div>
+    <footer><span>一次只做一件事，剩下的交给时间。</span><span><kbd>Space</kbd> 开始 / 暂停</span></footer>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const labels = { focus:'专注时间', short:'短休息', long:'长休息' };
+    const durations = { focus:25, short:5, long:15 };
+    let mode = 'focus', remaining = durations.focus * 60, timer = null, running = false, audioContext = null;
+    let endAt = 0;                          // 目标结束时间戳：计时改用时间戳算法，后台不再漂移
+    let completed = 0, todayMinutes = 0;    // 今日完成的番茄数 / 今日专注分钟（按天归零）
+    let tasks = [];
+    function todayStr() {                   // 用本地日期，避免 toISOString 的 UTC 跨天错一天
+      const d = new Date();
+      return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+    }
+    function loadToday() {                  // 读取今日数据；跨天自动归零，损坏数据自动忽略
+      try {
+        const raw = localStorage.getItem('pomodoro-sessions');
+        const data = raw ? JSON.parse(raw) : null;
+        if (data && data.date === todayStr()) {
+          completed = Number(data.count) || 0;
+          todayMinutes = Number(data.minutes) || 0;
+        }
+      } catch (e) {}
+    }
+    function saveToday() {
+      localStorage.setItem('pomodoro-sessions', JSON.stringify({ date: todayStr(), count: completed, minutes: todayMinutes }));
+    }
+    try { tasks = JSON.parse(localStorage.getItem('pomodoro-tasks') || '[]'); if (!Array.isArray(tasks)) tasks = []; } catch (e) {}
+    loadToday();
+    $('date').textContent = new Intl.DateTimeFormat('zh-CN', { month:'long', day:'numeric', weekday:'long' }).format(new Date());
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function updateClock() {           // 每秒刷新一次（精确到秒），界面只显示到分
+      const d = new Date();
+      $('clock-time').textContent = pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // ---------- 主题切换（浅色 / 深色，选择持久化） ----------
+    const themeBtn = $('themeBtn');
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    function applyTheme(t) {
+      document.documentElement.dataset.theme = t;
+      themeBtn.textContent = t === 'dark' ? '☀️' : '🌙';
+      localStorage.setItem('pomodoro-theme', t);
+      if (themeMeta) themeMeta.setAttribute('content', t === 'dark' ? '#191815' : '#f5f1e8');
+    }
+    themeBtn.addEventListener('click', () => applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'));
+    applyTheme(localStorage.getItem('pomodoro-theme') === 'dark' ? 'dark' : 'light');
+    ['focus','short','long'].forEach(key => { const input = $(key + '-length'); const saved = localStorage.getItem('pomodoro-' + key); if (saved) { input.value = saved; durations[key] = Number(saved); } input.addEventListener('change', () => { durations[key] = Math.max(1, Math.min(120, Number(input.value) || 1)); input.value = durations[key]; localStorage.setItem('pomodoro-' + key, durations[key]); if (!running && mode === key) { remaining = durations[key] * 60; render(); } }); });
+    function render() { const total = durations[mode] * 60; const safeRemaining = Math.max(0, remaining); const progress = Math.max(0, Math.min(360, (1 - safeRemaining / total) * 360)); $('time').textContent = String(Math.floor(safeRemaining / 60)).padStart(2,'0') + ':' + String(safeRemaining % 60).padStart(2,'0'); $('clock').style.setProperty('--progress', progress + 'deg'); $('clock-label').textContent = labels[mode]; $('start').textContent = running ? '暂停' : (safeRemaining === total ? (mode === 'focus' ? '开始专注' : '开始休息') : '继续'); const readyHint = mode === 'focus' ? '准备好后，开始这一轮专注' : '准备好后，开始休息'; $('hint').textContent = running ? (mode === 'focus' ? '专注进行中，保持当下' : '休息进行中，放松一下') : (safeRemaining === total ? readyHint : '暂停中，可以随时继续'); $('sessions').textContent = completed; $('minutes').textContent = todayMinutes; }
+    function setMode(next) { stop(); mode = next; remaining = durations[mode] * 60; document.querySelectorAll('.mode-tabs button').forEach(btn => btn.classList.toggle('active', btn.dataset.mode === mode)); render(); }
+    function stop() {
+      if (running) remaining = Math.max(0, Math.round((endAt - Date.now()) / 1000)); // 暂停时按真实时间校准
+      clearInterval(timer); timer = null; running = false;
+    }
+    function tick() {                              // 时间戳算法：剩余 = 目标时刻 - 现在，后台不漂移
+      if (!running) return;                        // 防御：陈旧回调直接忽略
+      const secs = Math.ceil(Math.max(0, endAt - Date.now()) / 1000);
+      if (secs !== remaining) {
+        remaining = secs;
+        if (secs <= 0) { finish(); return; }
+        render();
+      }
+    }
+    function finish() { stop(); remaining = 0; playCompletionTone(); if (mode === 'focus') { completed++; todayMinutes += durations.focus; saveToday(); notify('专注完成，休息一下吧'); } else notify('休息结束，准备开始下一轮'); render(); }
+    function notify(message) { if ('Notification' in window && Notification.permission === 'granted') new Notification('番茄钟', { body:message }); }
+    function requestNotificationOnce() { if (!('Notification' in window) || localStorage.getItem('pomodoro-notification-requested') === '1') return; localStorage.setItem('pomodoro-notification-requested', '1'); if (Notification.permission === 'default') Notification.requestPermission(); }
+    function ensureAudio() { const AudioContext = window.AudioContext || window.webkitAudioContext; if (!AudioContext) return; if (!audioContext) audioContext = new AudioContext(); if (audioContext.state === 'suspended') audioContext.resume(); }
+    function playCompletionTone() { if (!audioContext) return; const now = audioContext.currentTime; [660, 880, 660].forEach((frequency, index) => { const oscillator = audioContext.createOscillator(); const gain = audioContext.createGain(); const start = now + index * 0.16; oscillator.type = 'sine'; oscillator.frequency.value = frequency; gain.gain.setValueAtTime(0.0001, start); gain.gain.exponentialRampToValueAtTime(0.18, start + 0.02); gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.13); oscillator.connect(gain); gain.connect(audioContext.destination); oscillator.start(start); oscillator.stop(start + 0.14); }); }
+    $('start').addEventListener('click', () => { if (running) { stop(); render(); } else { if (remaining <= 0) remaining = durations[mode] * 60; ensureAudio(); requestNotificationOnce(); running = true; endAt = Date.now() + remaining * 1000; timer = setInterval(tick, 250); render(); } });
+    $('reset').addEventListener('click', () => { stop(); remaining = durations[mode] * 60; render(); });
+    $('skip').addEventListener('click', () => { setMode(mode === 'focus' ? 'short' : 'focus'); });
+    document.querySelectorAll('.mode-tabs button').forEach(btn => btn.addEventListener('click', () => setMode(btn.dataset.mode)));
+    document.addEventListener('visibilitychange', () => { if (running && !document.hidden) tick(); }); // 从后台切回时立即校准，完成事件不再延迟
+    $('task-form').addEventListener('submit', event => { event.preventDefault(); const text = $('task-input').value.trim(); if (!text) return; tasks.push({ text, done:false }); $('task-input').value = ''; saveTasks(); renderTasks(); });
+    function saveTasks() { localStorage.setItem('pomodoro-tasks', JSON.stringify(tasks)); }
+    function renderTasks() { $('task-count').textContent = tasks.filter(t => !t.done).length + ' 项'; $('task-list').innerHTML = tasks.map((task, index) => `<li class="task ${task.done ? 'done' : ''}"><input type="checkbox" ${task.done ? 'checked' : ''} aria-label="完成 ${escapeHtml(task.text)}" data-index="${index}"><span>${escapeHtml(task.text)}</span><button class="delete" data-delete="${index}" aria-label="删除任务">×</button></li>`).join(''); document.querySelectorAll('#task-list input').forEach(box => box.addEventListener('change', () => { tasks[box.dataset.index].done = box.checked; saveTasks(); renderTasks(); })); document.querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', () => { tasks.splice(Number(btn.dataset.delete),1); saveTasks(); renderTasks(); })); }
+    function escapeHtml(value) { return value.replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char])); }
+    document.addEventListener('keydown', event => { if (event.code === 'Space' && document.activeElement.tagName !== 'INPUT') { event.preventDefault(); $('start').click(); } });
+    renderTasks(); render();
+  </script>
+</body>
+</html>

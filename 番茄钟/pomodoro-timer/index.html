@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="一个简单好用的网页版番茄钟" />
+  <title>🍅 番茄钟</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍅</text></svg>" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-mode="work">
+  <main class="app">
+    <h1 class="title">🍅 番茄钟</h1>
+    <p class="subtitle">专注 25 分钟，休息 5 分钟</p>
+
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-mode="work">专注</button>
+      <button class="tab" data-mode="short">短休息</button>
+      <button class="tab" data-mode="long">长休息</button>
+    </div>
+
+    <div class="timer">
+      <svg viewBox="0 0 260 260">
+        <circle class="ring-track" cx="130" cy="130" r="120" />
+        <circle class="ring-progress" id="ring" cx="130" cy="130" r="120" />
+      </svg>
+      <div class="time" id="time">25:00</div>
+      <div class="status" id="status">准备开始</div>
+    </div>
+
+    <div class="controls">
+      <button id="startBtn" class="btn primary">开 始</button>
+      <button id="resetBtn" class="btn ghost" title="重置">↺ 重置</button>
+    </div>
+
+    <div class="info">
+      <span class="dots" id="dots"></span>
+      <span class="cycle" id="cycleInfo">今日已完成 0 个番茄</span>
+    </div>
+
+    <div class="settings">
+      <label>专注 <input type="number" id="workMin" min="1" max="180" step="1" /> 分钟</label>
+      <label>短休 <input type="number" id="shortMin" min="1" max="60" step="1" /> 分钟</label>
+      <label>长休 <input type="number" id="longMin" min="1" max="120" step="1" /> 分钟</label>
+      <label class="auto"><input type="checkbox" id="autoStart" /> 自动开始下一段</label>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
