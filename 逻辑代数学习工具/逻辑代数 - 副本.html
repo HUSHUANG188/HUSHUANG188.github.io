@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>逻辑代数学习工具（无乱码完整版）</title>
+<style>
+  body{font-family:Microsoft YaHei;background:#f7f8fa;margin:0;padding:20px}
+  .container{max-width:900px;margin:auto;background:#fff;border-radius:12px;padding:24px;box-shadow:0 4px 12px rgba(0,0,0,0.1)}
+  h2,h3{color:#2c3e50;margin-top:0}
+  .input-group{display:flex;gap:10px;align-items:center;margin:10px 0;flex-wrap:wrap}
+  input{width:70px;padding:10px;border:1px solid #ddd;border-radius:8px;text-align:center;font-size:16px}
+  button{padding:10px 18px;background:#4285f4;color:white;border:none;border-radius:8px;cursor:pointer;font-size:15px}
+  .result{margin-top:16px;padding:16px;background:#e8f0fe;border-radius:10px;line-height:1.7}
+  table{width:100%;border-collapse:collapse;margin-top:12px}
+  td,th{border:1px solid #ddd;padding:10px;text-align:center}
+  th{background:#f1f3f4}
+  .laws{margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .law-item{background:#f8f9fa;padding:12px;border-radius:8px}
+  .title{font-weight:bold;color:#1a73e8;margin-bottom:6px}
+  .expr{background:#eef2ff;padding:10px;border-radius:8px;margin-top:10px;border-left:3px solid #4285f4}
+  @media (max-width:700px){.laws{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="container">
+  <h2>逻辑代数学习工具（无乱码完整版）</h2>
+
+  <div class="input-group">
+    A = <input type="number" id="a" min="0" max="1" value="0">
+    B = <input type="number" id="b" min="0" max="1" value="0">
+    C = <input type="number" id="c" min="0" max="1" value="0">
+    <button onclick="calc()">计算全部</button>
+  </div>
+
+  <div class="result" id="res"></div>
+
+  <div class="expr">
+    <b>与非（NAND）表达式：</b><br>
+    与非：(A·B)' = A' + B'<br>
+    三变量与非：(A·B·C)' = A' + B' + C'
+  </div>
+  <div class="expr">
+    <b>或非（NOR）表达式：</b><br>
+    或非：(A+B)' = A' · B'<br>
+    三变量或非：(A+B+C)' = A' · B' · C'
+  </div>
+
+  <h3>完整真值表（A、B）</h3>
+  <table>
+    <tr>
+      <th>A</th><th>B</th><th>与</th><th>或</th><th>非A</th><th>非B</th><th>异或</th><th>同或</th><th>与非</th><th>或非</th>
+    </tr>
+    <tr><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>1</td><td>0</td><td>1</td><td>1</td><td>1</td></tr>
+    <tr><td>0</td><td>1</td><td>0</td><td>1</td><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td><td>0</td></tr>
+    <tr><td>1</td><td>0</td><td>0</td><td>1</td><td>0</td><td>1</td><td>1</td><td>0</td><td>1</td><td>0</td></tr>
+    <tr><td>1</td><td>1</td><td>1</td><td>1</td><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td></tr>
+  </table>
+
+  <h3>逻辑代数常用公式</h3>
+  <div class="laws">
+    <div class="law-item"><div class="title">0-1 律</div>A+0=A<br>A·1=A<br>A+1=1<br>A·0=0</div>
+    <div class="law-item"><div class="title">互补律</div>A+A'=1<br>A·A'=0</div>
+    <div class="law-item"><div class="title">重叠律</div>A+A=A<br>A·A=A</div>
+    <div class="law-item"><div class="title">还原律</div>(A')' = A</div>
+    <div class="law-item"><div class="title">交换律</div>A+B=B+A<br>A·B=B·A</div>
+    <div class="law-item"><div class="title">结合律</div>(A+B)+C=A+(B+C)<br>(A·B)·C=A·(B·C)</div>
+    <div class="law-item"><div class="title">分配律</div>A·(B+C)=A·B+A·C<br>A+B·C=(A+B)·(A+C)</div>
+    <div class="law-item"><div class="title">摩根定律</div>(A+B)'=A'·B'<br>(A·B)'=A'+B'</div>
+    <div class="law-item"><div class="title">吸收律1</div>A+A·B=A<br>A·(A+B)=A</div>
+    <div class="law-item"><div class="title">吸收律2</div>A+A'·B=A+B<br>A·(A'+B)=A·B</div>
+    <div class="law-item"><div class="title">冗余项</div>A·B+A'·C+B·C=A·B+A'·C</div>
+    <div class="law-item"><div class="title">异或/同或</div>A⊕B=A'·B+A·B'<br>A⊙B=A·B+A'·B'</div>
+  </div>
+</div>
+
+<script>
+function calc(){
+  let a = +document.getElementById("a").value
+  let b = +document.getElementById("b").value
+  let c = +document.getElementById("c").value
+
+  if(![0,1].includes(a)||![0,1].includes(b)||![0,1].includes(c)){
+    document.getElementById("res").innerHTML="⚠️ 只能输入 0 或 1";
+    return;
+  }
+
+  let and = a&b
+  let or = a|b
+  let notA = 1-a
+  let notB = 1-b
+  let xor = a^b
+  let xnor = 1-xor
+  let nand = 1-and
+  let nor = 1-or
+  let abc_and = a&b&c
+  let abc_or = a|b|c
+  let nand3 = 1-abc_and
+  let nor3 = 1-abc_or
+
+  document.getElementById("res").innerHTML = `
+    <b>输入：A=${a}，B=${b}，C=${c}</b><br>
+    与（A·B） = ${and}<br>
+    或（A+B） = ${or}<br>
+    非A = ${notA}　非B = ${notB}<br>
+    异或（A⊕B） = ${xor}<br>
+    同或（A⊙B） = ${xnor}<br>
+    <b>与非 (A·B)' = ${nand}</b><br>
+    <b>或非 (A+B)' = ${nor}</b><br>
+    三变量与 A·B·C = ${abc_and}<br>
+    三变量或 A+B+C = ${abc_or}<br>
+    <b>三变量与非 (A·B·C)' = ${nand3}</b><br>
+    <b>三变量或非 (A+B+C)' = ${nor3}</b>
+  `
+}
+calc()
+</script>
+</body>
+</html>

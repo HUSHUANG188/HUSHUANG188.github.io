@@ -1,0 +1,1631 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>逻辑代数学习工具 V2</title>
+<style>
+/* ===== 主题变量 ===== */
+* { box-sizing: border-box; }
+:root {
+  --bg:#f0f2f5; --card-bg:#fff; --text:#1a1a2e; --text-secondary:#555;
+  --border:#d0d5dd; --accent:#4285f4; --accent-hover:#3367d6; --accent-light:#e8f0fe;
+  --result-bg:#e8f0fe; --law-bg:#f8f9fb; --expr-bg:#eef2ff;
+  --highlight-row:#fff3cd; --highlight-cell:#c6f6d5; --highlight-cell-border:#38a169;
+  --toggle-off:#c0c4cc; --toggle-on:#4285f4; --shadow:0 2px 8px rgba(0,0,0,.08);
+  --table-header:#f1f3f4; --table-stripe:#fafbfc;
+  --kmap-cell-0:#f0f0f0; --kmap-cell-1:#a8d0ff; --kmap-cell-x:#e8d5b0; --kmap-header:#e9ecef;
+  --badge-bg:#e8f0fe; --badge-text:#1a73e8; --divider:#e8eaed;
+  --input-bg:#fff; --input-text:#1a1a2e; --step-arrow:#4285f4;
+  --ok:#28a745; --err:#dc3545;
+  --quiz-ok-bg:#d4edda; --quiz-ok-text:#155724; --quiz-err-bg:#f8d7da; --quiz-err-text:#721c24;
+  --chip-bg:#eef2ff; --chip-text:#1a73e8;
+  --sop-bg:#e8f5e9; --sop-text:#1b5e20; --pos-bg:#fff8e1; --pos-text:#8a6d00;
+  --nav-bg:#fff;
+}
+:root[data-theme="dark"] {
+  --bg:#0d1117; --card-bg:#161b22; --text:#e6edf3; --text-secondary:#8b949e;
+  --border:#30363d; --accent:#58a6ff; --accent-hover:#79b8ff; --accent-light:#1a2332;
+  --result-bg:#1a2332; --law-bg:#21262d; --expr-bg:#1a2332;
+  --highlight-row:#3d2e00; --highlight-cell:#1a3a2a; --highlight-cell-border:#38a169;
+  --toggle-off:#484f58; --toggle-on:#58a6ff; --shadow:0 2px 8px rgba(0,0,0,.3);
+  --table-header:#21262d; --table-stripe:#1a1e26;
+  --kmap-cell-0:#21262d; --kmap-cell-1:#1a3550; --kmap-cell-x:#3a2f14; --kmap-header:#21262d;
+  --badge-bg:#1a3550; --badge-text:#58a6ff; --divider:#21262d;
+  --input-bg:#0d1117; --input-text:#e6edf3; --step-arrow:#58a6ff;
+  --ok:#3fb950; --err:#f85149;
+  --quiz-ok-bg:#1a3a2a; --quiz-ok-text:#7ee89f; --quiz-err-bg:#3d1a1a; --quiz-err-text:#ffa198;
+  --chip-bg:#1a3550; --chip-text:#58a6ff;
+  --sop-bg:#12291a; --sop-text:#7ee89f; --pos-bg:#2a2412; --pos-text:#e8c86e;
+  --nav-bg:#161b22;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] {
+    --bg:#0d1117; --card-bg:#161b22; --text:#e6edf3; --text-secondary:#8b949e;
+    --border:#30363d; --accent:#58a6ff; --accent-hover:#79b8ff; --accent-light:#1a2332;
+    --result-bg:#1a2332; --law-bg:#21262d; --expr-bg:#1a2332;
+    --highlight-row:#3d2e00; --highlight-cell:#1a3a2a; --highlight-cell-border:#38a169;
+    --toggle-off:#484f58; --toggle-on:#58a6ff; --shadow:0 2px 8px rgba(0,0,0,.3);
+    --table-header:#21262d; --table-stripe:#1a1e26;
+    --kmap-cell-0:#21262d; --kmap-cell-1:#1a3550; --kmap-cell-x:#3a2f14; --kmap-header:#21262d;
+    --badge-bg:#1a3550; --badge-text:#58a6ff; --divider:#21262d;
+    --input-bg:#0d1117; --input-text:#e6edf3; --step-arrow:#58a6ff;
+    --ok:#3fb950; --err:#f85149;
+    --quiz-ok-bg:#1a3a2a; --quiz-ok-text:#7ee89f; --quiz-err-bg:#3d1a1a; --quiz-err-text:#ffa198;
+    --chip-bg:#1a3550; --chip-text:#58a6ff;
+    --sop-bg:#12291a; --sop-text:#7ee89f; --pos-bg:#2a2412; --pos-text:#e8c86e;
+    --nav-bg:#161b22;
+  }
+}
+/* ===== 基础 ===== */
+html { scroll-behavior: smooth; }
+body {
+  font-family: "Microsoft YaHei", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg); color: var(--text); margin: 0; padding: 14px; line-height: 1.6;
+  transition: background .3s, color .3s;
+}
+.container { max-width: 1060px; margin: 0 auto; background: var(--card-bg); border-radius: 14px; padding: 20px 26px 34px; box-shadow: var(--shadow); }
+h1 { font-size: 1.5em; margin: 0; }
+.ver { font-size: .55em; background: var(--badge-bg); color: var(--badge-text); padding: 2px 9px; border-radius: 12px; vertical-align: middle; font-weight: 700; }
+.toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+.toolbar-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.theme-switch { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.theme-btn { border: none; background: transparent; color: var(--text-secondary); padding: 7px 14px; cursor: pointer; font-size: 13px; }
+.theme-btn.active { background: var(--accent); color: #fff; }
+.sections-nav { display: flex; flex-wrap: wrap; gap: 5px; margin: 0 0 8px; padding-bottom: 12px; border-bottom: 1px solid var(--divider); }
+.sections-nav a { color: var(--accent); text-decoration: none; font-size: .84em; padding: 4px 12px; border-radius: 14px; background: var(--accent-light); }
+.sections-nav a:hover { filter: brightness(1.05); }
+h3 { color: var(--text); margin: 22px 0 10px; font-size: 1.12em; padding-bottom: 6px; border-bottom: 2px solid var(--accent); display: inline-block; }
+.note { font-size: .82em; color: var(--text-secondary); margin: 6px 0 0; }
+.section { margin-bottom: 6px; }
+/* ===== 开关 ===== */
+.toggle-group { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; margin: 10px 0; }
+.toggle-item { display: flex; align-items: center; gap: 10px; }
+.toggle-item label { font-weight: 700; font-size: 1.1em; min-width: 24px; color: var(--text); }
+.toggle-switch { position: relative; display: inline-block; width: 64px; height: 34px; }
+.toggle-switch input { opacity: 0; width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 2; cursor: pointer; margin: 0; }
+.toggle-slider { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: var(--toggle-off); border-radius: 34px; transition: background .3s; display: flex; align-items: center; justify-content: space-between; padding: 0 8px; font-size: 13px; font-weight: 700; color: #fff; user-select: none; }
+.toggle-slider::before { content: ""; position: absolute; height: 26px; width: 26px; left: 4px; bottom: 4px; background: #fff; border-radius: 50%; transition: transform .3s; z-index: 1; }
+.toggle-slider .l, .toggle-slider .r { position: relative; z-index: 0; opacity: .85; }
+.toggle-switch input:checked + .toggle-slider { background: var(--toggle-on); }
+.toggle-switch input:checked + .toggle-slider::before { transform: translateX(30px); }
+.toggle-switch input:focus-visible + .toggle-slider { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* ===== 按钮 ===== */
+button { padding: 9px 18px; background: var(--accent); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: background .2s, transform .1s, box-shadow .2s; }
+button:hover { background: var(--accent-hover); }
+button:active { transform: scale(.97); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.secondary { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+button.secondary:hover { background: var(--accent-light); }
+/* ===== 输入 ===== */
+.expr-input-row, .min-input-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 10px 0; }
+.expr-input-row input[type="text"], .min-input-row input[type="text"] { flex: 1; min-width: 220px; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 15px; font-family: Consolas, "Courier New", monospace; background: var(--input-bg); color: var(--input-text); transition: border-color .2s, box-shadow .2s; }
+.min-input-row input[type="text"] { flex: 0 1 260px; min-width: 160px; }
+.expr-input-row input:focus, .min-input-row input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(66,133,244,.15); }
+.expr-feedback { font-size: .9em; margin-top: 4px; min-height: 1.4em; }
+.expr-feedback.ok { color: var(--ok); }
+.expr-feedback.err { color: var(--err); }
+.expr-hint { font-size: .82em; color: var(--text-secondary); margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.expr-hint code { background: var(--law-bg); padding: 2px 6px; border-radius: 4px; font-size: .95em; }
+.func-modes { display: flex; gap: 18px; flex-wrap: wrap; margin: 8px 0; font-size: .92em; }
+.func-modes label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+/* ===== 结果表格 ===== */
+.result { margin-top: 8px; padding: 12px 16px; background: var(--result-bg); border-radius: 10px; line-height: 1.8; font-size: .93em; }
+.result table { width: 100%; border-collapse: collapse; margin: 6px 0; }
+.result td, .result th { border: 1px solid var(--border); padding: 7px 10px; text-align: center; }
+.result tr.cur td { background: var(--highlight-row); font-weight: 700; }
+.btn-row { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+/* ===== 表格通用 ===== */
+.truth-table-wrap { overflow-x: auto; margin-bottom: 10px; }
+.truth-table-wrap h4 { margin: 12px 0 6px; font-size: .98em; }
+table { width: 100%; border-collapse: collapse; font-size: .88em; }
+td, th { border: 1px solid var(--border); padding: 7px 9px; text-align: center; transition: background .2s; }
+th { background: var(--table-header); font-weight: 700; }
+tr:nth-child(even) td { background: var(--table-stripe); }
+tr.highlight td { background: var(--highlight-row) !important; font-weight: 700; }
+tr.highlight td:first-child { border-left: 3px solid var(--accent); }
+/* ===== 卡诺图 ===== */
+.kmaps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 20px; margin-top: 10px; }
+.kmap-wrap h4 { margin: 0 0 6px; font-size: .98em; }
+.kmap-stage { position: relative; display: inline-block; }
+.kmap-table { border-collapse: collapse; font-size: .9em; }
+.kmap-table td, .kmap-table th { width: 52px; height: 40px; border: 1px solid var(--border); padding: 0; text-align: center; }
+.kmap-table th { background: var(--kmap-header); font-size: .82em; font-weight: 700; }
+.kmap-table .corner { background: var(--kmap-header); font-size: .78em; color: var(--text-secondary); }
+.kmap-table .cell-0 { background: var(--kmap-cell-0); color: var(--text-secondary); }
+.kmap-table .cell-1 { background: var(--kmap-cell-1); color: var(--text); font-weight: 700; }
+.kmap-table .cell-X { background: var(--kmap-cell-x); color: var(--text-secondary); font-style: italic; }
+.kmap-table .cell-current { box-shadow: inset 0 0 0 3px var(--accent); }
+.kmap-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; font-size: .85em; }
+.legend-item { display: inline-flex; align-items: center; gap: 5px; background: var(--law-bg); border: 1px solid var(--border); padding: 2px 9px; border-radius: 12px; }
+.dot { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+/* ===== 化简面板 ===== */
+.simp-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+@media (max-width: 700px) { .simp-panel { grid-template-columns: 1fr; } }
+.simp-card { border-radius: 10px; padding: 12px 16px; border: 1px solid var(--border); }
+.simp-card .title { font-weight: 700; margin-bottom: 4px; }
+.simp-card.sop { background: var(--sop-bg); color: var(--sop-text); }
+.simp-card.pos { background: var(--pos-bg); color: var(--pos-text); }
+.simp-card .expr { font-family: Consolas, monospace; font-size: 1.05em; font-weight: 700; word-break: break-all; }
+.simp-meta { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 8px; font-size: .9em; }
+.simp-meta span { background: var(--chip-bg); color: var(--chip-text); padding: 3px 10px; border-radius: 12px; }
+/* ===== 门电路 ===== */
+.gates-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+@media (max-width: 760px) { .gates-grid { grid-template-columns: 1fr; } }
+.gate-card { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; background: var(--law-bg); }
+.gate-card h4 { margin: 0 0 6px; font-size: .98em; }
+.gate-card .formula { font-family: Consolas, monospace; font-size: .95em; background: var(--expr-bg); padding: 8px 10px; border-radius: 8px; margin: 6px 0; overflow-x: auto; }
+.gate-card svg { display: block; max-width: 100%; height: auto; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; }
+.gate-explain { font-size: .82em; color: var(--text-secondary); margin-top: 6px; }
+/* ===== 化简演示 ===== */
+#demoSelect { padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; background: var(--input-bg); color: var(--input-text); margin: 10px 0; cursor: pointer; }
+.steps-container { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; margin-top: 12px; }
+.step-card { background: var(--law-bg); border-radius: 10px; padding: 12px 16px; border: 1px solid var(--border); min-width: 140px; flex: 1; max-width: 280px; }
+.step-card .step-expr { font-family: Consolas, monospace; font-size: 1.02em; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+.step-card .step-law { font-size: .85em; color: var(--text-secondary); }
+.step-card .step-note { font-size: .8em; color: var(--text-secondary); margin-top: 2px; font-style: italic; }
+.step-arrow { display: flex; align-items: center; font-size: 1.4em; color: var(--step-arrow); min-width: 22px; justify-content: center; padding-top: 8px; }
+.step-index { display: inline-block; background: var(--badge-bg); color: var(--badge-text); border-radius: 50%; width: 22px; height: 22px; text-align: center; line-height: 22px; font-size: .75em; font-weight: 700; margin-right: 6px; }
+.result-badge { display: inline-block; background: var(--quiz-ok-bg); color: var(--quiz-ok-text); padding: 4px 14px; border-radius: 20px; font-weight: 700; font-size: .9em; margin-top: 10px; }
+/* ===== 公式 ===== */
+.laws { margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 600px) { .laws { grid-template-columns: 1fr; } }
+.law-item { background: var(--law-bg); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); }
+.law-item .title { font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+.expr { background: var(--expr-bg); padding: 12px 16px; border-radius: 8px; margin-top: 8px; border-left: 3px solid var(--accent); font-size: .93em; }
+.bar { text-decoration: overline; text-decoration-thickness: 1.5px; }
+/* ===== 练习 ===== */
+.quiz-question { font-size: 1.05em; font-weight: 700; margin: 10px 0; background: var(--expr-bg); padding: 12px 16px; border-radius: 10px; }
+.quiz-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 600px) { .quiz-options { grid-template-columns: 1fr; } }
+.quiz-option { text-align: left; font-family: Consolas, monospace; font-size: .95em; background: var(--law-bg); color: var(--text); border: 1.5px solid var(--border); padding: 11px 14px; border-radius: 8px; cursor: pointer; }
+.quiz-option:hover { border-color: var(--accent); }
+.quiz-option.correct { background: var(--quiz-ok-bg) !important; color: var(--quiz-ok-text) !important; border-color: var(--highlight-cell-border); }
+.quiz-option.wrong { background: var(--quiz-err-bg) !important; color: var(--quiz-err-text) !important; border-color: var(--err); }
+.quiz-feedback { margin-top: 12px; padding: 10px 14px; border-radius: 8px; font-size: .92em; background: var(--law-bg); border: 1px solid var(--border); min-height: 1.4em; }
+.quiz-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+.quiz-score { font-weight: 700; background: var(--badge-bg); color: var(--badge-text); padding: 5px 14px; border-radius: 14px; }
+/* ===== Toast ===== */
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 24px; border-radius: 20px; font-size: 14px; z-index: 999; opacity: 0; transition: opacity .3s; pointer-events: none; }
+.toast.show { opacity: 1; }
+@media (prefers-color-scheme: dark) { .toast { background: #e6edf3; color: #1a1a2e; } }
+/* ===== 无障碍 / 打印 ===== */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+@media print {
+  body { background: #fff; }
+  .container { box-shadow: none; }
+  button, .toggle-switch input, .theme-switch, .sections-nav, .quiz-bar, #nextQuizBtn, #resetQuizBtn, .btn-row { display: none !important; }
+  .kmap-overlay { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}
+</style>
+</head><body>
+<div class="container">
+
+<header class="toolbar">
+  <h1>🔣 逻辑代数学习工具 <span class="ver">V2</span></h1>
+  <div class="toolbar-right">
+    <div class="theme-switch" role="group" aria-label="主题切换">
+      <button id="themeAuto" class="theme-btn" data-theme-val="auto" type="button">自动</button>
+      <button id="themeLight" class="theme-btn" data-theme-val="light" type="button">亮</button>
+      <button id="themeDark" class="theme-btn" data-theme-val="dark" type="button">暗</button>
+    </div>
+    <button id="shareBtn" class="secondary" type="button">🔗 复制分享链接</button>
+  </div>
+</header>
+
+<nav class="sections-nav" aria-label="章节导航">
+  <a href="#s-input">输入</a>
+  <a href="#s-result">结果</a>
+  <a href="#s-func">函数</a>
+  <a href="#s-truth">真值表</a>
+  <a href="#s-kmap">卡诺图</a>
+  <a href="#s-simplify">化简</a>
+  <a href="#s-demo">演示</a>
+  <a href="#s-gates">门电路</a>
+  <a href="#s-laws">公式</a>
+  <a href="#s-quiz">练习</a>
+</nav>
+
+<!-- ===== 1. 变量输入 ===== -->
+<section class="section" id="s-input" aria-labelledby="input-heading">
+  <h3 id="input-heading">📥 变量输入（A/B/C/D，快捷键 a/b/c/d）</h3>
+  <div class="toggle-group">
+    <div class="toggle-item">
+      <label for="toggleA">A =</label>
+      <span class="toggle-switch">
+        <input type="checkbox" id="toggleA" aria-label="切换 A 的值">
+        <span class="toggle-slider"><span class="l">1</span><span class="r">0</span></span>
+      </span>
+    </div>
+    <div class="toggle-item">
+      <label for="toggleB">B =</label>
+      <span class="toggle-switch">
+        <input type="checkbox" id="toggleB" aria-label="切换 B 的值">
+        <span class="toggle-slider"><span class="l">1</span><span class="r">0</span></span>
+      </span>
+    </div>
+    <div class="toggle-item">
+      <label for="toggleC">C =</label>
+      <span class="toggle-switch">
+        <input type="checkbox" id="toggleC" aria-label="切换 C 的值">
+        <span class="toggle-slider"><span class="l">1</span><span class="r">0</span></span>
+      </span>
+    </div>
+    <div class="toggle-item">
+      <label for="toggleD">D =</label>
+      <span class="toggle-switch">
+        <input type="checkbox" id="toggleD" aria-label="切换 D 的值">
+        <span class="toggle-slider"><span class="l">1</span><span class="r">0</span></span>
+      </span>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 2. 计算结果 ===== -->
+<section class="section" id="s-result" aria-labelledby="result-heading">
+  <h3 id="result-heading">📊 计算结果</h3>
+  <div class="result" id="resTbl" aria-live="polite"></div>
+  <div class="btn-row">
+    <button id="copyBtn" class="secondary" type="button">📋 复制结果</button>
+  </div>
+</section>
+
+<!-- ===== 3. 函数设置 ===== -->
+<section class="section" id="s-func" aria-labelledby="func-heading">
+  <h3 id="func-heading">🧮 函数设置（自定义表达式 / 最小项）</h3>
+  <div class="func-modes" role="radiogroup" aria-label="函数来源">
+    <label><input type="radio" name="funcMode" value="default"> 默认 F = A·B</label>
+    <label><input type="radio" name="funcMode" value="expr" checked> 自定义表达式</label>
+    <label><input type="radio" name="funcMode" value="min"> 最小项 + 无关项</label>
+  </div>
+
+  <div class="expr-input-row" id="exprRow">
+    <input type="text" id="exprInput" placeholder="例如: (A+B)' 或 A·B+A'·C 或 A^B⊙C" aria-label="输入逻辑表达式">
+    <button id="clearExprBtn" class="secondary" type="button">清除</button>
+  </div>
+  <div class="expr-feedback" id="exprFeedback" aria-live="polite"></div>
+  <div class="expr-hint">
+    支持: <code>A B C D</code> 变量 &nbsp;
+    <code>+</code>/<code>|</code> 或 &nbsp;
+    <code>*</code>/<code>&amp;</code>/<code>·</code> 与 &nbsp;
+    <code>'</code>/<code>!</code>/<code>~</code> 非（撇号输入，显示为上横线）&nbsp;
+    <code>^</code>/<code>⊕</code> 异或 &nbsp;
+    <code>⊙</code> 同或 &nbsp;
+    <code>( )</code> 括号 &nbsp;
+    隐式与: <code>AB</code> = A·B
+  </div>
+
+  <div class="min-input-row" id="minRow" style="display:none">
+    <input type="text" id="minInput" placeholder="F=1 的最小项，如 1,3,5,7（0~15）" aria-label="最小项列表">
+    <input type="text" id="dcInput" placeholder="无关项 X（可选），如 6,9" aria-label="无关项列表">
+  </div>
+  <div class="expr-feedback" id="minFeedback" aria-live="polite"></div>
+  <p class="note" id="funcDesc"></p>
+</section>
+<!-- ===== 4. 真值表 ===== -->
+<section class="section" id="s-truth" aria-labelledby="tt-heading">
+  <h3 id="tt-heading">📋 真值表（动态生成，高亮当前输入）</h3>
+  <div class="truth-table-wrap">
+    <h4>二变量 (A, B)</h4>
+    <table id="truth2"><thead></thead><tbody></tbody></table>
+    <p class="note">二变量表：C、D 取当前开关值（仅影响“当前函数”列）。</p>
+  </div>
+  <div class="truth-table-wrap">
+    <h4>三变量 (A, B, C)</h4>
+    <table id="truth3"><thead></thead><tbody></tbody></table>
+    <p class="note">三变量表：D 取当前开关值（仅影响“当前函数”列）。</p>
+  </div>
+  <div class="truth-table-wrap">
+    <h4>四变量 (A, B, C, D)</h4>
+    <table id="truth4"><thead></thead><tbody></tbody></table>
+  </div>
+</section>
+
+<!-- ===== 5. 卡诺图 ===== -->
+<section class="section" id="s-kmap" aria-labelledby="kmap-heading">
+  <h3 id="kmap-heading">🗺️ 卡诺图（K-map，彩色圈组 = 最简项）</h3>
+  <div class="kmaps-grid">
+    <div class="kmap-wrap">
+      <h4>二变量（A、B；C、D 取当前值）</h4>
+      <div id="kmapStage2"></div>
+      <div class="legend" id="kmapLegend2"></div>
+    </div>
+    <div class="kmap-wrap">
+      <h4>三变量（A、B、C；D 取当前值）</h4>
+      <div id="kmapStage3"></div>
+      <div class="legend" id="kmapLegend3"></div>
+    </div>
+    <div class="kmap-wrap">
+      <h4>四变量（A、B、C、D）</h4>
+      <div id="kmapStage4"></div>
+      <div class="legend" id="kmapLegend4"></div>
+    </div>
+  </div>
+  <p class="note">圈组规则：相邻（含首尾/四角相接）的 1 可合并；无关项 X 可当作 0 或 1 参与合并。</p>
+</section>
+
+<!-- ===== 6. 化简结果 + 门电路 ===== -->
+<section class="section" id="s-simplify" aria-labelledby="simp-heading">
+  <h3 id="simp-heading">🧪 自动化简（Quine–McCluskey，4 变量）</h3>
+  <div class="simp-panel">
+    <div class="simp-card sop">
+      <div class="title">最简与或式 SOP</div>
+      <div class="expr" id="sopOut">F = A·B</div>
+    </div>
+    <div class="simp-card pos">
+      <div class="title">最简或与式 POS</div>
+      <div class="expr" id="posOut">F = (A)·(B)</div>
+    </div>
+  </div>
+  <div class="simp-meta">
+    <span id="smOut">Σm(3,7,11,15)</span>
+    <span id="pmOut">ΠM(0,1,2,4,5,6,8,9,10,12,13,14)</span>
+    <span id="simNote">当前函数：A·B（默认）</span>
+  </div>
+</section>
+
+<section class="section" id="s-gates" aria-labelledby="gates-heading">
+  <h3 id="gates-heading">🔌 用与非门 / 或非门实现（通用门）</h3>
+  <div class="gates-grid">
+    <div class="gate-card">
+      <h4>与非门实现（NAND-only，两级）</h4>
+      <div class="formula" id="nandFormula"></div>
+      <div id="nandSvg"></div>
+      <p class="gate-explain" id="nandExplain">原理：两级与非 —— 第一级对每个积项取非，第二级把取非后的结果相与非。</p>
+    </div>
+    <div class="gate-card">
+      <h4>或非门实现（NOR-only，两级）</h4>
+      <div class="formula" id="norFormula"></div>
+      <div id="norSvg"></div>
+      <p class="gate-explain" id="norExplain">原理：两级或非 —— 第一级对每个和项取非，第二级把取非后的结果相或非。</p>
+    </div>
+  </div>
+  <div class="expr">
+    <b>与非（NAND）：</b>二变量 <span class="bar">(A·B)</span> = <span class="bar">A</span> + <span class="bar">B</span>；三变量 <span class="bar">(A·B·C)</span> = <span class="bar">A</span> + <span class="bar">B</span> + <span class="bar">C</span><br>
+    <b>或非（NOR）：</b>二变量 <span class="bar">(A+B)</span> = <span class="bar">A</span> · <span class="bar">B</span>；三变量 <span class="bar">(A+B+C)</span> = <span class="bar">A</span> · <span class="bar">B</span> · <span class="bar">C</span><br>
+    <b>通用性：</b>NAND 与 NOR 各自都能实现 与/或/非，是“通用门”。
+  </div>
+</section>
+<!-- ===== 7. 逐步化简演示 ===== -->
+<section class="section" id="s-demo" aria-labelledby="demo-heading">
+  <h3 id="demo-heading">📝 逐步化简演示</h3>
+  <label for="demoSelect" class="sr-only">选择化简示例</label>
+  <select id="demoSelect" aria-label="选择化简示例">
+    <option value="0">A + A'·B = A + B（吸收律2）</option>
+    <option value="1">A·B + A'·C + B·C = A·B + A'·C（冗余项）</option>
+    <option value="2">(A+B)·(A+C) = A + B·C（分配律）</option>
+    <option value="3">(A·B)' = A' + B'（摩根定律验证）</option>
+    <option value="4">A·(A'+B) = A·B（吸收律2 对偶）</option>
+    <option value="5">A·B + A·B' = A（合并律）</option>
+  </select>
+  <div id="demoSteps"></div>
+</section>
+
+<!-- ===== 8. 常用公式 ===== -->
+<section class="section" id="s-laws" aria-labelledby="laws-heading">
+  <h3 id="laws-heading">📚 逻辑代数常用公式</h3>
+  <div class="laws">
+    <div class="law-item"><div class="title">0-1 律</div>A+0=A &nbsp; A·1=A<br>A+1=1 &nbsp; A·0=0</div>
+    <div class="law-item"><div class="title">互补律</div>A+<span class="bar">A</span>=1<br>A·<span class="bar">A</span>=0</div>
+    <div class="law-item"><div class="title">重叠律</div>A+A=A<br>A·A=A</div>
+    <div class="law-item"><div class="title">还原律</div><span class="bar"><span class="bar">A</span></span> = A</div>
+    <div class="law-item"><div class="title">交换律</div>A+B=B+A<br>A·B=B·A</div>
+    <div class="law-item"><div class="title">结合律</div>(A+B)+C=A+(B+C)<br>(A·B)·C=A·(B·C)</div>
+    <div class="law-item"><div class="title">分配律</div>A·(B+C)=A·B+A·C<br>A+B·C=(A+B)·(A+C)</div>
+    <div class="law-item"><div class="title">摩根定律</div><span class="bar">(A+B)</span>=<span class="bar">A</span>·<span class="bar">B</span><br><span class="bar">(A·B)</span>=<span class="bar">A</span>+<span class="bar">B</span></div>
+    <div class="law-item"><div class="title">吸收律1</div>A+A·B=A<br>A·(A+B)=A</div>
+    <div class="law-item"><div class="title">吸收律2</div>A+<span class="bar">A</span>·B=A+B<br>A·(<span class="bar">A</span>+B)=A·B</div>
+    <div class="law-item"><div class="title">冗余项定理</div>A·B+<span class="bar">A</span>·C+B·C=A·B+<span class="bar">A</span>·C<br>A·B+<span class="bar">A</span>·C+B·C·D=A·B+<span class="bar">A</span>·C</div>
+    <div class="law-item"><div class="title">异或/同或</div>A⊕B=<span class="bar">A</span>·B+A·<span class="bar">B</span><br>A⊙B=A·B+<span class="bar">A</span>·<span class="bar">B</span></div>
+    <div class="law-item"><div class="title">异或性质</div>A⊕0=A &nbsp; A⊕1=<span class="bar">A</span><br>A⊕A=0 &nbsp; A⊕<span class="bar">A</span>=1<br>A⊕B = <span class="bar">(A⊙B)</span></div>
+  </div>
+</section>
+
+<!-- ===== 9. 练习模式 ===== -->
+<section class="section" id="s-quiz" aria-labelledby="quiz-heading">
+  <h3 id="quiz-heading">🎯 练习模式</h3>
+  <div id="quizBox"></div>
+  <div class="quiz-bar">
+    <button id="nextQuizBtn" type="button">下一题</button>
+    <button id="resetQuizBtn" class="secondary" type="button">重新计分</button>
+    <span class="quiz-score" id="quizScore">得分：0/0</span>
+  </div>
+</section>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>// ==================== 常量 ====================
+'use strict';
+const VAR_NAMES = ['A','B','C','D'];
+const GRAY = [0,1,3,2];            // 二进制值 -> 格雷顺序列/行位置（00,01,11,10）
+const CELL_W = 52, CELL_H = 40;    // 卡诺图单元格固定像素（与 CSS 一致）
+const GROUP_COLORS = ['#e74c3c','#3498db','#2ecc71','#9b59b6','#e67e22','#16a085','#f39c12','#1abc9c','#c0392b','#2980b9'];
+const THEMES = ['auto','light','dark'];
+
+// ==================== 表达式解析器 ====================
+function tokenize(expr){
+  const tokens = [];
+  let i = 0;
+  while (i < expr.length){
+    const ch = expr[i];
+    if (/\s/.test(ch)){ i++; continue; }
+    if (/[ABCDabcd]/.test(ch)){
+      const last = tokens[tokens.length-1];
+      if (last && (last.type==='VAR' || last.type==='RPAREN' || last.type==='NOT_POST')) tokens.push({type:'AND'});
+      tokens.push({type:'VAR', name: ch.toUpperCase()});
+      i++;
+    } else if (ch==='&' || ch==='*' || ch==='·') {
+      tokens.push({type:'AND'}); i++;
+    } else if (ch==='|' || ch==='+') {
+      tokens.push({type:'OR'}); i++;
+    } else if (ch==='^' || ch==='⊕') {
+      tokens.push({type:'XOR'}); i++;
+    } else if (ch==='⊙') {
+      tokens.push({type:'XNOR'}); i++;
+    } else if (ch==='!' || ch==='~') {
+      tokens.push({type:'NOT'}); i++;
+    } else if (ch==="'") {
+      tokens.push({type:'NOT_POST'}); i++;
+    } else if (ch==='(') {
+      const last = tokens[tokens.length-1];
+      if (last && (last.type==='VAR' || last.type==='RPAREN' || last.type==='NOT_POST')) tokens.push({type:'AND'});
+      tokens.push({type:'LPAREN'}); i++;
+    } else if (ch===')') {
+      tokens.push({type:'RPAREN'}); i++;
+    } else {
+      return [];
+    }
+  }
+  return tokens;
+}
+
+function createParser(tokens){
+  let pos = 0;
+  function cur(){ return tokens[pos]; }
+  function nxt(){ return tokens[pos++]; }
+
+  function parseExpr(){            // 或（最低优先级）
+    let left = parseXorLevel();
+    if (!left) return null;
+    while (cur() && cur().type==='OR'){
+      nxt();
+      const right = parseXorLevel();
+      if (!right) return null;
+      left = { type:'OR', left, right };
+    }
+    return left;
+  }
+  function parseXorLevel(){        // 异或 / 同或
+    let left = parseTerm();
+    if (!left) return null;
+    while (cur() && (cur().type==='XOR' || cur().type==='XNOR')){
+      const t = nxt().type;
+      const right = parseTerm();
+      if (!right) return null;
+      left = { type:t, left, right };
+    }
+    return left;
+  }
+  function parseTerm(){            // 与
+    let left = parseFactor();
+    if (!left) return null;
+    while (cur() && cur().type==='AND'){
+      nxt();
+      const right = parseFactor();
+      if (!right) return null;
+      left = { type:'AND', left, right };
+    }
+    return left;
+  }
+  function parseFactor(){          // 非 / 括号 / 变量
+    let notCount = 0;
+    while (cur() && cur().type==='NOT'){ nxt(); notCount++; }
+    let node;
+    if (cur() && cur().type==='LPAREN'){
+      nxt();
+      node = parseExpr();
+      if (!node) return null;
+      if (cur() && cur().type==='RPAREN') nxt(); else return null;
+    } else if (cur() && cur().type==='VAR') {
+      node = { type:'VAR', name: nxt().name };
+    } else {
+      return null;
+    }
+    while (cur() && cur().type==='NOT_POST'){ nxt(); notCount++; }
+    for (let n=0; n<notCount; n++) node = { type:'NOT', operand: node };
+    return node;
+  }
+  return { parse: parseExpr, remaining: () => tokens.length - pos };
+}
+
+function evalAST(ast, vars){
+  if (!ast) return 0;
+  switch (ast.type){
+    case 'VAR':  return vars[ast.name] ? 1 : 0;
+    case 'NOT':  return 1 - evalAST(ast.operand, vars);
+    case 'AND':  return evalAST(ast.left, vars) & evalAST(ast.right, vars);
+    case 'OR':   return evalAST(ast.left, vars) | evalAST(ast.right, vars);
+    case 'XOR':  return evalAST(ast.left, vars) ^ evalAST(ast.right, vars);
+    case 'XNOR': return 1 - (evalAST(ast.left, vars) ^ evalAST(ast.right, vars));
+  }
+  return 0;
+}
+
+function parseExpression(exprStr){
+  const tokens = tokenize(exprStr);
+  if (tokens.length === 0) return null;
+  const parser = createParser(tokens);
+  const ast = parser.parse();
+  if (!ast || parser.remaining() > 0) return null;
+  return ast;
+}
+
+function usedVars(ast){
+  const set = new Set();
+  (function walk(a){
+    if (!a) return;
+    if (a.type==='VAR'){ set.add(a.name); return; }
+    if (a.operand) walk(a.operand);
+    if (a.left) walk(a.left);
+    if (a.right) walk(a.right);
+  })(ast);
+  return set;
+}
+
+// ==================== 状态 ====================
+var state = {
+  mode: 'expr',          // 'default' | 'expr' | 'min'
+  expr: '',
+  ast: null,
+  min: new Set(),
+  dc: new Set(),
+};
+var toggles = { A:false, B:false, C:false, D:false };
+
+const $ = id => document.getElementById(id);
+
+function getVars(){
+  return {
+    A: toggles.A ? 1 : 0,
+    B: toggles.B ? 1 : 0,
+    C: toggles.C ? 1 : 0,
+    D: toggles.D ? 1 : 0,
+  };
+}
+function idx4(v){ return (v.A?8:0) | (v.B?4:0) | (v.C?2:0) | (v.D?1:0); }
+
+function getFuncValue(v){
+  if (state.mode==='min'){
+    const i = idx4(v);
+    if (state.dc.has(i)) return 'X';
+    return state.min.has(i) ? 1 : 0;
+  }
+  if (state.mode==='default') return (v.A && v.B) ? 1 : 0;
+  // expr 模式：无表达式时回退默认 F = A·B
+  if (state.ast) return evalAST(state.ast, v);
+  return (v.A && v.B) ? 1 : 0;
+}
+
+// 解码最小项编号 -> 变量组合；fixed 提供切片变量值
+function decodeVars(nVars, idx, fixed){
+  const vars = { A:0, B:0, C:0, D:0 };
+  if (fixed) for (const k in fixed) vars[k] = fixed[k];
+  for (let i=0; i<nVars; i++){
+    const name = VAR_NAMES[i];
+    const bit = nVars - 1 - i;
+    vars[name] = (idx >> bit) & 1;
+  }
+  return vars;
+}
+
+function parseIdxList(str, maxIdx){
+  const parts = str.split(/[\s,，、;；]+/).filter(Boolean);
+  const set = new Set();
+  let err = '';
+  for (const p of parts){
+    if (!/^\d+$/.test(p)){ err = `“${p}”不是数字`; break; }
+    const n = parseInt(p, 10);
+    if (n < 0 || n > maxIdx){ err = `${n} 超出范围 0~${maxIdx}`; break; }
+    set.add(n);
+  }
+  return { set, err };
+}
+// ==================== 化简引擎（Quine–McCluskey + Petrick） ====================
+function countOnes(x){ let c = 0; while (x){ x &= x - 1; c++; } return c; }
+
+function isSubset(a, b){ return a.every(x => b.includes(x)); }
+
+function absorbSols(sols){
+  const res = [];
+  for (let i=0; i<sols.length; i++){
+    let redundant = false;
+    for (let j=0; j<sols.length; j++){
+      if (i===j) continue;
+      if (isSubset(sols[j], sols[i])){ redundant = true; break; }
+    }
+    if (!redundant) res.push(sols[i]);
+  }
+  return res;
+}
+
+function literalCount(imp, nVars){
+  let c = 0;
+  for (let i=0; i<nVars; i++){
+    const bit = nVars - 1 - i;
+    if (!(imp.mask & (1 << bit))) c++;
+  }
+  return c;
+}
+
+function termString(bits, mask, nVars){
+  const parts = [];
+  for (let i=0; i<nVars; i++){
+    const bit = nVars - 1 - i;
+    if (mask & (1 << bit)) continue;   // 该变量被消去
+    parts.push((bits & (1 << bit)) ? VAR_NAMES[i] : VAR_NAMES[i] + "'");
+  }
+  return parts.length ? parts.join('·') : '1';
+}
+
+function invertLiteral(l){
+  return l.endsWith("'") ? l.slice(0, -1) : l + "'";
+}
+
+/**
+ * 最小化 nVars 变量的函数
+ * @param {Set<number>} minSet F=1 的最小项
+ * @param {Set<number>} dcSet  无关项
+ * @returns { {terms, sopTerms, posTerms, sop, pos, constVal} }
+ */
+function computeSop(minSet, dcSet, nVars){
+  const N = 1 << nVars;
+  if (minSet.size === 0) return { terms:[], sopTerms:[], sop:'0', constVal:0 };
+  if (minSet.size === N)  return { terms:[{cells:[...minSet], term:'1', lits:[]}], sopTerms:[{lits:[]}], sop:'1', constVal:1 };
+
+  const all = new Set([...minSet, ...dcSet]);
+
+  // --- QM：求素蕴含项 ---
+  let cur = [];
+  for (const idx of all) cur.push({ mask: 0, bits: idx, cells: new Set([idx]) });
+  const primes = [];
+  while (cur.length){
+    const next = [];
+    const used = new Set();
+    for (let i=0; i<cur.length; i++){
+      for (let j=i+1; j<cur.length; j++){
+        const a = cur[i], b = cur[j];
+        if (a.mask !== b.mask) continue;
+        const diff = a.bits ^ b.bits;
+        if (countOnes(diff) === 1){
+          const mask = a.mask | diff;
+          const bits = a.bits & ~diff;
+          const cells = new Set([...a.cells, ...b.cells]);
+          if (!next.some(t => t.mask===mask && t.bits===bits)) next.push({ mask, bits, cells });
+          used.add(i); used.add(j);
+        }
+      }
+    }
+    for (let i=0; i<cur.length; i++) if (!used.has(i)) primes.push(cur[i]);
+    cur = next;
+  }
+
+  const cand = primes.filter(p => [...p.cells].some(c => minSet.has(c)));
+
+  // --- Petrick：最小覆盖 ---
+  const minArr = [...minSet].sort((a,b)=>a-b);
+  const lists = minArr.map(m => {
+    const res = [];
+    cand.forEach((p, pi) => { if (p.cells.has(m)) res.push(pi); });
+    return res;
+  });
+
+  let sols = [[]];
+  for (const lst of lists){
+    const ns = [];
+    for (const s of sols){
+      for (const pi of lst){
+        const s2 = s.includes(pi) ? s : [...s, pi].sort((a,b)=>a-b);
+        if (!ns.some(o => o.length===s2.length && o.every((v,i)=>v===s2[i]))) ns.push(s2);
+      }
+    }
+    sols = absorbSols(ns);
+  }
+
+  let best = null, bestCost = Infinity;
+  for (const s of sols){
+    let lits = 0;
+    for (const pi of s) lits += literalCount(cand[pi], nVars);
+    const cost = s.length * 100 + lits;
+    if (cost < bestCost){ bestCost = cost; best = s; }
+  }
+  if (!best){ best = cand.map((_, i) => i); }
+  const chosen = best.map(pi => cand[pi]);
+
+  const terms = chosen.map((p, i) => ({
+    cells: [...p.cells].sort((a,b)=>a-b),
+    term: termString(p.bits, p.mask, nVars),
+    lits: termString(p.bits, p.mask, nVars).split('·'),
+    color: GROUP_COLORS[i % GROUP_COLORS.length],
+  }));
+  const sop = terms.map(t => t.term).join(' + ') || '0';
+  const sopTerms = terms.map(t => ({ lits: t.lits }));
+  return { terms, sopTerms, sop, constVal: null };
+}
+
+function simplifyFunction(minSet, dcSet, nVars){
+  const N = 1 << nVars;
+  const sopInfo = computeSop(minSet, dcSet, nVars);
+
+  let pos, posTerms;
+  if (sopInfo.sop === '0'){ pos = '0'; posTerms = []; }
+  else if (sopInfo.sop === '1'){ pos = '1'; posTerms = []; }
+  else {
+    const zeroSet = new Set();
+    for (let i=0; i<N; i++) if (!minSet.has(i) && !dcSet.has(i)) zeroSet.add(i);
+    const posSop = computeSop(zeroSet, dcSet, nVars);
+    if (posSop.sop === '1'){ pos = '0'; posTerms = []; }
+    else if (posSop.sop === '0'){ pos = '1'; posTerms = []; }
+    else {
+      posTerms = posSop.terms.map(t => ({ lits: t.term.split('·').map(invertLiteral) }));
+      pos = posTerms.map(t => '(' + t.lits.join(' + ') + ')').join(' · ');
+    }
+  }
+  return { terms: sopInfo.terms, sopTerms: sopInfo.sopTerms, posTerms, sop: sopInfo.sop, pos, constVal: sopInfo.constVal };
+}
+
+function minMaxNotation(minSet, dcSet, nVars){
+  const N = 1 << nVars;
+  const mins = [...minSet].sort((a,b)=>a-b);
+  const maxs = [];
+  for (let i=0; i<N; i++) if (!minSet.has(i) && !dcSet.has(i)) maxs.push(i);
+  return {
+    sm: mins.length ? 'Σm(' + mins.join(',') + ')' : 'Σm(∅)',
+    pm: maxs.length ? 'ΠM(' + maxs.join(',') + ')' : 'ΠM(∅)',
+  };
+}
+// ==================== 卡诺图布局与圈组 ====================
+function kmapDims(nVars){ return nVars===2 ? [2,2] : nVars===3 ? [2,4] : [4,4]; }
+
+function rcOfIdx(nVars, idx){
+  if (nVars===2) return [idx >> 1, idx & 1];
+  if (nVars===3) return [idx >> 2, GRAY[idx & 3]];
+  return [GRAY[idx >> 2], GRAY[idx & 3]];
+}
+function idxFromRC(nVars, r, c){
+  if (nVars===2) return r*2 + c;
+  if (nVars===3) return r*4 + GRAY[c];
+  return GRAY[r]*4 + GRAY[c];
+}
+const GRAY_STR = ['00','01','11','10'];
+
+// 在环面（可首尾相接）上把一个坐标集合展开为若干连续区间
+function torusSegments(set, N){
+  const arr = [...set].sort((a,b)=>a-b);
+  if (arr.length === N) return [[0, N]];
+  const wraps = arr.includes(0) && arr.includes(N-1);
+  const seq = wraps ? arr.concat(arr.map(x => x + N)).sort((a,b)=>a-b) : arr;
+  const runs = [];
+  let s = seq[0], p = seq[0];
+  for (let i=1; i<seq.length; i++){
+    if (seq[i] === p + 1){ p = seq[i]; }
+    else { runs.push([s, p+1]); s = p = seq[i]; }
+  }
+  runs.push([s, p+1]);
+  // 裁剪到 [0,N) 并丢弃空段（跨边界的展开段在绘制时由 SVG 视口裁切）
+  const clipped = [];
+  for (const [a, b] of runs){
+    const x0 = Math.max(0, a), x1 = Math.min(N, b);
+    if (x1 > x0) clipped.push([x0, x1]);
+  }
+  return clipped;
+}
+
+function groupRects(nVars, cells){
+  const [R, C] = kmapDims(nVars);
+  const rs = new Set(), cs = new Set();
+  for (const i of cells){ const [r,c] = rcOfIdx(nVars, i); rs.add(r); cs.add(c); }
+  const rects = [];
+  for (const [r0, r1] of torusSegments(rs, R))
+    for (const [c0, c1] of torusSegments(cs, C))
+      rects.push([r0, c0, r1, c1]);
+  return rects;
+}
+
+function buildOverlaySVG(nVars, terms){
+  const [R, C] = kmapDims(nVars);
+  const W = C * CELL_W, H = R * CELL_H;
+  let s = '<svg class="kmap-overlay" style="top:' + CELL_H + 'px;height:' + H + 'px" viewBox="0 0 ' + W + ' ' + H + '" aria-hidden="true" focusable="false">';
+  for (const t of terms){
+    for (const [r0, c0, r1, c1] of groupRects(nVars, t.cells)){
+      const x = c0*CELL_W + 2, y = r0*CELL_H + 2;
+      const w = (c1-c0)*CELL_W - 4, h = (r1-r0)*CELL_H - 4;
+      s += '<rect x="' + x + '" y="' + y + '" width="' + Math.max(0,w) + '" height="' + Math.max(0,h) +
+           '" rx="9" fill="' + t.color + '" fill-opacity="0.16" stroke="' + t.color + '" stroke-width="2.5"/>';
+    }
+  }
+  s += '</svg>';
+  return s;
+}
+
+// 当前切片（把函数限制到 nVars 个变量，其余取当前开关值）
+function sliceFunction(nVars, fixed){
+  const min = new Set(), dc = new Set();
+  for (let idx=0; idx < (1<<nVars); idx++){
+    const vars = decodeVars(nVars, idx, fixed);
+    const fv = getFuncValue(vars);
+    if (fv === 'X') dc.add(idx);
+    else if (fv === 1) min.add(idx);
+  }
+  return { min, dc };
+}
+
+function isCurrentCell(nVars, r, c, fixed, v){
+  const vars = decodeVars(nVars, idxFromRC(nVars, r, c), fixed);
+  for (let i=0; i<nVars; i++) if (vars[VAR_NAMES[i]] !== v[VAR_NAMES[i]]) return false;
+  return true;
+}
+
+// ==================== 渲染：结果 ====================
+function funcLabel(){
+  if (state.mode === 'min'){
+    return 'Σm(' + [...state.min].sort((a,b)=>a-b).join(',') + ')';
+  }
+  if (state.mode === 'expr') return state.expr || 'A·B（默认）';
+  return 'A·B（默认）';
+}
+
+function renderResults(){
+  const v = getVars();
+  const a=v.A, b=v.B, c=v.C, d=v.D;
+  const items = [
+    ['当前函数 F', funcLabel(), getFuncValue(v), true],
+    ['与 AND', 'A·B', a & b],
+    ['或 OR', 'A+B', a | b],
+    ['非 NOT', "A'", 1 - a],
+    ['非 NOT', "B'", 1 - b],
+    ['非 NOT', "C'", 1 - c],
+    ['非 NOT', "D'", 1 - d],
+    ['异或 XOR', 'A⊕B', a ^ b],
+    ['同或 XNOR', 'A⊙B', 1 - (a ^ b)],
+    ['与非 NAND', "(A·B)'", 1 - (a & b)],
+    ['或非 NOR', "(A+B)'", 1 - (a | b)],
+    ['三变量与', 'A·B·C', a & b & c],
+    ['三变量或', 'A+B+C', a | b | c],
+    ['三变量与非', "(A·B·C)'", 1 - (a & b & c)],
+    ['三变量或非', "(A+B+C)'", 1 - (a | b | c)],
+    ['四变量与', 'A·B·C·D', a & b & c & d],
+    ['四变量或', 'A+B+C+D', a | b | c | d],
+    ['四变量与非', "(A·B·C·D)'", 1 - (a & b & c & d)],
+    ['四变量或非', "(A+B+C+D)'", 1 - (a | b | c | d)],
+  ];
+  let html = '<table><thead><tr><th>运算</th><th>表达式</th><th>值</th></tr></thead><tbody>';
+  for (const [op, expr, val, isCur] of items){
+    html += '<tr' + (isCur ? ' class="cur"' : '') + '><td>' + op + '</td><td>' + renderExprHTML(expr) + '</td><td>' + val + '</td></tr>';
+  }
+  html += '</tbody></table>';
+  $('resTbl').innerHTML = html;
+}
+
+// ==================== 渲染：真值表 ====================
+function truthTableHTML(nVars, fixed){
+  const N = 1 << nVars;
+  const v = getVars();
+  const varCols = VAR_NAMES.slice(0, nVars);
+  let opCols = [], opVals = null;
+  if (nVars === 2){
+    opCols = ['与','或','非A','非B','异或','同或','与非','或非'];
+    opVals = vars => {
+      const a=vars.A, b=vars.B;
+      return [a&b, a|b, 1-a, 1-b, a^b, 1-(a^b), 1-(a&b), 1-(a|b)];
+    };
+  } else if (nVars === 3){
+    opCols = ['A·B·C','A+B+C',"(A·B·C)'","(A+B+C)'"];
+    opVals = vars => {
+      const x = vars.A & vars.B & vars.C, y = vars.A | vars.B | vars.C;
+      return [x, y, 1-x, 1-y];
+    };
+  } else {
+    opCols = ['A·B·C·D','A+B+C+D',"(A·B·C·D)'","(A+B+C+D)'"];
+    opVals = vars => {
+      const x = vars.A & vars.B & vars.C & vars.D, y = vars.A | vars.B | vars.C | vars.D;
+      return [x, y, 1-x, 1-y];
+    };
+  }
+  const colNames = [...varCols, ...opCols, '当前函数'];
+  let html = '<thead><tr>' + colNames.map(c => '<th>' + renderExprHTML(c) + '</th>').join('') + '</tr></thead><tbody>';
+  for (let idx=0; idx<N; idx++){
+    const vars = decodeVars(nVars, idx, fixed);
+    const hl = varCols.every(nm => vars[nm] === v[nm]) ? ' class="highlight"' : '';
+    html += '<tr' + hl + '>';
+    for (const nm of varCols) html += '<td>' + vars[nm] + '</td>';
+    for (const x of opVals(vars)) html += '<td>' + x + '</td>';
+    html += '<td><b>' + getFuncValue(vars) + '</b></td></tr>';
+  }
+  return html + '</tbody>';
+}
+
+function renderTruthTables(){
+  const v = getVars();
+  $('truth2').innerHTML = truthTableHTML(2, { C:v.C, D:v.D });
+  $('truth3').innerHTML = truthTableHTML(3, { D:v.D });
+  $('truth4').innerHTML = truthTableHTML(4, {});
+}
+
+// ==================== 渲染：卡诺图 ====================
+function renderKMap(nVars, fixed, legendId, stageId){
+  const slice = sliceFunction(nVars, fixed);
+  const simp = simplifyFunction(slice.min, slice.dc, nVars);
+  const [R, C] = kmapDims(nVars);
+  const v = getVars();
+  const rowHeader = nVars===2 ? 'A' : (nVars===3 ? 'A' : 'AB');
+  const colHeader = nVars===2 ? 'B' : (nVars===3 ? 'BC' : 'CD');
+  let html = '<table class="kmap-table"><thead><tr><th class="corner">' + rowHeader + '\\' + colHeader + '</th>';
+  for (const g of grayLabels(nVars)) html += '<th>' + g + '</th>';
+  html += '</tr></thead><tbody>';
+  for (let r=0; r<R; r++){
+    html += '<tr><th class="corner">' + (nVars===3 || nVars===2 ? r : GRAY_STR[r]) + '</th>';
+    for (let c=0; c<C; c++){
+      const idx = idxFromRC(nVars, r, c);
+      const fv = slice.dc.has(idx) ? 'X' : (slice.min.has(idx) ? 1 : 0);
+      const cur = isCurrentCell(nVars, r, c, fixed, v) ? ' cell-current' : '';
+      html += '<td class="cell-' + fv + cur + '">' + fv + '</td>';
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  $(stageId).innerHTML = '<div class="kmap-stage">' + html + buildOverlaySVG(nVars, simp.terms) + '</div>';
+  const legend = $(legendId);
+  if (simp.terms.length === 0){
+    legend.innerHTML = '<span class="note">该切片下 F = 0（没有 1 格）</span>';
+  } else {
+    legend.innerHTML = simp.terms.map(t =>
+      '<span class="legend-item"><span class="dot" style="background:' + t.color + '"></span>' + renderExprHTML(t.term) + '</span>'
+    ).join('');
+  }
+}
+
+function grayLabels(nVars){
+  return nVars===2 ? ['0','1'] : GRAY_STR;
+}
+
+function renderKMaps(){
+  const v = getVars();
+  renderKMap(2, { C:v.C, D:v.D }, 'kmapLegend2', 'kmapStage2');
+  renderKMap(3, { D:v.D }, 'kmapLegend3', 'kmapStage3');
+  renderKMap(4, {}, 'kmapLegend4', 'kmapStage4');
+}
+
+// ==================== 渲染：化简面板 ====================
+let lastGlobalSimp = null;
+
+function renderSimplifyPanel(){
+  const slice = sliceFunction(4, {});
+  const simp = simplifyFunction(slice.min, slice.dc, 4);
+  lastGlobalSimp = simp;
+  $('sopOut').innerHTML = 'F = ' + renderExprHTML(simp.sop);
+  $('posOut').innerHTML = 'F = ' + renderExprHTML(simp.pos);
+  const mm = minMaxNotation(slice.min, slice.dc, 4);
+  $('smOut').textContent = mm.sm;
+  $('pmOut').textContent = mm.pm;
+  $('simNote').innerHTML = '当前函数：' + renderExprHTML(funcLabel());
+}
+// ==================== 门电路 SVG 图 ====================
+function varOrder(lit){
+  const name = lit.endsWith("'") ? lit.slice(0,-1) : lit;
+  const i = VAR_NAMES.indexOf(name);
+  return i < 0 ? 99 : i;
+}
+
+/**
+ * 生成两级 NAND/NOR 网络的 SVG
+ * @param {'NAND'|'NOR'} kind
+ * @param {Array<{lits:string[]}>} terms  NAND 传积项、NOR 传和项
+ */
+function buildNetworkSVG(kind, terms){
+  const X_IN = 16, X_NOT = 92, X_TERM = 190, X_TOP = 356, X_OUT = 452;
+  const railGap = 30, topPad = 26, gateW = 54, litH = 13;
+  if (!terms || !terms.length) return '';
+
+  // 输入轨道（唯一文字，按变量序、原变量在前）
+  const rails = [];
+  for (const t of terms) for (const l of t.lits) if (!rails.includes(l)) rails.push(l);
+  rails.sort((x,y) => varOrder(x) - varOrder(y) || ((x.endsWith("'")?1:0) - (y.endsWith("'")?1:0)));
+  const railY = i => topPad + i * railGap;
+
+  // 第一级门：按项堆叠
+  const termGates = [];
+  const termH = Math.max(28, ...terms.map(t => t.lits.length * litH + 12));
+  const termGap = 10;
+  let gY = topPad;
+  for (const t of terms){
+    termGates.push({ lits: t.lits, x: X_TERM, w: gateW, h: Math.max(28, t.lits.length*litH + 12), y: gY });
+    gY += Math.max(28, t.lits.length*litH + 12) + termGap;
+  }
+
+  // 输出门：取第一级输出的平均位置
+  const mids = termGates.map(g => g.y + g.h/2);
+  const topH = Math.max(30, termGates.length * 18 + 12);
+  const topGate = { y: (Math.min(...mids) + Math.max(...mids))/2 - topH/2, h: topH, x: X_TOP, w: gateW };
+
+  const W = X_OUT + 24;
+  const H = Math.max(gY + 6, topGate.y + topGate.h + 16);
+  let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="' + kind + ' 门电路图">';
+
+  // 输入文字（取反用上方横线表示）
+  rails.forEach((l, i) => {
+    const y = railY(i);
+    const name = l.endsWith("'") ? l.slice(0,-1) : l;
+    s += '<text x="' + X_IN + '" y="' + y + '" font-size="13" font-weight="700" fill="currentColor">';
+    if (l.endsWith("'")) s += '<tspan style="text-decoration:overline">' + name + '</tspan>';
+    else s += name;
+    s += '</text>';
+  });
+
+  // 线：轨道 -> 第一级门输入
+  termGates.forEach((g, gi) => {
+    g.lits.forEach((l, li) => {
+      const r = rails.indexOf(l);
+      const y0 = railY(r);
+      const inY = Math.min(Math.max(y0, g.y + 8), g.y + g.h - 8);
+      const midX = X_TERM - 22 - (gi % 3) * 7;
+      s += '<path d="M ' + (X_NOT + 8) + ',' + y0 + ' H ' + midX + ' V ' + inY + ' H ' + g.x +
+           '" fill="none" stroke="currentColor" stroke-width="1.3"/>';
+    });
+    // 门体
+    const gy = g.y, gh = g.h, gx = g.x, gw = g.w;
+    s += '<rect x="' + gx + '" y="' + gy + '" width="' + gw + '" height="' + gh + '" rx="6" fill="var(--law-bg)" stroke="var(--accent)" stroke-width="1.6"/>';
+    s += '<text x="' + (gx + gw/2) + '" y="' + (gy + gh/2) + '" font-size="11" text-anchor="middle" dominant-baseline="central" fill="currentColor">' + kind + '</text>';
+    // 输出圈
+    s += '<circle cx="' + (gx + gw + 5) + '" cy="' + (gy + gh/2) + '" r="3.5" fill="none" stroke="currentColor" stroke-width="1.4"/>';
+  });
+
+  // 线：第一级输出 -> 输出门输入
+  termGates.forEach((g, gi) => {
+    const y0 = g.y + g.h/2;
+    const inY = Math.min(Math.max(y0, topGate.y + 8), topGate.y + topGate.h - 8);
+    const midX = X_TOP - 24 - (gi % 3) * 7;
+    s += '<path d="M ' + (g.x + g.w + 8) + ',' + y0 + ' H ' + midX + ' V ' + inY + ' H ' + topGate.x +
+         '" fill="none" stroke="currentColor" stroke-width="1.3"/>';
+  });
+  // 输出门
+  s += '<rect x="' + topGate.x + '" y="' + topGate.y + '" width="' + topGate.w + '" height="' + topGate.h +
+       '" rx="6" fill="var(--law-bg)" stroke="var(--accent)" stroke-width="1.6"/>';
+  s += '<text x="' + (topGate.x + topGate.w/2) + '" y="' + (topGate.y + topGate.h/2) +
+       '" font-size="11" text-anchor="middle" dominant-baseline="central" fill="currentColor">' + kind + '</text>';
+  s += '<circle cx="' + (topGate.x + topGate.w + 5) + '" cy="' + (topGate.y + topGate.h/2) + '" r="3.5" fill="none" stroke="currentColor" stroke-width="1.4"/>';
+  // 输出线 + F
+  s += '<path d="M ' + (topGate.x + topGate.w + 8) + ',' + (topGate.y + topGate.h/2) + ' H ' + X_OUT +
+       '" fill="none" stroke="currentColor" stroke-width="1.3"/>';
+  s += '<text x="' + (X_OUT + 6) + '" y="' + (topGate.y + topGate.h/2) + '" font-size="13" font-weight="700" fill="currentColor">F</text>';
+  s += '</svg>';
+  return s;
+}
+
+function renderGates(){
+  const simp = lastGlobalSimp;
+  if (!simp) return;
+  // NAND-only：两级 NAND，SOP 的每个积项 -> NAND(文字)，再统一 NAND
+  if (simp.sop === '0'){
+    $('nandFormula').textContent = 'F 恒为 0，无需门电路实现';
+    $('nandSvg').innerHTML = '';
+  } else if (simp.sop === '1'){
+    $('nandFormula').textContent = 'F 恒为 1（接电源即可）';
+    $('nandSvg').innerHTML = '';
+  } else {
+    const terms = simp.sopTerms;
+    $('nandFormula').innerHTML = renderGateFormulaHTML('F = NAND( ' + terms.map(t => 'NAND(' + t.lits.join(', ') + ')').join(', ') + ' )');
+    $('nandSvg').innerHTML = buildNetworkSVG('NAND', terms);
+  }
+  // NOR-only：两级 NOR，POS 的每个和项 -> NOR(文字)，再统一 NOR
+  if (simp.pos === '1'){
+    $('norFormula').textContent = 'F 恒为 1，无需门电路实现';
+    $('norSvg').innerHTML = '';
+  } else if (simp.pos === '0'){
+    $('norFormula').textContent = 'F 恒为 0（接地即可）';
+    $('norSvg').innerHTML = '';
+  } else {
+    const terms = simp.posTerms;
+    $('norFormula').innerHTML = renderGateFormulaHTML('F = NOR( ' + terms.map(t => 'NOR(' + t.lits.join(', ') + ')').join(', ') + ' )');
+    $('norSvg').innerHTML = buildNetworkSVG('NOR', terms);
+  }
+}
+// ==================== 逐步化简演示 ====================
+const simplifications = [
+  {
+    title: "A + A'·B = A + B",
+    result: 'A + B',
+    steps: [
+      { expr: "A + A'·B", law: '原始表达式', note: '' },
+      { expr: "(A + A')·(A + B)", law: '分配律', note: "A + B·C = (A+B)·(A+C)，这里 X=A, Y=A', Z=B" },
+      { expr: '1·(A + B)', law: '互补律', note: "A + A' = 1" },
+      { expr: 'A + B', law: '0-1 律', note: '1·X = X' },
+    ]
+  },
+  {
+    title: "A·B + A'·C + B·C = A·B + A'·C",
+    result: "A·B + A'·C",
+    steps: [
+      { expr: "A·B + A'·C + B·C", law: '原始表达式', note: '' },
+      { expr: "A·B + A'·C + B·C·(A + A')", law: '互补律（引入）', note: "乘以 (A+A')=1，值不变" },
+      { expr: "A·B + A'·C + A·B·C + A'·B·C", law: '分配律（展开）', note: "展开 B·C·(A+A')" },
+      { expr: "A·B·(1 + C) + A'·C·(1 + B)", law: '提取公因子', note: "A·B + A·B·C = A·B·(1+C)" },
+      { expr: "A·B + A'·C", law: '0-1 律', note: '1+X=1，所以 A·B·1=A·B' },
+    ]
+  },
+  {
+    title: '(A+B)·(A+C) = A + B·C',
+    result: 'A + B·C',
+    steps: [
+      { expr: '(A+B)·(A+C)', law: '原始表达式', note: '' },
+      { expr: 'A·A + A·C + B·A + B·C', law: '分配律（展开）', note: '(X+Y)(Z+W)=XZ+XW+YZ+YW' },
+      { expr: 'A + A·C + A·B + B·C', law: '重叠律', note: 'A·A = A' },
+      { expr: 'A·(1 + C + B) + B·C', law: '提取公因子', note: 'A + A·C + A·B = A·(1+C+B)' },
+      { expr: 'A + B·C', law: '0-1 律', note: '1 + C + B = 1，所以 A·1 = A' },
+    ]
+  },
+  {
+    title: "(A·B)' = A' + B'（摩根定律验证）",
+    result: "A' + B'",
+    steps: [
+      { expr: "(A·B)'", law: '左式', note: '' },
+      { expr: '对所有 (A,B) 验证真值', law: '真值表法', note: '(0,0): 左=1 右=1 ✓  (0,1): 左=1 右=1 ✓  (1,0): 左=1 右=1 ✓  (1,1): 左=0 右=0 ✓' },
+      { expr: "A' + B'", law: '摩根定律（右式）', note: '恒等式对全部四种输入组合均成立' },
+    ]
+  },
+  {
+    title: "A·(A'+B) = A·B（吸收律2 对偶）",
+    result: 'A·B',
+    steps: [
+      { expr: "A·(A'+B)", law: '原始表达式', note: '' },
+      { expr: "A·A' + A·B", law: '分配律（展开）', note: 'X·(Y+Z) = X·Y + X·Z' },
+      { expr: '0 + A·B', law: '互补律', note: "A·A' = 0" },
+      { expr: 'A·B', law: '0-1 律', note: '0 + X = X' },
+    ]
+  },
+  {
+    title: "A·B + A·B' = A（合并律）",
+    result: 'A',
+    steps: [
+      { expr: "A·B + A·B'", law: '原始表达式', note: '' },
+      { expr: "A·(B + B')", law: '提取公因子', note: '两项均含 A' },
+      { expr: 'A·1', law: '互补律', note: "B + B' = 1" },
+      { expr: 'A', law: '0-1 律', note: 'A·1 = A' },
+    ]
+  },
+];
+
+function showDemo(index){
+  const demo = simplifications[index];
+  const container = $('demoSteps');
+  let html = '';
+  for (let i=0; i<demo.steps.length; i++){
+    const s = demo.steps[i];
+    html += '<div class="step-card"><div><span class="step-index">' + (i+1) + '</span><span class="step-expr">' + renderExprHTML(s.expr) + '</span></div>' +
+            '<div class="step-law"><b>' + escapeHTML(s.law) + '</b></div>' +
+            (s.note ? '<div class="step-note">' + renderExprHTML(s.note) + '</div>' : '') + '</div>';
+    if (i < demo.steps.length - 1) html += '<div class="step-arrow">→</div>';
+  }
+  html += '<div style="width:100%;margin-top:4px"><span class="result-badge">✅ 化简结果：' + renderExprHTML(demo.result) + '</span></div>';
+  container.innerHTML = '<div class="steps-container">' + html + '</div>';
+}
+
+// ==================== 辅助 ====================
+function escapeHTML(str){
+  const div = document.createElement('div');
+  div.appendChild(document.createTextNode(str));
+  return div.innerHTML;
+}
+
+// 把 AST 渲染成 HTML：非用上方横线表示（替代容易与取对偶混淆的撇号）
+function astToHTML(ast){
+  function render(node){
+    if (node.type === 'VAR') return { html: node.name, prec: 5 };
+    if (node.type === 'NOT'){
+      const o = render(node.operand);
+      const inner = o.prec < 4 ? '(' + o.html + ')' : o.html;
+      return { html: '<span class="bar">' + inner + '</span>', prec: 4 };
+    }
+    const info = { AND:{sym:'·',prec:3}, OR:{sym:'+',prec:1}, XOR:{sym:'⊕',prec:2}, XNOR:{sym:'⊙',prec:2} }[node.type];
+    const L = render(node.left), R = render(node.right);
+    const lh = L.prec < info.prec ? '(' + L.html + ')' : L.html;
+    const rh = R.prec < info.prec ? '(' + R.html + ')' : R.html;
+    return { html: lh + info.sym + rh, prec: info.prec };
+  }
+  return render(ast).html;
+}
+// 表达式字符串 -> 上横线 HTML；解析失败时兜底把 字母' 转成上横线
+function renderExprHTML(str){
+  str = String(str);
+  const ast = parseExpression(str);
+  if (ast){
+    const h = astToHTML(ast);
+    if (h) return h;
+  }
+  return escapeHTML(str).replace(/([A-Da-d])(&#39;|')/g, '<span class="bar">$1</span>');
+}
+// NAND/NOR 门调用式：只含 字母'，用正则转换
+function renderGateFormulaHTML(str){
+  return escapeHTML(String(str)).replace(/([A-Da-d])(&#39;|')/g, '<span class="bar">$1</span>');
+}
+function showToast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timeout);
+  t._timeout = setTimeout(() => t.classList.remove('show'), 1800);
+}
+function copyText(text, msg){
+  const done = () => showToast(msg);
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+  } else {
+    fallbackCopy(text, done);
+  }
+}
+function fallbackCopy(text, done){
+  try{
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    done();
+  }catch(e){
+    showToast('⚠️ 复制失败，请手动选择');
+  }
+}
+
+// ==================== 输入事件 ====================
+function onExprInput(){
+  const raw = $('exprInput').value.trim();
+  const fb = $('exprFeedback');
+  state.expr = raw;
+  if (!raw){
+    state.ast = null;
+    fb.textContent = '';
+    fb.className = 'expr-feedback';
+  } else {
+    const ast = parseExpression(raw);
+    if (ast){
+      state.ast = ast;
+      fb.textContent = '✅ 解析成功 — 当前值 = ' + getFuncValue(getVars());
+      fb.className = 'expr-feedback ok';
+    } else {
+      state.ast = null;
+      fb.textContent = '❌ 表达式语法错误，请检查';
+      fb.className = 'expr-feedback err';
+    }
+  }
+  updateAll();
+}
+function onModeChange(mode){
+  state.mode = mode;
+  syncModeUI();
+  updateAll();
+}
+function applyMintermInputs(){
+  const m = parseIdxList($('minInput').value, 15);
+  const d = parseIdxList($('dcInput').value, 15);
+  let err = m.err || d.err;
+  if (!err){
+    for (const x of m.set) if (d.set.has(x)){ err = '最小项 ' + x + ' 同时出现在 F=1 与无关项中'; break; }
+  }
+  const fb = $('minFeedback');
+  if (err){
+    fb.textContent = '❌ ' + err;
+    fb.className = 'expr-feedback err';
+  } else {
+    state.min = m.set;
+    state.dc = d.set;
+    fb.textContent = m.set.size ? ('✅ 已设置 ' + m.set.size + ' 个最小项') : '（空：F 恒为 0）';
+    fb.className = 'expr-feedback ok';
+    updateAll();
+  }
+}
+
+// ==================== 函数描述 ====================
+function updateFuncDesc(){
+  if (state.mode === 'min'){
+    $('funcDesc').innerHTML = '当前函数：' + renderExprHTML(funcLabel()) + '（最小项模式；无关项在卡诺图中显示为 X 并可参与合并）';
+  } else if (state.mode === 'expr'){
+    if (state.ast){
+      const uv = [...usedVars(state.ast)];
+      $('funcDesc').innerHTML = '当前函数：F = ' + renderExprHTML(state.expr) + '；使用变量：' + (uv.join(', ') || '无');
+    } else {
+      $('funcDesc').innerHTML = state.expr
+        ? '表达式语法错误，当前按默认 F = A·B 显示'
+        : '当前函数：A·B（默认），可输入自定义表达式';
+    }
+  } else {
+    $('funcDesc').innerHTML = '当前函数：A·B（默认）；可切换为自定义表达式或最小项模式';
+  }
+}
+
+// ==================== 总更新 ====================
+function updateAll(){
+  renderResults();
+  renderTruthTables();
+  renderKMaps();
+  renderSimplifyPanel();
+  renderGates();
+  updateFuncDesc();
+  pushHashDebounced();
+}
+// ==================== 主题 ====================
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme', t);
+  try{ localStorage.setItem('luoji_theme', t); }catch(e){}
+  document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.themeVal === t));
+}
+let savedTheme = 'auto';
+try{ savedTheme = localStorage.getItem('luoji_theme') || 'auto'; }catch(e){}
+if (!THEMES.includes(savedTheme)) savedTheme = 'auto';
+
+// ==================== URL 分享 ====================
+function currentHash(){
+  if (state.mode === 'min') return '#mode=min&min=' + [...state.min].join(',') + '&dc=' + [...state.dc].join(',');
+  if (state.mode === 'expr') return '#mode=expr&expr=' + encodeURIComponent(state.expr);
+  return '#mode=default';
+}
+let hashTimer = null;
+function pushHashDebounced(){
+  clearTimeout(hashTimer);
+  hashTimer = setTimeout(pushHash, 250);
+}
+function pushHash(){
+  try{
+    const h = currentHash();
+    if (location.hash !== h) history.replaceState(null, '', h);
+  }catch(e){}
+}
+function syncModeUI(){
+  document.querySelectorAll('input[name="funcMode"]').forEach(r => { r.checked = (r.value === state.mode); });
+  $('exprRow').style.display = (state.mode === 'expr') ? '' : 'none';
+  $('minRow').style.display = (state.mode === 'min') ? '' : 'none';
+}
+function readHash(){
+  try{
+    const h = location.hash || '';
+    if (!h || h === '#') return;
+    const params = new URLSearchParams(h.slice(1));
+    const t = params.get('theme');
+    if (t && THEMES.includes(t)) applyTheme(t);
+    const mode = params.get('mode') || 'expr';
+    if (mode === 'min'){
+      state.mode = 'min';
+      state.min = parseIdxList(params.get('min') || '', 15).set;
+      state.dc = parseIdxList(params.get('dc') || '', 15).set;
+      state.expr = ''; state.ast = null;
+      $('minInput').value = [...state.min].sort((a,b)=>a-b).join(',');
+      $('dcInput').value = [...state.dc].sort((a,b)=>a-b).join(',');
+    } else if (mode === 'default'){
+      state.mode = 'default'; state.expr = ''; state.ast = null;
+      $('exprInput').value = '';
+    } else {
+      const expr = params.get('expr') || '';
+      state.mode = 'expr'; state.expr = expr;
+      $('exprInput').value = expr;
+      state.ast = expr ? parseExpression(expr) : null;
+      if (expr && !state.ast){
+        $('exprFeedback').textContent = '❌ 表达式语法错误，请检查';
+        $('exprFeedback').className = 'expr-feedback err';
+      }
+    }
+    syncModeUI();
+  }catch(e){}
+}
+
+// ==================== 练习模式 ====================
+var quizState = { total: 0, correct: 0, current: null, options: [], answered: false };
+
+var QUIZ_IDENTITIES = [
+  ["(A·B)'", "A' + B'"],
+  ["(A+B)'", "A' · B'"],
+  ['A + A·B', 'A'],
+  ['A·(A+B)', 'A'],
+  ["A + A'·B", 'A + B'],
+  ["A·(A'+B)", 'A·B'],
+  ["A·B + A'·C + B·C", "A·B + A'·C"],
+  ['(A+B)·(A+C)', 'A + B·C'],
+  ['A⊕B', "A'·B + A·B'"],
+  ["(A⊕B)'", "A·B + A'·B'"],
+  ["A·B + A·B'", 'A'],
+  ["(A+B)'·(A'+B)'", "A'·B'"],
+];
+
+function shuffle(arr){
+  for (let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+  }
+  return arr;
+}
+function mintermTerm(idx, n){
+  const lits = [];
+  for (let i=0; i<n; i++){
+    const bit = n - 1 - i;
+    lits.push((idx >> bit) & 1 ? VAR_NAMES[i] : VAR_NAMES[i] + "'");
+  }
+  return lits.join('·');
+}
+function randomSop(n){
+  const N = 1 << n;
+  const cnt = 1 + Math.floor(Math.random() * Math.min(4, N));
+  const pool = shuffle([...Array(N).keys()]);
+  const s = simplifyFunction(new Set(pool.slice(0, cnt)), new Set(), n);
+  return s.sop;
+}
+function pickFalseTerm(n, minSet){
+  const vars = VAR_NAMES.slice(0, n);
+  const rlit = () => vars[Math.floor(Math.random() * vars.length)] + (Math.random() < 0.4 ? "'" : '');
+  for (let g=0; g<50; g++){
+    return rlit() + (Math.random() < 0.6 ? '·' + rlit() : '');
+  }
+  return vars[0];
+}
+function mutateTerm(term, n){
+  const lits = term.split('·');
+  if (/^[01]$/.test(lits[0])) return VAR_NAMES[Math.floor(Math.random() * n)];
+  if (lits.length > 1) return lits.slice(0, -1).join('·');
+  return lits[0].endsWith("'") ? lits[0].slice(0, -1) : lits[0] + "'";
+}
+function makeDistractors(simp, n, minSet){
+  const out = [];
+  const push = t => {
+    if (out.length >= 3) return;
+    if (!t || t === simp.sop || out.includes(t)) return;
+    if (areEquivalent(t, simp.sop)) return;   // 排除与答案等价的选项
+    out.push(t);
+  };
+  if (simp.terms.length > 1) push(simp.terms.slice(0, -1).map(t => t.term).join(' + '));
+  if (simp.terms.length > 2) push(simp.terms.slice(0, -2).map(t => t.term).join(' + '));
+  push(simp.terms.map(t => t.term).concat(pickFalseTerm(n, minSet)).join(' + '));
+  let guard = 0;
+  while (out.length < 3 && guard++ < 300) push(randomSop(n));
+  while (out.length < 3) push(mutateTerm(simp.terms[0].term, n));
+  return out;
+}
+function makeSopQuestion(n, guard){
+  guard = guard || 0;
+  const N = 1 << n;
+  const cnt = 2 + Math.floor(Math.random() * Math.min(4, N - 1));
+  const pool = shuffle([...Array(N).keys()]);
+  const minSet = new Set(pool.slice(0, Math.min(cnt, N)));
+  const simp = simplifyFunction(minSet, new Set(), n);
+  if (simp.sop === '0' || simp.sop === '1' || simp.terms.length === 0){
+    if (guard > 40) return null;
+    return makeSopQuestion(n, guard + 1);
+  }
+  const redundant = mintermTerm([...minSet][0], n);
+  const original = [...simp.terms.map(t => t.term), redundant].join(' + ');
+  const answer = simp.sop;
+  const options = shuffle([answer, ...makeDistractors(simp, n, minSet)]);
+  const mm = minMaxNotation(minSet, new Set(), n);
+  return { original, answer, options, sm: mm.sm };
+}
+function areEquivalent(a, b){
+  const astA = parseExpression(a), astB = parseExpression(b);
+  if (!astA || !astB) return false;
+  for (let A=0; A<2; A++) for (let B=0; B<2; B++) for (let C=0; C<2; C++){
+    const v = { A, B, C, D: 0 };
+    if (evalAST(astA, v) !== evalAST(astB, v)) return false;
+  }
+  return true;
+}
+function corruptIdentity(s){
+  if (s.includes('+')) return s.replace('+', '·');
+  if (s.includes('·')) return s.replace('·', '+');
+  return s.replace(/([ABC])(?='?)/, m => m.endsWith("'") ? m.slice(0, -1) : m + "'");
+}
+function showMCQ(question, options, answer, explanation){
+  quizState.current = { answer, explanation };
+  quizState.options = options;
+  quizState.answered = false;
+  const box = $('quizBox');
+  let html = '<div class="quiz-question">' + renderExprHTML(question) + '</div><div class="quiz-options">';
+  options.forEach((op, i) => {
+    html += '<button type="button" class="quiz-option" data-idx="' + i + '">' + renderExprHTML(op) + '</button>';
+  });
+  html += '</div><div class="quiz-feedback" id="quizFeedback"></div>';
+  box.innerHTML = html;
+  box.querySelectorAll('.quiz-option').forEach(btn => btn.addEventListener('click', () => answerQuiz(btn)));
+}
+function answerQuiz(btn){
+  if (quizState.answered) return;
+  quizState.answered = true;
+  const idx = +btn.dataset.idx;
+  const chosen = quizState.options[idx];
+  const correct = chosen === quizState.current.answer;
+  quizState.total++;
+  if (correct) quizState.correct++;
+  const opts = $('quizBox').querySelectorAll('.quiz-option');
+  opts.forEach((b, i) => {
+    if (quizState.options[i] === quizState.current.answer) b.classList.add('correct');
+  });
+  if (!correct) btn.classList.add('wrong');
+  const fb = $('quizFeedback');
+  fb.innerHTML = (correct ? '✅ 正确！' : '❌ 错误，正确答案：' + renderExprHTML(quizState.current.answer)) +
+                 '<br><span class="note">' + renderExprHTML(quizState.current.explanation) + '</span>';
+  $('quizScore').textContent = '得分：' + quizState.correct + '/' + quizState.total;
+}
+function quizTypeSimplify(fromMinterm){
+  const n = 2 + (Math.random() < 0.6 ? 1 : 0);
+  const item = makeSopQuestion(n);
+  if (!item){ quizTypeEquivalence(); return; }
+  const question = fromMinterm
+    ? '已知 ' + item.sm + '（' + n + ' 变量），求最简与或式 F = ?'
+    : '化简：F = ' + item.original;
+  showMCQ(question, item.options, item.answer, '最简与或式：' + item.answer);
+}
+function quizTypeEquivalence(){
+  const id = QUIZ_IDENTITIES[Math.floor(Math.random() * QUIZ_IDENTITIES.length)];
+  let fake = Math.random() < 0.5;
+  let right = id[1];
+  if (fake){
+    right = corruptIdentity(right);
+    if (areEquivalent(id[0], right)) fake = false;
+  }
+  const question = '判断下列恒等式是否成立：' + id[0] + ' = ' + right;
+  showMCQ(question, ['是', '否'], fake ? '否' : '是', fake ? ('两者不等价，正确右式：' + id[1]) : ('恒等成立，' + id[1]));
+}
+function nextQuiz(){
+  const type = Math.floor(Math.random() * 3);
+  if (type === 0) quizTypeSimplify(false);
+  else if (type === 1) quizTypeSimplify(true);
+  else quizTypeEquivalence();
+}
+
+// ==================== 初始化 ====================
+function init(){
+  applyTheme(savedTheme);
+  document.querySelectorAll('.theme-btn').forEach(b => b.addEventListener('click', () => applyTheme(b.dataset.themeVal)));
+
+  ['A','B','C','D'].forEach(nm => {
+    const el = $('toggle' + nm);
+    el.addEventListener('change', () => { toggles[nm] = el.checked; updateAll(); });
+    el.addEventListener('input', () => { toggles[nm] = el.checked; updateAll(); });
+  });
+  $('exprInput').addEventListener('input', onExprInput);
+  $('clearExprBtn').addEventListener('click', () => { $('exprInput').value = ''; onExprInput(); });
+  $('minInput').addEventListener('input', applyMintermInputs);
+  $('dcInput').addEventListener('input', applyMintermInputs);
+  document.querySelectorAll('input[name="funcMode"]').forEach(r => r.addEventListener('change', () => onModeChange(r.value)));
+
+  $('copyBtn').addEventListener('click', () => copyText($('resTbl').textContent, '✅ 已复制到剪贴板'));
+  $('shareBtn').addEventListener('click', () => copyText(location.href, '✅ 分享链接已复制'));
+  $('demoSelect').addEventListener('change', e => showDemo(+e.target.value));
+  $('nextQuizBtn').addEventListener('click', nextQuiz);
+  $('resetQuizBtn').addEventListener('click', () => {
+    quizState.total = 0; quizState.correct = 0;
+    $('quizScore').textContent = '得分：0/0';
+    nextQuiz();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.target && e.target.closest && e.target.closest('input, select, textarea, [contenteditable]')) return;
+    switch (e.key.toLowerCase()){
+      case 'a': $('toggleA').click(); break;
+      case 'b': $('toggleB').click(); break;
+      case 'c': $('toggleC').click(); break;
+      case 'd': $('toggleD').click(); break;
+    }
+  });
+  window.addEventListener('hashchange', () => { readHash(); updateAll(); });
+
+  readHash();
+  updateAll();
+  showDemo(0);
+  nextQuiz();
+}
+
+init();
+</script>
+</body>
+</html>

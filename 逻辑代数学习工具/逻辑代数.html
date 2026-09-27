@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>逻辑代数学习工具</title>
+<style>
+/* ========== CSS 变量（亮色/暗色模式） ========== */
+:root {
+  --bg: #f0f2f5;
+  --card-bg: #fff;
+  --text: #1a1a2e;
+  --text-secondary: #555;
+  --border: #d0d5dd;
+  --accent: #4285f4;
+  --accent-hover: #3367d6;
+  --accent-light: #e8f0fe;
+  --result-bg: #e8f0fe;
+  --law-bg: #f8f9fb;
+  --expr-bg: #eef2ff;
+  --highlight-row: #fff3cd;
+  --highlight-cell: #c6f6d5;
+  --highlight-cell-border: #38a169;
+  --toggle-off: #c0c4cc;
+  --toggle-on: #4285f4;
+  --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  --table-header: #f1f3f4;
+  --table-stripe: #fafbfc;
+  --kmap-cell-0: #f0f0f0;
+  --kmap-cell-1: #a8d0ff;
+  --badge-bg: #e8f0fe;
+  --badge-text: #1a73e8;
+  --divider: #e8eaed;
+  --step-arrow: #4285f4;
+  --input-bg: #fff;
+  --input-text: #1a1a2e;
+  --kmap-header: #e9ecef;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117;
+    --card-bg: #161b22;
+    --text: #e6edf3;
+    --text-secondary: #8b949e;
+    --border: #30363d;
+    --accent: #58a6ff;
+    --accent-hover: #79b8ff;
+    --accent-light: #1a2332;
+    --result-bg: #1a2332;
+    --law-bg: #21262d;
+    --expr-bg: #1a2332;
+    --highlight-row: #3d2e00;
+    --highlight-cell: #1a3a2a;
+    --highlight-cell-border: #38a169;
+    --toggle-off: #484f58;
+    --toggle-on: #58a6ff;
+    --shadow: 0 2px 8px rgba(0,0,0,0.3);
+    --table-header: #21262d;
+    --table-stripe: #1a1e26;
+    --kmap-cell-0: #21262d;
+    --kmap-cell-1: #1a3550;
+    --badge-bg: #1a3550;
+    --badge-text: #58a6ff;
+    --divider: #21262d;
+    --step-arrow: #58a6ff;
+    --input-bg: #0d1117;
+    --input-text: #e6edf3;
+    --kmap-header: #21262d;
+  }
+}
+
+/* ========== 基础样式 ========== */
+* { box-sizing: border-box; }
+body {
+  font-family: "Microsoft YaHei", "PingFang SC", "Helvetica Neue", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  margin: 0;
+  padding: 16px;
+  line-height: 1.6;
+  transition: background 0.3s, color 0.3s;
+}
+.container {
+  max-width: 1000px;
+  margin: auto;
+  background: var(--card-bg);
+  border-radius: 14px;
+  padding: 28px 32px;
+  box-shadow: var(--shadow);
+  transition: background 0.3s, box-shadow 0.3s;
+}
+h2 {
+  color: var(--text);
+  margin: 0 0 8px 0;
+  font-size: 1.6em;
+}
+h3 {
+  color: var(--text);
+  margin: 24px 0 10px 0;
+  font-size: 1.15em;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--accent);
+  display: inline-block;
+}
+.section { margin-bottom: 8px; }
+
+/* ========== Toggle 开关 ========== */
+.toggle-group {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 10px 0;
+}
+.toggle-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.toggle-item label {
+  font-weight: 700;
+  font-size: 1.1em;
+  min-width: 20px;
+  color: var(--text);
+}
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 64px;
+  height: 34px;
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  cursor: pointer;
+  margin: 0;
+}
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--toggle-off);
+  border-radius: 34px;
+  transition: background 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  user-select: none;
+}
+.toggle-slider::before {
+  content: "";
+  position: absolute;
+  height: 26px; width: 26px;
+  left: 4px; bottom: 4px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.3s;
+  z-index: 1;
+}
+.toggle-slider .left-text, .toggle-slider .right-text {
+  position: relative;
+  z-index: 0;
+  opacity: 0.85;
+}
+.toggle-switch input:checked + .toggle-slider {
+  background: var(--toggle-on);
+}
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(30px);
+}
+.toggle-switch input:focus-visible + .toggle-slider {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ========== 结果区域 ========== */
+.result {
+  margin-top: 12px;
+  padding: 16px 20px;
+  background: var(--result-bg);
+  border-radius: 10px;
+  line-height: 1.9;
+  transition: background 0.3s, opacity 0.2s;
+  font-size: 0.95em;
+}
+.result .val { font-weight: 700; color: var(--accent); }
+.btn-row { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+button {
+  padding: 10px 20px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+}
+button:hover { background: var(--accent-hover); }
+button:active { transform: scale(0.97); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.secondary {
+  background: transparent;
+  color: var(--accent);
+  border: 1.5px solid var(--accent);
+}
+button.secondary:hover { background: var(--accent-light); }
+
+/* ========== 表达式求值 ========== */
+.expr-input-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 10px 0;
+}
+.expr-input-row input[type="text"] {
+  flex: 1;
+  min-width: 240px;
+  padding: 11px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 15px;
+  font-family: "Consolas", "Courier New", monospace;
+  background: var(--input-bg);
+  color: var(--input-text);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.expr-input-row input[type="text"]:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(66,133,244,0.15);
+}
+.expr-feedback { font-size: 0.9em; margin-top: 4px; min-height: 1.4em; }
+.expr-feedback.ok { color: #28a745; }
+.expr-feedback.err { color: #dc3545; }
+.expr-hint {
+  font-size: 0.82em;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+.expr-hint code {
+  background: var(--law-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.95em;
+}
+
+/* ========== 真值表 ========== */
+.tables-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 10px;
+}
+@media (max-width: 750px) { .tables-grid { grid-template-columns: 1fr; } }
+.truth-table-wrap { overflow-x: auto; }
+.truth-table-wrap h4 { margin: 0 0 6px 0; color: var(--text); font-size: 1em; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9em;
+  border-radius: 8px;
+  overflow: hidden;
+}
+td, th {
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  text-align: center;
+  transition: background 0.2s;
+}
+th {
+  background: var(--table-header);
+  font-weight: 700;
+  color: var(--text);
+}
+tr { transition: background 0.2s; }
+tr:nth-child(even) td { background: var(--table-stripe); }
+tr.highlight td {
+  background: var(--highlight-row) !important;
+  font-weight: 700;
+}
+tr.highlight td:first-child {
+  border-left: 3px solid var(--accent);
+}
+
+/* ========== 卡诺图 ========== */
+.kmaps-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 10px;
+}
+@media (max-width: 750px) { .kmaps-grid { grid-template-columns: 1fr; } }
+.kmap-wrap h4 { margin: 0 0 6px 0; color: var(--text); font-size: 1em; }
+.kmap-table { border-collapse: collapse; font-size: 0.9em; }
+.kmap-table td, .kmap-table th {
+  border: 1px solid var(--border);
+  padding: 12px 16px;
+  text-align: center;
+  min-width: 44px;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.kmap-table th {
+  background: var(--kmap-header);
+  font-size: 0.85em;
+}
+.kmap-table .cell-0 { background: var(--kmap-cell-0); color: var(--text-secondary); }
+.kmap-table .cell-1 { background: var(--kmap-cell-1); color: var(--text); font-weight: 700; }
+.kmap-table .cell-highlight {
+  box-shadow: inset 0 0 0 3px var(--highlight-cell-border);
+  background: var(--highlight-cell) !important;
+  font-weight: 700;
+}
+.kmap-table .corner { background: var(--kmap-header); font-size: 0.8em; color: var(--text-secondary); }
+
+/* ========== 逐步化简 ========== */
+#demoSelect {
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--input-bg);
+  color: var(--input-text);
+  margin: 10px 0;
+  cursor: pointer;
+}
+#demoSelect:focus { outline: none; border-color: var(--accent); }
+.steps-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 12px;
+}
+.step-card {
+  background: var(--law-bg);
+  border-radius: 10px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  min-width: 140px;
+  flex: 1;
+  max-width: 260px;
+  transition: background 0.3s, transform 0.2s;
+}
+.step-card:hover { transform: translateY(-2px); }
+.step-card .step-expr {
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 1.05em;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.step-card .step-law {
+  font-size: 0.85em;
+  color: var(--text-secondary);
+}
+.step-card .step-note {
+  font-size: 0.8em;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  font-style: italic;
+}
+.step-arrow {
+  display: flex;
+  align-items: center;
+  font-size: 1.4em;
+  color: var(--step-arrow);
+  min-width: 24px;
+  justify-content: center;
+  padding-top: 8px;
+}
+.step-index {
+  display: inline-block;
+  background: var(--badge-bg);
+  color: var(--badge-text);
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  text-align: center;
+  line-height: 22px;
+  font-size: 0.75em;
+  font-weight: 700;
+  margin-right: 6px;
+}
+.result-badge {
+  display: inline-block;
+  background: #d4edda;
+  color: #155724;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.9em;
+  margin-top: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  .result-badge { background: #1a3a2a; color: #7ee89f; }
+}
+
+/* ========== 公式参考网格 ========== */
+.laws {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+@media (max-width: 600px) { .laws { grid-template-columns: 1fr; } }
+.law-item {
+  background: var(--law-bg);
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  transition: background 0.3s;
+}
+.law-item .title { font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+
+/* ========== NAND/NOR 参考 ========== */
+.expr {
+  background: var(--expr-bg);
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-top: 8px;
+  border-left: 3px solid var(--accent);
+  font-size: 0.93em;
+  transition: background 0.3s;
+}
+
+/* ========== Toast 提示 ========== */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: #fff;
+  padding: 10px 24px;
+  border-radius: 20px;
+  font-size: 14px;
+  z-index: 999;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+@media (prefers-color-scheme: dark) { .toast { background: #e6edf3; color: #1a1a2e; } }
+
+/* ========== 可访问性 ========== */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ========== 打印样式 ========== */
+@media print {
+  body { background: #fff; }
+  .container { box-shadow: none; }
+  button, .toggle-switch input { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h2>🔣 逻辑代数学习工具</h2>
+
+  <!-- ===== 1. 变量输入（Toggle 开关） ===== -->
+  <section class="section" aria-labelledby="input-heading">
+    <h3 id="input-heading">📥 变量输入</h3>
+    <div class="toggle-group">
+      <div class="toggle-item">
+        <label for="toggleA">A =</label>
+        <span class="toggle-switch">
+          <input type="checkbox" id="toggleA" aria-label="切换 A 的值">
+          <span class="toggle-slider"><span class="left-text">1</span><span class="right-text">0</span></span>
+        </span>
+      </div>
+      <div class="toggle-item">
+        <label for="toggleB">B =</label>
+        <span class="toggle-switch">
+          <input type="checkbox" id="toggleB" aria-label="切换 B 的值">
+          <span class="toggle-slider"><span class="left-text">1</span><span class="right-text">0</span></span>
+        </span>
+      </div>
+      <div class="toggle-item">
+        <label for="toggleC">C =</label>
+        <span class="toggle-switch">
+          <input type="checkbox" id="toggleC" aria-label="切换 C 的值">
+          <span class="toggle-slider"><span class="left-text">1</span><span class="right-text">0</span></span>
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 2. 计算结果 + 复制 ===== -->
+  <section class="section" aria-labelledby="result-heading">
+    <h3 id="result-heading">📊 计算结果</h3>
+    <div class="result" id="res" aria-live="polite"></div>
+    <div class="btn-row">
+      <button id="copyBtn" class="secondary" aria-label="复制计算结果">📋 复制结果</button>
+    </div>
+  </section>
+
+  <!-- ===== 3. 自定义表达式求值 ===== -->
+  <section class="section" aria-labelledby="expr-heading">
+    <h3 id="expr-heading">🧮 自定义表达式求值</h3>
+    <div class="expr-input-row">
+      <input type="text" id="exprInput" placeholder="例如: (A+B)' 或 A·B+A'·C 或 A^B"
+             aria-label="输入逻辑表达式">
+      <button id="clearExprBtn" class="secondary">清除</button>
+    </div>
+    <div class="expr-feedback" id="exprFeedback" aria-live="polite"></div>
+    <div class="expr-hint">
+      支持: <code>A B C</code> 变量 &nbsp;
+      <code>+</code>/<code>|</code> 或 &nbsp;
+      <code>*</code>/<code>&amp;</code>/<code>·</code> 与 &nbsp;
+      <code>'</code>/<code>!</code>/<code>~</code> 非 &nbsp;
+      <code>^</code>/<code>⊕</code> 异或 &nbsp;
+      <code>( )</code> 括号 &nbsp;
+      隐式与: <code>AB</code> = A·B
+    </div>
+  </section>
+
+  <!-- ===== 4. 动态真值表 ===== -->
+  <section class="section" aria-labelledby="tt-heading">
+    <h3 id="tt-heading">📋 真值表（动态生成，高亮当前输入）</h3>
+    <div class="tables-grid">
+      <div class="truth-table-wrap" id="truthTable2Wrap">
+        <h4>二变量 (A, B)</h4>
+        <table id="truthTable2"><thead></thead><tbody></tbody></table>
+      </div>
+      <div class="truth-table-wrap" id="truthTable3Wrap">
+        <h4>三变量 (A, B, C)</h4>
+        <table id="truthTable3"><thead></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 5. 卡诺图 ===== -->
+  <section class="section" aria-labelledby="kmap-heading">
+    <h3 id="kmap-heading">🗺️ 卡诺图（K-map）</h3>
+    <div class="kmaps-grid">
+      <div class="kmap-wrap" id="kmap2Wrap">
+        <h4>二变量 — 默认函数 F = A·B</h4>
+        <table class="kmap-table" id="kmap2"></table>
+      </div>
+      <div class="kmap-wrap" id="kmap3Wrap">
+        <h4>三变量 — 默认函数 F = A·B·C</h4>
+        <table class="kmap-table" id="kmap3"></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 6. 逐步化简演示 ===== -->
+  <section class="section" aria-labelledby="demo-heading">
+    <h3 id="demo-heading">📝 逐步化简演示</h3>
+    <label for="demoSelect" class="sr-only">选择化简示例</label>
+    <select id="demoSelect" aria-label="选择化简示例">
+      <option value="0">A + A'·B = A + B（吸收律2）</option>
+      <option value="1">A·B + A'·C + B·C = A·B + A'·C（冗余项）</option>
+      <option value="2">(A+B)·(A+C) = A + B·C（分配律）</option>
+      <option value="3">(A·B)' = A' + B'（摩根定律验证）</option>
+    </select>
+    <div id="demoSteps"></div>
+  </section>
+
+  <!-- ===== 7. 逻辑代数常用公式 ===== -->
+  <section class="section" aria-labelledby="laws-heading">
+    <h3 id="laws-heading">📚 逻辑代数常用公式</h3>
+    <div class="laws">
+      <div class="law-item"><div class="title">0-1 律</div>A+0=A &nbsp; A·1=A<br>A+1=1 &nbsp; A·0=0</div>
+      <div class="law-item"><div class="title">互补律</div>A+A'=1<br>A·A'=0</div>
+      <div class="law-item"><div class="title">重叠律</div>A+A=A<br>A·A=A</div>
+      <div class="law-item"><div class="title">还原律</div>(A')' = A</div>
+      <div class="law-item"><div class="title">交换律</div>A+B=B+A<br>A·B=B·A</div>
+      <div class="law-item"><div class="title">结合律</div>(A+B)+C=A+(B+C)<br>(A·B)·C=A·(B·C)</div>
+      <div class="law-item"><div class="title">分配律</div>A·(B+C)=A·B+A·C<br>A+B·C=(A+B)·(A+C)</div>
+      <div class="law-item"><div class="title">摩根定律</div>(A+B)'=A'·B'<br>(A·B)'=A'+B'</div>
+      <div class="law-item"><div class="title">吸收律1</div>A+A·B=A<br>A·(A+B)=A</div>
+      <div class="law-item"><div class="title">吸收律2</div>A+A'·B=A+B<br>A·(A'+B)=A·B</div>
+      <div class="law-item"><div class="title">冗余项定理</div>A·B+A'·C+B·C=A·B+A'·C<br>A·B+A'·C+B·C·D=A·B+A'·C</div>
+      <div class="law-item"><div class="title">异或/同或</div>A⊕B=A'·B+A·B'<br>A⊙B=A·B+A'·B'</div>
+    </div>
+  </section>
+
+  <!-- ===== 8. 与非/或非 ===== -->
+  <section class="section" aria-labelledby="nand-heading">
+    <h3 id="nand-heading">🔌 与非（NAND）/ 或非（NOR）</h3>
+    <div class="expr">
+      <b>与非（NAND）：</b><br>
+      二变量：(A·B)' = A' + B'<br>
+      三变量：(A·B·C)' = A' + B' + C'
+    </div>
+    <div class="expr">
+      <b>或非（NOR）：</b><br>
+      二变量：(A+B)' = A' · B'<br>
+      三变量：(A+B+C)' = A' · B' · C'
+    </div>
+  </section>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ==================== 表达式解析器 ====================
+
+function tokenize(expr) {
+  const tokens = [];
+  let i = 0;
+  while (i < expr.length) {
+    const ch = expr[i];
+    if (/\s/.test(ch)) { i++; continue; }
+
+    if (/[ABCabc]/.test(ch)) {
+      const last = tokens[tokens.length - 1];
+      if (last && (last.type === 'VAR' || last.type === 'RPAREN' || last.type === 'NOT_POST')) {
+        tokens.push({ type: 'AND' });
+      }
+      tokens.push({ type: 'VAR', name: ch.toUpperCase() });
+      i++;
+    } else if (ch === '&' || ch === '*' || ch === '·') {
+      tokens.push({ type: 'AND' }); i++;
+    } else if (ch === '|' || ch === '+') {
+      tokens.push({ type: 'OR' }); i++;
+    } else if (ch === '^' || ch === '⊕') {
+      tokens.push({ type: 'XOR' }); i++;
+    } else if (ch === '!' || ch === '~') {
+      tokens.push({ type: 'NOT' }); i++;
+    } else if (ch === '\'') {
+      tokens.push({ type: 'NOT_POST' }); i++;
+    } else if (ch === '(') {
+      const last = tokens[tokens.length - 1];
+      if (last && (last.type === 'VAR' || last.type === 'RPAREN' || last.type === 'NOT_POST')) {
+        tokens.push({ type: 'AND' });
+      }
+      tokens.push({ type: 'LPAREN' }); i++;
+    } else if (ch === ')') {
+      tokens.push({ type: 'RPAREN' }); i++;
+    } else {
+      return []; // 未知字符 → 解析失败
+    }
+  }
+  return tokens;
+}
+
+function createParser(tokens) {
+  let pos = 0;
+  function cur() { return tokens[pos]; }
+  function nxt() { return tokens[pos++]; }
+
+  function parseExpr() {
+    let left = parseXor();
+    if (!left) return null;
+    while (cur() && cur().type === 'OR') {
+      nxt();
+      const right = parseXor();
+      if (!right) return null;
+      left = { type: 'OR', left, right };
+    }
+    return left;
+  }
+
+  function parseXor() {
+    let left = parseTerm();
+    if (!left) return null;
+    while (cur() && cur().type === 'XOR') {
+      nxt();
+      const right = parseTerm();
+      if (!right) return null;
+      left = { type: 'XOR', left, right };
+    }
+    return left;
+  }
+
+  function parseTerm() {
+    let left = parseFactor();
+    if (!left) return null;
+    while (cur() && cur().type === 'AND') {
+      nxt();
+      const right = parseFactor();
+      if (!right) return null;
+      left = { type: 'AND', left, right };
+    }
+    return left;
+  }
+
+  function parseFactor() {
+    let notCount = 0;
+    while (cur() && cur().type === 'NOT') { nxt(); notCount++; }
+
+    let node;
+    if (cur() && cur().type === 'LPAREN') {
+      nxt();
+      node = parseExpr();
+      if (!node) return null;
+      if (cur() && cur().type === 'RPAREN') {
+        nxt();
+      } else {
+        return null; // 缺少闭合括号
+      }
+    } else if (cur() && cur().type === 'VAR') {
+      node = { type: 'VAR', name: nxt().name };
+    } else {
+      return null;
+    }
+
+    while (cur() && cur().type === 'NOT_POST') { nxt(); notCount++; }
+
+    for (let n = 0; n < notCount; n++) {
+      node = { type: 'NOT', operand: node };
+    }
+    return node;
+  }
+
+  return { parse: parseExpr, remaining: () => tokens.length - pos };
+}
+
+function evalAST(ast, vars) {
+  if (!ast) return 0;
+  if (ast.type === 'VAR') return vars[ast.name] || 0;
+  if (ast.type === 'NOT') return 1 - evalAST(ast.operand, vars);
+  if (ast.type === 'AND') return evalAST(ast.left, vars) & evalAST(ast.right, vars);
+  if (ast.type === 'OR')  return evalAST(ast.left, vars) | evalAST(ast.right, vars);
+  if (ast.type === 'XOR') return evalAST(ast.left, vars) ^ evalAST(ast.right, vars);
+  return 0;
+}
+
+function parseExpression(exprStr) {
+  const tokens = tokenize(exprStr);
+  if (tokens.length === 0) return null;
+  const parser = createParser(tokens);
+  const ast = parser.parse();
+  if (!ast || parser.remaining() > 0) return null;
+  return ast;
+}
+
+// ==================== 状态 ====================
+let currentAST = null;
+let currentExprText = '';
+
+function getVars() {
+  return {
+    A: document.getElementById('toggleA').checked ? 1 : 0,
+    B: document.getElementById('toggleB').checked ? 1 : 0,
+    C: document.getElementById('toggleC').checked ? 1 : 0,
+  };
+}
+
+// ==================== UI 更新 ====================
+
+function updateResults() {
+  const v = getVars();
+  const a = v.A, b = v.B, c = v.C;
+  const and = a & b;
+  const or = a | b;
+  const notA = 1 - a;
+  const notB = 1 - b;
+  const xor = a ^ b;
+  const xnor = 1 - xor;
+  const nand = 1 - and;
+  const nor = 1 - or;
+  const abc_and = a & b & c;
+  const abc_or = a | b | c;
+  const nand3 = 1 - abc_and;
+  const nor3 = 1 - abc_or;
+
+  let html = `<b>输入：</b>A=<span class="val">${a}</span>  B=<span class="val">${b}</span>  C=<span class="val">${c}</span><br>`;
+  html += `与 A·B = <span class="val">${and}</span>　或 A+B = <span class="val">${or}</span><br>`;
+  html += `非A = <span class="val">${notA}</span>　非B = <span class="val">${notB}</span><br>`;
+  html += `异或 A⊕B = <span class="val">${xor}</span>　同或 A⊙B = <span class="val">${xnor}</span><br>`;
+  html += `<b>与非 (A·B)' = <span class="val">${nand}</span></b>　<b>或非 (A+B)' = <span class="val">${nor}</span></b><br>`;
+  html += `三变量与 A·B·C = <span class="val">${abc_and}</span>　三变量或 A+B+C = <span class="val">${abc_or}</span><br>`;
+  html += `<b>三变量与非 (A·B·C)' = <span class="val">${nand3}</span></b>　<b>三变量或非 (A+B+C)' = <span class="val">${nor3}</span></b>`;
+
+  // 自定义表达式结果
+  if (currentAST) {
+    const ev = evalAST(currentAST, v);
+    html += `<br><b>自定义表达式 "${escapeHTML(currentExprText)}" = <span class="val">${ev}</span></b>`;
+  }
+
+  document.getElementById('res').innerHTML = html;
+}
+
+function updateExpression() {
+  const raw = document.getElementById('exprInput').value.trim();
+  const fb = document.getElementById('exprFeedback');
+  if (!raw) {
+    currentAST = null;
+    currentExprText = '';
+    fb.textContent = '';
+    fb.className = 'expr-feedback';
+  } else {
+    const ast = parseExpression(raw);
+    if (ast) {
+      currentAST = ast;
+      currentExprText = raw;
+      const v = getVars();
+      const ev = evalAST(ast, v);
+      fb.textContent = `✅ 解析成功 — 当前值 = ${ev}`;
+      fb.className = 'expr-feedback ok';
+    } else {
+      currentAST = null;
+      currentExprText = raw;
+      fb.textContent = '❌ 表达式语法错误，请检查';
+      fb.className = 'expr-feedback err';
+    }
+  }
+  updateAll();
+}
+
+function generateTruthTable2() {
+  const rows = [];
+  const v = getVars();
+  for (let a = 0; a <= 1; a++) {
+    for (let b = 0; b <= 1; b++) {
+      const vars = { A: a, B: b, C: v.C };
+      rows.push({
+        a, b,
+        and: a & b, or: a | b, notA: 1 - a, notB: 1 - b,
+        xor: a ^ b, xnor: 1 - (a ^ b), nand: 1 - (a & b), nor: 1 - (a | b),
+        custom: currentAST ? evalAST(currentAST, vars) : null,
+      });
+    }
+  }
+
+  const cols = ['A', 'B', '与', '或', '非A', '非B', '异或', '同或', '与非', '或非'];
+  if (currentAST) cols.push('自定义');
+
+  let thead = '<tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr>';
+  let tbody = '';
+  for (const r of rows) {
+    const hl = (r.a === v.A && r.b === v.B) ? ' class="highlight"' : '';
+    let cells = `<td>${r.a}</td><td>${r.b}</td>`;
+    cells += `<td>${r.and}</td><td>${r.or}</td><td>${r.notA}</td><td>${r.notB}</td>`;
+    cells += `<td>${r.xor}</td><td>${r.xnor}</td><td>${r.nand}</td><td>${r.nor}</td>`;
+    if (currentAST) cells += `<td><b>${r.custom}</b></td>`;
+    tbody += `<tr${hl}>${cells}</tr>`;
+  }
+  return `<thead>${thead}</thead><tbody>${tbody}</tbody>`;
+}
+
+function generateTruthTable3() {
+  const rows = [];
+  for (let a = 0; a <= 1; a++) {
+    for (let b = 0; b <= 1; b++) {
+      for (let c = 0; c <= 1; c++) {
+        const vars = { A: a, B: b, C: c };
+        rows.push({
+          a, b, c,
+          and3: a & b & c, or3: a | b | c,
+          nand3: 1 - (a & b & c), nor3: 1 - (a | b | c),
+          custom: currentAST ? evalAST(currentAST, vars) : null,
+        });
+      }
+    }
+  }
+
+  const v = getVars();
+  const cols = ['A', 'B', 'C', 'A·B·C', 'A+B+C', '(A·B·C)', '(A+B+C)'];
+  if (currentAST) cols.push('自定义');
+
+  let thead = '<tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr>';
+  let tbody = '';
+  for (const r of rows) {
+    const hl = (r.a === v.A && r.b === v.B && r.c === v.C) ? ' class="highlight"' : '';
+    let cells = `<td>${r.a}</td><td>${r.b}</td><td>${r.c}</td>`;
+    cells += `<td>${r.and3}</td><td>${r.or3}</td><td>${r.nand3}</td><td>${r.nor3}</td>`;
+    if (currentAST) cells += `<td><b>${r.custom}</b></td>`;
+    tbody += `<tr${hl}>${cells}</tr>`;
+  }
+  return `<thead>${thead}</thead><tbody>${tbody}</tbody>`;
+}
+
+function updateTruthTables() {
+  document.getElementById('truthTable2').innerHTML = generateTruthTable2();
+  document.getElementById('truthTable3').innerHTML = generateTruthTable3();
+}
+
+function generateKMap2() {
+  const v = getVars();
+  // Row: A=0, A=1  Col: B=0, B=1
+  let html = `<tr><th class="corner">A\\B</th><th>B=0</th><th>B=1</th></tr>`;
+  for (let a = 0; a <= 1; a++) {
+    html += `<tr><th>A=${a}</th>`;
+    for (let b = 0; b <= 1; b++) {
+      const vars = { A: a, B: b, C: v.C };
+      const val = currentAST ? evalAST(currentAST, vars) : (a & b);
+      const hl = (a === v.A && b === v.B) ? ' cell-highlight' : '';
+      html += `<td class="cell-${val}${hl}">${val}</td>`;
+    }
+    html += '</tr>';
+  }
+  return html;
+}
+
+function generateKMap3() {
+  const v = getVars();
+  // Row: A=0, A=1  Col: BC=00,01,11,10 (Gray code)
+  const cols = ['00', '01', '11', '10'];
+  let html = `<tr><th class="corner">A\\BC</th>${cols.map(c => `<th>BC=${c}</th>`).join('')}</tr>`;
+  for (let a = 0; a <= 1; a++) {
+    html += `<tr><th>A=${a}</th>`;
+    for (const col of cols) {
+      const b = +col[0], c = +col[1];
+      const vars = { A: a, B: b, C: c };
+      const val = currentAST ? evalAST(currentAST, vars) : (a & b & c);
+      const hl = (a === v.A && b === v.B && c === v.C) ? ' cell-highlight' : '';
+      html += `<td class="cell-${val}${hl}">${val}</td>`;
+    }
+    html += '</tr>';
+  }
+  return html;
+}
+
+function updateKMaps() {
+  document.getElementById('kmap2').innerHTML = generateKMap2();
+  document.getElementById('kmap3').innerHTML = generateKMap3();
+  // 更新标题
+  const fn2 = currentAST ? `自定义表达式 "${currentExprText}"` : '默认函数 F = A·B';
+  const fn3 = currentAST ? `自定义表达式 "${currentExprText}"` : '默认函数 F = A·B·C';
+  document.querySelector('#kmap2Wrap h4').textContent = `二变量 — ${fn2}`;
+  document.querySelector('#kmap3Wrap h4').textContent = `三变量 — ${fn3}`;
+}
+
+// ==================== 逐步化简演示 ====================
+
+const simplifications = [
+  {
+    title: 'A + A\'·B = A + B',
+    result: 'A + B',
+    steps: [
+      { expr: "A + A'·B", law: '原始表达式', note: '' },
+      { expr: "(A + A')·(A + B)", law: '分配律', note: 'A + B·C = (A+B)·(A+C)，这里 X=A, Y=A\', Z=B' },
+      { expr: '1·(A + B)', law: '互补律', note: "A + A' = 1" },
+      { expr: 'A + B', law: '0-1律', note: '1·X = X' },
+    ]
+  },
+  {
+    title: 'A·B + A\'·C + B·C = A·B + A\'·C',
+    result: "A·B + A'·C",
+    steps: [
+      { expr: "A·B + A'·C + B·C", law: '原始表达式', note: '' },
+      { expr: "A·B + A'·C + B·C·(A + A')", law: '互补律（引入）', note: "乘以 (A+A')=1，值不变" },
+      { expr: "A·B + A'·C + A·B·C + A'·B·C", law: '分配律（展开）', note: '展开 B·C·(A+A\')' },
+      { expr: "A·B·(1 + C) + A'·C·(1 + B)", law: '提取公因子', note: 'A·B + A·B·C = A·B·(1+C)' },
+      { expr: "A·B + A'·C", law: '0-1 律', note: '1+X=1，所以 A·B·1=A·B' },
+    ]
+  },
+  {
+    title: '(A+B)·(A+C) = A + B·C',
+    result: 'A + B·C',
+    steps: [
+      { expr: '(A+B)·(A+C)', law: '原始表达式', note: '' },
+      { expr: 'A·A + A·C + B·A + B·C', law: '分配律（展开）', note: '(X+Y)(Z+W)=XZ+XW+YZ+YW' },
+      { expr: 'A + A·C + A·B + B·C', law: '重叠律', note: 'A·A = A' },
+      { expr: 'A·(1 + C + B) + B·C', law: '提取公因子', note: 'A + A·C + A·B = A·(1+C+B)' },
+      { expr: 'A + B·C', law: '0-1 律', note: '1 + C + B = 1，所以 A·1 = A' },
+    ]
+  },
+  {
+    title: '(A·B)\' = A\' + B\'（摩根定律验证）',
+    result: "A' + B'",
+    steps: [
+      { expr: '(A·B)\'', law: '左式', note: '' },
+      { expr: '对所有 (A,B) 验证真值', law: '真值表法', note: '(0,0): 左=1 右=1 ✓  (0,1): 左=1 右=1 ✓  (1,0): 左=1 右=1 ✓  (1,1): 左=0 右=0 ✓' },
+      { expr: "A' + B'", law: '摩根定律（右式）', note: '恒等式对全部四种输入组合均成立' },
+    ]
+  },
+];
+
+function showDemo(index) {
+  const demo = simplifications[index];
+  const container = document.getElementById('demoSteps');
+  let html = '';
+  for (let i = 0; i < demo.steps.length; i++) {
+    const s = demo.steps[i];
+    html += `<div class="step-card">
+      <div><span class="step-index">${i + 1}</span><span class="step-expr">${s.expr}</span></div>
+      <div class="step-law"><b>${s.law}</b></div>
+      ${s.note ? `<div class="step-note">${s.note}</div>` : ''}
+    </div>`;
+    if (i < demo.steps.length - 1) {
+      html += '<div class="step-arrow">→</div>';
+    }
+  }
+  html += `<div style="width:100%;margin-top:4px"><span class="result-badge">✅ 化简结果：${demo.result}</span></div>`;
+  container.innerHTML = `<div class="steps-container">${html}</div>`;
+}
+
+// ==================== 辅助功能 ====================
+
+function escapeHTML(str) {
+  const div = document.createElement('div');
+  div.appendChild(document.createTextNode(str));
+  return div.innerHTML;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timeout);
+  t._timeout = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+function copyResults() {
+  const text = document.getElementById('res').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('✅ 已复制到剪贴板');
+  }).catch(() => {
+    showToast('⚠️ 复制失败，请手动选择');
+  });
+}
+
+// ==================== 总更新函数 ====================
+
+function updateExprFeedback() {
+  const fb = document.getElementById('exprFeedback');
+  if (!currentAST) return;
+  const ev = evalAST(currentAST, getVars());
+  fb.textContent = `✅ 解析成功 — 当前值 = ${ev}`;
+  fb.className = 'expr-feedback ok';
+}
+
+function updateAll() {
+  updateResults();
+  updateTruthTables();
+  updateKMaps();
+  updateExprFeedback();
+}
+
+// ==================== 事件监听 ====================
+
+document.getElementById('toggleA').addEventListener('change', updateAll);
+document.getElementById('toggleA').addEventListener('input', updateAll);
+document.getElementById('toggleB').addEventListener('change', updateAll);
+document.getElementById('toggleB').addEventListener('input', updateAll);
+document.getElementById('toggleC').addEventListener('change', updateAll);
+document.getElementById('toggleC').addEventListener('input', updateAll);
+document.getElementById('exprInput').addEventListener('input', updateExpression);
+document.getElementById('clearExprBtn').addEventListener('click', () => {
+  document.getElementById('exprInput').value = '';
+  updateExpression();
+});
+document.getElementById('copyBtn').addEventListener('click', copyResults);
+document.getElementById('demoSelect').addEventListener('change', function() {
+  showDemo(+this.value);
+});
+
+// 键盘快捷键
+document.addEventListener('keydown', function(e) {
+  if (e.target.closest('input, select, textarea, [contenteditable]')) return;
+  switch(e.key.toLowerCase()) {
+    case 'a': document.getElementById('toggleA').click(); break;
+    case 'b': document.getElementById('toggleB').click(); break;
+    case 'c': document.getElementById('toggleC').click(); break;
+  }
+});
+
+// ==================== 初始化 ====================
+updateAll();
+showDemo(0);
+</script>
+
+</body>
+</html>
