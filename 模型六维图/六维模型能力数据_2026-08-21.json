@@ -1,0 +1,646 @@
+{
+  "app": "六维模型能力数据",
+  "version": 3,
+  "exportedAt": "2026-08-21T12:40:24.218Z",
+  "models": [
+    {
+      "id": "mt2wgibfmsbxg",
+      "company": "Anthropic",
+      "name": "Claude Opus 4.8",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "D",
+        "reasoning": "A",
+        "code": "A",
+        "multimodal": "B",
+        "agent": "A",
+        "fact": "A"
+      }
+    },
+    {
+      "id": "mt2wguhietrun",
+      "company": "Anthropic",
+      "name": "Claude Fable 5",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "E",
+        "reasoning": "A",
+        "code": "A",
+        "multimodal": "B",
+        "agent": "A",
+        "fact": "A"
+      }
+    },
+    {
+      "id": "mt2wh1qziu5ic",
+      "company": "Anthropic",
+      "name": "Claude Sonnet 5",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "C",
+        "reasoning": "A",
+        "code": "A",
+        "multimodal": "B",
+        "agent": "A",
+        "fact": "B"
+      }
+    },
+    {
+      "id": "mt2whnhoy1kdb",
+      "company": "XAi",
+      "name": "Grok Imagine Video 1.5",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "B",
+        "reasoning": "D",
+        "code": "E",
+        "multimodal": "A",
+        "agent": "E",
+        "fact": "D"
+      }
+    },
+    {
+      "id": "mt2whsgj9anav",
+      "company": "XAi",
+      "name": "Grok 4.5",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "B",
+        "reasoning": "B",
+        "code": "A",
+        "multimodal": "B",
+        "agent": "A",
+        "fact": "B"
+      }
+    },
+    {
+      "id": "mt2wi5cpfvkec",
+      "company": "XAi",
+      "name": "Imagine Image 2.0",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "A",
+        "reasoning": "D",
+        "code": "E",
+        "multimodal": "A",
+        "agent": "E",
+        "fact": "D"
+      }
+    },
+    {
+      "id": "mt2widtytwwrj",
+      "company": "XAi",
+      "name": "Grok4.6",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "B",
+        "reasoning": "A",
+        "code": "A",
+        "multimodal": "B",
+        "agent": "A",
+        "fact": "B"
+      }
+    },
+    {
+      "id": "mt2wj2soht58w",
+      "company": "Google",
+      "name": "Gemini 3.5 Flash",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "C",
+        "reasoning": "B",
+        "code": "B",
+        "multimodal": "A",
+        "agent": "A",
+        "fact": "B"
+      }
+    },
+    {
+      "id": "mt2wjbzfp9ysy",
+      "company": "Google",
+      "name": "NanoBanana 2",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "B",
+        "reasoning": "C",
+        "code": "E",
+        "multimodal": "A",
+        "agent": "C",
+        "fact": "B"
+      }
+    },
+    {
+      "id": "mt2wjlp7rqc8e",
+      "company": "Google",
+      "name": "Nano Banana Pro",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "D",
+        "reasoning": "C",
+        "code": "E",
+        "multimodal": "A",
+        "agent": "C",
+        "fact": "B"
+      }
+    },
+    {
+      "id": "mt2wjuj5wbaa7",
+      "company": "Google",
+      "name": "Nano Banana 2 Lite",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "A",
+        "reasoning": "D",
+        "code": "E",
+        "multimodal": "A",
+        "agent": "E",
+        "fact": "C"
+      }
+    },
+    {
+      "id": "mt2wvenmluhkr",
+      "company": "Google",
+      "name": "Gemini 3.6 Flash",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "A",
+        "reasoning": "B",
+        "code": "A",
+        "multimodal": "A",
+        "agent": "A",
+        "fact": "B"
+      }
+    },
+    {
+      "id": "mt2ww25tq2l38",
+      "company": "Google",
+      "name": "Gemini 3.5 Flash-Lite",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "A",
+        "reasoning": "C",
+        "code": "C",
+        "multimodal": "A",
+        "agent": "B",
+        "fact": "C"
+      }
+    },
+    {
+      "id": "mt2wwoccuygv6",
+      "company": "Google",
+      "name": "Gemini 3.7 Flash",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "A",
+        "reasoning": "A",
+        "code": "A",
+        "multimodal": "A",
+        "agent": "A",
+        "fact": "B"
+      }
+    },
+    {
+      "id": "mt2wx70ckj1p0",
+      "company": "OpenAi",
+      "name": "GPT-5.6 Sol",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "D",
+        "reasoning": "A",
+        "code": "A",
+        "multimodal": "B",
+        "agent": "A",
+        "fact": "A"
+      }
+    },
+    {
+      "id": "mt2wxeqmw110d",
+      "company": "OpenAi",
+      "name": "GPT-5.6 Terra",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "C",
+        "reasoning": "B",
+        "code": "B",
+        "multimodal": "B",
+        "agent": "A",
+        "fact": "B"
+      }
+    },
+    {
+      "id": "mt2wxlw4nshpa",
+      "company": "OpenAi",
+      "name": "GPT-5.6 Luna",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "A",
+        "reasoning": "C",
+        "code": "C",
+        "multimodal": "B",
+        "agent": "B",
+        "fact": "C"
+      }
+    },
+    {
+      "id": "mt2wy61lizqv4",
+      "company": "智谱",
+      "name": "GLM-5.2",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "A",
+        "reasoning": "B",
+        "code": "A",
+        "multimodal": "E",
+        "agent": "A",
+        "fact": "B"
+      }
+    },
+    {
+      "id": "mt2wyf936rj6j",
+      "company": "智谱",
+      "name": "GLM-5.3",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "B",
+        "reasoning": "B",
+        "code": "A",
+        "multimodal": "E",
+        "agent": "A",
+        "fact": "B"
+      }
+    },
+    {
+      "id": "mt2wywa80dm4h",
+      "company": "MoonShot",
+      "name": "Kimi K2.7 Code",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "B",
+        "reasoning": "B",
+        "code": "A",
+        "multimodal": "B",
+        "agent": "A",
+        "fact": "B"
+      }
+    },
+    {
+      "id": "mt2wz2ud38wr5",
+      "company": "MoonShot",
+      "name": "Kimi K3",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "D",
+        "reasoning": "A",
+        "code": "A",
+        "multimodal": "A",
+        "agent": "A",
+        "fact": "A"
+      }
+    },
+    {
+      "id": "mt2wza4413ex0",
+      "company": "MoonShot",
+      "name": "Kimi K2.6",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "B",
+        "reasoning": "B",
+        "code": "A",
+        "multimodal": "A",
+        "agent": "A",
+        "fact": "B"
+      }
+    },
+    {
+      "id": "mt2wzhu8r2nuo",
+      "company": "MoonShot",
+      "name": "Kimi K2.5",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "B",
+        "reasoning": "B",
+        "code": "B",
+        "multimodal": "A",
+        "agent": "A",
+        "fact": "B"
+      }
+    },
+    {
+      "id": "mt2xeffgnb16x",
+      "company": "通义千问",
+      "name": "Qwen3.8-Max",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "B",
+        "reasoning": "A",
+        "code": "A",
+        "multimodal": "A",
+        "agent": "A",
+        "fact": "B"
+      }
+    },
+    {
+      "id": "mt2xejv6vrfxv",
+      "company": "通义千问",
+      "name": "Qwen3.7-Plus",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "A",
+        "reasoning": "B",
+        "code": "B",
+        "multimodal": "A",
+        "agent": "A",
+        "fact": "B"
+      }
+    },
+    {
+      "id": "mt2xer53sedlz",
+      "company": "通义千问",
+      "name": "Qwen-Image-3.0",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "C",
+        "reasoning": "C",
+        "code": "E",
+        "multimodal": "A",
+        "agent": "C",
+        "fact": "B"
+      }
+    },
+    {
+      "id": "mt2xexfhxs01q",
+      "company": "通义千问",
+      "name": "Qwen3.7-Max",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "C",
+        "reasoning": "B",
+        "code": "B",
+        "multimodal": "A",
+        "agent": "A",
+        "fact": "B"
+      }
+    },
+    {
+      "id": "mt2xfmuzdrfj6",
+      "company": "Meta",
+      "name": "Muse Spark 1.1",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "A",
+        "reasoning": "B",
+        "code": "A",
+        "multimodal": "A",
+        "agent": "A",
+        "fact": "B"
+      }
+    },
+    {
+      "id": "mt2xfteh0fpt5",
+      "company": "Meta",
+      "name": "Muse Spark 1.2",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "A",
+        "reasoning": "B",
+        "code": "A",
+        "multimodal": "A",
+        "agent": "A",
+        "fact": "B"
+      }
+    },
+    {
+      "id": "mt2xg80j58gsq",
+      "company": "DeepSeek",
+      "name": "DeepSeek-V4-Flash-0731",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "A",
+        "reasoning": "B",
+        "code": "B",
+        "multimodal": "E",
+        "agent": "A",
+        "fact": "B"
+      }
+    },
+    {
+      "id": "mt2xgff336wic",
+      "company": "DeepSeek",
+      "name": "DeepSeek-V4-Pro-0813",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "A",
+        "reasoning": "B",
+        "code": "A",
+        "multimodal": "E",
+        "agent": "A",
+        "fact": "B"
+      }
+    },
+    {
+      "id": "mt2xh24o6cgu3",
+      "company": "MiiniMax",
+      "name": "MiniMax M3",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "A",
+        "reasoning": "B",
+        "code": "A",
+        "multimodal": "A",
+        "agent": "A",
+        "fact": "B"
+      }
+    },
+    {
+      "id": "mt2xh7udxe7bk",
+      "company": "MiiniMax",
+      "name": "MiniMax H3",
+      "version": "",
+      "releaseDate": "",
+      "paramsActivated": "",
+      "paramsTotal": "",
+      "feature": "",
+      "grades": {
+        "price": "C",
+        "reasoning": "D",
+        "code": "E",
+        "multimodal": "A",
+        "agent": "E",
+        "fact": "D"
+      }
+    }
+  ],
+  "standards": {
+    "price": {
+      "A": "免费或极低定价，性价比极高",
+      "B": "价格较低，性价比良好",
+      "C": "价格中等，性价比一般",
+      "D": "价格较高，性价比偏低",
+      "E": "价格昂贵，性价比差"
+    },
+    "reasoning": {
+      "A": "推理链条完整，能处理多步骤、跨领域和含歧义问题，识别反例与边界条件",
+      "B": "复杂问题大多能拆解，主要结论可靠，偶尔遗漏隐含条件",
+      "C": "能处理常规分析题，多步骤任务或冲突信息下表现不稳定",
+      "D": "主要依赖模式匹配，复杂问题容易跳步或循环论证",
+      "E": "推理明显不连贯，经常自相矛盾"
+    },
+    "code": {
+      "A": "代码准确可运行，边界处理完善，可直接交付使用",
+      "B": "代码基本正确，偶尔有轻微 bug 或边界遗漏",
+      "C": "常规代码可用，复杂项目与调试能力一般",
+      "D": "代码错误较多，需要较大幅度修改",
+      "E": "代码不可运行，存在严重错误"
+    },
+    "multimodal": {
+      "A": "图像/音频/视频理解全面，跨模态关联能力强",
+      "B": "主要模态表现良好，部分模态或复杂场景不足",
+      "C": "基础多模态任务可用，复杂场景不稳定",
+      "D": "多模态能力较弱，错误较多",
+      "E": "几乎不具备多模态能力"
+    },
+    "agent": {
+      "A": "工具调用准确稳定，能自主完成任务闭环，异常处理完善",
+      "B": "大部分工具调用正确，偶有参数错误或流程中断",
+      "C": "简单工具可用，复杂多步调用不稳定",
+      "D": "经常调用错误或无法完成任务",
+      "E": "基本无法可靠调用工具"
+    },
+    "fact": {
+      "A": "事实和结论高度准确，引用可核验，未知内容明确说明不编造",
+      "B": "大部分答案正确，偶尔轻微遗漏或非核心错误",
+      "C": "基本问题能回答，复杂事实或数字错误较多",
+      "D": "错误明显，常把不确定内容说得过于肯定",
+      "E": "大量事实错误或虚构内容，结果不可用"
+    }
+  },
+  "dataSource": "综合公开信息整理，仅供参考"
+}

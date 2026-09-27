@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>六维模型能力数据</title>
+<style>
+:root{
+  --bg:#eef1f7; --card:#ffffff; --line:#e3e8f2; --text:#1f2937; --muted:#6b7280;
+  --accent:#4f46e5; --accent-soft:#eef0fe;
+  --radius:14px; --shadow:0 1px 3px rgba(15,23,42,.06), 0 8px 24px rgba(15,23,42,.05);
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{background:var(--bg); color:var(--text); font-family:"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif; font-size:14px; line-height:1.6;}
+h1,h2,h3{line-height:1.35;}
+button{font-family:inherit; cursor:pointer;}
+
+/* ---------- 顶栏 ---------- */
+.topbar{position:sticky; top:0; z-index:50; background:rgba(255,255,255,.92); backdrop-filter:blur(8px); border-bottom:1px solid var(--line); padding:14px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;}
+.brand h1{font-size:20px; font-weight:700; background:linear-gradient(120deg,#4f46e5,#7c3aed); -webkit-background-clip:text; background-clip:text; color:transparent;}
+.brand p{font-size:12px; color:var(--muted); margin-top:2px;}
+.actions{display:flex; gap:10px; flex-wrap:wrap;}
+
+/* ---------- 按钮 ---------- */
+.btn{border:1px solid var(--line); background:#fff; color:var(--text); border-radius:10px; padding:8px 14px; font-size:13px; transition:.15s;}
+.btn:hover{border-color:var(--accent); color:var(--accent);}
+.btn-primary{background:var(--accent); border-color:var(--accent); color:#fff;}
+.btn-primary:hover{background:#4338ca; color:#fff;}
+.btn-ghost{border-style:dashed; color:var(--muted); width:100%; padding:10px; margin-top:10px;}
+.btn-ghost:hover{color:var(--accent); border-color:var(--accent); background:var(--accent-soft);}
+.btn-sm{padding:4px 10px; font-size:12px; border-radius:8px;}
+
+/* ---------- 布局 ---------- */
+.layout{display:grid; grid-template-columns:340px minmax(0,1fr); gap:18px; padding:18px 24px 40px; max-width:1500px; margin:0 auto; align-items:start;}
+.left-col{display:flex; flex-direction:column; gap:18px; align-self:start;}
+main{display:flex; flex-direction:column; gap:18px; min-width:0;}
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:18px 20px;}
+.card h2{font-size:15px; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px;}
+.card h2 .hint{font-size:12px; color:var(--muted); font-weight:400;}
+
+/* ---------- 侧栏（模型库） ---------- */
+.sidebar{max-height:min(44vh, 420px); overflow:auto;}
+.side-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+.side-head h2{font-size:15px; margin:0;}
+.count{background:var(--accent-soft); color:var(--accent); font-size:12px; padding:2px 10px; border-radius:999px; font-weight:600;}
+.model-list{display:flex; flex-direction:column; gap:8px;}
+.company-group{margin-bottom:12px;}
+.company-group:last-child{margin-bottom:0;}
+.company-head{font-size:12.5px; font-weight:700; color:var(--muted); display:flex; justify-content:space-between; align-items:center; padding:3px 2px 6px; border-bottom:1px dashed var(--line); margin-bottom:6px;}
+.model-card{border:1px solid var(--line); border-radius:12px; padding:9px 12px; cursor:pointer; transition:.15s; background:#fbfcfe; margin-bottom:6px;}
+.model-card:hover{border-color:#c7cdf5;}
+.model-card.sel{border-color:var(--accent); background:var(--accent-soft); box-shadow:0 0 0 1px var(--accent);}
+.mc-top{display:flex; align-items:center; gap:8px;}
+.mc-check{accent-color:var(--accent); width:15px; height:15px; cursor:pointer; flex-shrink:0;}
+.mc-name{font-weight:600; font-size:13.5px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.mc-badges{display:flex; gap:3px; flex-shrink:0;}
+.g-badge{width:18px; height:18px; border-radius:5px; color:#fff; font-size:10.5px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; line-height:1;}
+.mc-sub{display:flex; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap; padding-left:23px;}
+.mc-sub .meta{font-size:11.5px; color:var(--muted);}
+.mc-ops{margin-left:auto; display:flex; gap:4px; opacity:0; transition:.15s;}
+.model-card:hover .mc-ops, .model-card.sel .mc-ops{opacity:1;}
+.mc-ops button{border:none; background:transparent; font-size:13px; padding:2px 4px; border-radius:6px;}
+.mc-ops button:hover{background:rgba(79,70,229,.12);}
+
+/* ---------- 模型基本信息 ---------- */
+.info-row{display:flex; gap:10px; padding:7px 2px; border-bottom:1px dashed #eef1f8; font-size:12.5px; align-items:flex-start;}
+.info-row:last-child{border-bottom:none;}
+.info-lbl{color:var(--muted); flex-shrink:0; min-width:84px;}
+.info-val{flex:1; word-break:break-word; white-space:pre-wrap; color:var(--text);}
+.info-empty{color:var(--muted); font-size:12.5px; text-align:center; padding:14px 0;}
+
+/* ---------- 雷达图 ---------- */
+.radar-wrap{display:flex; justify-content:center;}
+.radar-wrap svg{width:100%; max-width:500px; height:auto;}
+.ring-label{font-size:10px; fill:#9aa3b2;}
+.axis-label{font-size:12.5px; fill:#374151; font-weight:600;}
+.radar-legend{display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:8px;}
+.rl-item{display:flex; align-items:center; gap:6px; font-size:12.5px; cursor:pointer; padding:3px 10px; border-radius:999px; border:1px solid var(--line);}
+.rl-item.sel{background:var(--accent-soft); border-color:var(--accent);}
+.rl-dot{width:10px; height:10px; border-radius:3px;}
+.rl-grades{font-size:11px; color:var(--muted); letter-spacing:1px;}
+
+/* ---------- 维度得分（等级制） ---------- */
+.dim-head, .dim-row{display:grid; grid-template-columns:minmax(0,1.15fr) auto minmax(0,1.35fr); gap:12px; align-items:center; padding:9px 6px;}
+.dim-head{font-size:12px; color:var(--muted); border-bottom:1px solid var(--line); font-weight:600;}
+.dim-row{border-bottom:1px solid #f1f4fa;}
+.dim-row:last-child{border-bottom:none;}
+.dim-row:hover{background:#fafbfe;}
+.dim-name{font-weight:600; font-size:13px; cursor:help;}
+.dim-items{display:block; font-size:11.5px; color:var(--muted); font-weight:400; margin-top:1px;}
+.grade-group{display:flex; gap:6px;}
+.g-btn{width:34px; height:34px; border-radius:50%; border:1.5px solid var(--line); background:#fff; font-weight:800; font-size:13px; color:var(--muted); transition:.12s;}
+.g-btn:hover{border-color:var(--accent); color:var(--accent); transform:scale(1.06);}
+.dim-band{font-size:11.5px; color:var(--muted); line-height:1.45;}
+
+/* ---------- 空状态 ---------- */
+.empty{text-align:center; padding:70px 20px; color:var(--muted);}
+.empty .big{font-size:40px; margin-bottom:12px;}
+.empty h3{font-size:16px; color:var(--text); margin-bottom:6px;}
+
+/* ---------- 弹窗 ---------- */
+.modal-backdrop{position:fixed; inset:0; background:rgba(15,23,42,.45); backdrop-filter:blur(3px); z-index:100; display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; overflow:auto;}
+.modal{background:#fff; border-radius:16px; max-width:720px; width:100%; padding:22px 24px; box-shadow:0 24px 64px rgba(15,23,42,.25); animation:pop .18s ease;}
+.modal-wide{max-width:900px;}
+@keyframes pop{from{transform:translateY(10px); opacity:0;} to{transform:none; opacity:1;}}
+.modal h2{font-size:16px; margin-bottom:6px;}
+.modal .hint{font-size:12px; color:var(--muted); font-weight:400;}
+.modal-close{float:right; border:none; background:transparent; font-size:18px; color:var(--muted);}
+.form-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px 14px;}
+.form-grid .full{grid-column:1/-1;}
+.f-label{font-size:12px; color:var(--muted); margin-bottom:3px; display:block;}
+.f-label b{color:var(--text);}
+input[type=text], input[type=number], input[type=date], select, textarea{width:100%; padding:7px 10px; border:1px solid var(--line); border-radius:9px; font-size:13px; font-family:inherit; color:var(--text); background:#fff;}
+input:focus, select:focus, textarea:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(79,70,229,.12);}
+.grade-field{display:grid; grid-template-columns:1fr 150px; gap:8px; align-items:start;}
+.grade-field select{font-weight:700;}
+.grade-hint{font-size:11px; color:var(--muted); background:#f8f9fd; border-radius:8px; padding:4px 8px; min-height:24px; line-height:1.4;}
+.modal-foot{display:flex; justify-content:flex-end; gap:10px; margin-top:18px;}
+.radio-line{display:flex; gap:16px; margin:10px 0; font-size:13px;}
+.radio-line label{display:flex; align-items:center; gap:5px; cursor:pointer;}
+#importText{min-height:90px; font-family:Consolas,Menlo,monospace; font-size:11.5px;}
+
+/* ---------- 评级标准表 ---------- */
+.std-wrap{max-height:56vh; overflow:auto; margin-top:12px; border:1px solid var(--line); border-radius:10px;}
+.std-table{width:100%; border-collapse:collapse; font-size:12px;}
+.std-table th{background:#f6f7fc; padding:8px 10px; border-bottom:1px solid var(--line); position:sticky; top:0; text-align:center; font-size:12px;}
+.std-table th.std-dim-col, .std-table td.std-dim{text-align:left; min-width:96px;}
+.std-table td{border-bottom:1px solid #f1f4fa; padding:6px 8px; vertical-align:top;}
+.std-table tr:last-child td{border-bottom:none;}
+.std-table textarea{width:100%; min-height:48px; border:1px solid var(--line); border-radius:7px; font-size:12px; padding:6px 8px; background:#fbfcfe; font-family:inherit; color:var(--text); resize:vertical; line-height:1.5;}
+.std-table textarea:focus{outline:none; border-color:var(--accent); background:#fff;}
+
+/* ---------- 页脚 ---------- */
+footer{text-align:center; color:var(--muted); font-size:12px; padding:8px 20px 34px;}
+.footer-source{display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:8px; flex-wrap:wrap;}
+.footer-source .lbl{white-space:nowrap;}
+#dataSource{width:min(600px, 78vw); text-align:center; border:1px dashed var(--line); background:transparent; border-radius:8px; padding:5px 12px; font-size:12.5px; color:var(--text);}
+#dataSource:focus{outline:none; border-color:var(--accent); background:#fff; border-style:solid;}
+
+/* ---------- Toast ---------- */
+#toast{position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(80px); background:#111827; color:#fff; padding:10px 20px; border-radius:10px; font-size:13px; z-index:200; opacity:0; transition:.25s; pointer-events:none; max-width:80vw;}
+#toast.show{transform:translateX(-50%) translateY(0); opacity:1;}
+
+@media (max-width:1100px){
+  .layout{grid-template-columns:1fr;}
+  .sidebar{max-height:none;}
+}
+@media (max-width:760px){
+  .dim-head{display:none;}
+  .dim-row{grid-template-columns:1fr auto;}
+  .dim-row .dim-band{grid-column:1/-1;}
+  .form-grid{grid-template-columns:1fr;}
+  .grade-field{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <h1>六维模型能力数据</h1>
+    <p>市面主流大模型六维能力数据汇总 · 数据保存在本地浏览器，可导出 JSON 备份</p>
+  </div>
+  <div class="actions">
+    <button class="btn" onclick="copySummary()" id="btnCopy" disabled>📋 复制数据摘要</button>
+    <button class="btn" onclick="openStandards()">📖 评级标准</button>
+    <button class="btn" onclick="exportData()">📤 导出数据</button>
+    <button class="btn" onclick="openImport()">📥 导入数据</button>
+    <button class="btn btn-primary" onclick="openForm()">＋ 新增模型</button>
+  </div>
+</header>
+
+<div class="layout">
+  <div class="left-col">
+    <aside class="sidebar card">
+      <div class="side-head"><h2>模型库</h2><span class="count" id="modelCount">0</span></div>
+      <div class="model-list" id="modelList"></div>
+      <button class="btn btn-ghost" onclick="openForm()">＋ 新增模型</button>
+    </aside>
+
+    <section class="card" id="infoCard">
+      <h2>模型基本信息</h2>
+      <div id="modelInfo"></div>
+    </section>
+  </div>
+
+  <main>
+    <div id="emptyState" class="card empty" style="display:none;">
+      <div class="big">📊</div>
+      <h3>还没有模型数据</h3>
+      <p>点击「＋ 新增模型」开始添加，或「📥 导入数据」加载已有 JSON。</p>
+    </div>
+
+    <div id="workArea" style="display:none;">
+      <section class="card">
+        <h2>六维雷达图 <span class="hint">勾选模型库左侧复选框可叠加对比 · 等级落点 A=100 B=80 C=60 D=40 E=20（对齐网格）</span></h2>
+        <div class="radar-wrap" id="radarWrap"></div>
+        <div class="radar-legend" id="radarLegend"></div>
+      </section>
+
+      <section class="card">
+        <h2>维度得分 <span class="hint">点击等级按钮为所选模型评级，右侧显示对应评级标准（可在「📖 评级标准」中修改）</span></h2>
+        <div class="dim-head">
+          <div>维度</div><div>等级</div><div>评级标准</div>
+        </div>
+        <div id="dimRows"></div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<footer>
+  <div class="footer-source">
+    <span class="lbl">数据来源：</span>
+    <input type="text" id="dataSource" onchange="saveSource()" title="可直接编辑">
+  </div>
+  <div>六维模型能力数据 · 数据仅保存在本浏览器（localStorage），建议定期「📤 导出数据」备份</div>
+</footer>
+
+<!-- 新增 / 编辑模型弹窗 -->
+<div class="modal-backdrop" id="formModal" style="display:none;" onclick="if(event.target===this)closeForm()">
+  <div class="modal modal-wide">
+    <button class="modal-close" onclick="closeForm()">✕</button>
+    <h2 id="formTitle">新增模型</h2>
+    <div class="form-grid">
+      <div><label class="f-label"><b>*</b> 所属公司</label>
+        <select id="f_company" onchange="toggleNewCompany()"></select>
+        <input type="text" id="f_newCompany" placeholder="输入新公司名称" style="display:none; margin-top:6px;">
+      </div>
+      <div><label class="f-label"><b>*</b> 模型名称</label><input type="text" id="f_name" placeholder="如：GPT-4o、DeepSeek-R1"></div>
+      <div><label class="f-label">版本号</label><input type="text" id="f_version" placeholder="如：v1.0 / 2024-11"></div>
+      <div><label class="f-label">发布日期</label><input type="date" id="f_releaseDate"></div>
+      <div><label class="f-label">参数量·激活（单位 B，如 7）</label><input type="number" id="f_paramsActivated" min="0" step="any" placeholder="如：7"></div>
+      <div><label class="f-label">参数量·总（单位 B，如 70）</label><input type="number" id="f_paramsTotal" min="0" step="any" placeholder="如：70"></div>
+      <div class="full"><label class="f-label">模型特点/专长</label><textarea id="f_feature" placeholder="如：擅长长文本推理、代码生成、数学、多语言等"></textarea></div>
+      <div id="gradeFields" class="full"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeForm()">取消</button>
+      <button class="btn btn-primary" onclick="submitForm()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 评级标准弹窗 -->
+<div class="modal-backdrop" id="stdModal" style="display:none;" onclick="if(event.target===this)closeStandards()">
+  <div class="modal modal-wide">
+    <button class="modal-close" onclick="closeStandards()">✕</button>
+    <h2>评级标准 <span class="hint">为六个维度的 A–E 等级定义说明，修改后点「保存」即可生效（保存在本浏览器）</span></h2>
+    <div class="std-wrap">
+      <table class="std-table" id="stdTable"></table>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="resetStandards()">恢复默认</button>
+      <button class="btn" onclick="closeStandards()">取消</button>
+      <button class="btn btn-primary" onclick="saveStandardsFromModal()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 导入弹窗 -->
+<div class="modal-backdrop" id="importModal" style="display:none;" onclick="if(event.target===this)closeImport()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeImport()">✕</button>
+    <h2>导入数据</h2>
+    <div class="radio-line">
+      <label><input type="radio" name="impMode" value="merge" checked> 合并（保留现有，追加导入）</label>
+      <label><input type="radio" name="impMode" value="replace"> 覆盖（替换全部模型）</label>
+    </div>
+    <label class="f-label">选择 JSON 文件</label>
+    <input type="file" id="importFile" accept=".json,application/json" style="margin-bottom:10px;">
+    <label class="f-label">或粘贴 JSON 内容</label>
+    <textarea id="importText" placeholder='{"models":[...]}'></textarea>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeImport()">取消</button>
+      <button class="btn btn-primary" onclick="doImport()">导入</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ================= 六维定义（等级制 ABCDE） ================= */
+const DIMS = [
+  {key:'price',      name:'价格',        question:'模型的价格与性价比如何？',            items:'定价、免费额度、性价比'},
+  {key:'reasoning',  name:'推理',        question:'复杂问题的推理能力如何？',            items:'逻辑推理、多步拆解、因果分析、边界条件'},
+  {key:'code',       name:'代码',        question:'代码生成与理解能力如何？',            items:'代码正确性、可运行性、调试、边界处理'},
+  {key:'multimodal', name:'多模态',      question:'多模态理解能力如何？',                items:'图像、音频、视频理解、跨模态关联'},
+  {key:'agent',      name:'工具调用',    question:'工具调用与智能体能力如何？',          items:'调用准确率、多步流程、异常处理、自主完成'},
+  {key:'fact',       name:'事实准确性',  question:'事实与知识输出的准确性如何？',        items:'事实正确率、引用可核验、幻觉率'}
+];
+
+const GRADE_KEYS = ['A','B','C','D','E'];
+const GRADE_COLORS = {A:'#059669', B:'#2563eb', C:'#b45309', D:'#ea580c', E:'#dc2626'};
+const GRADE_VALUE = {A:100, B:80, C:60, D:40, E:20};   // 等级 → 雷达图数值（与 20/40/60/80/100 网格对齐）
+
+/* ================= 默认评级标准（可在弹窗中修改） ================= */
+const STANDARD_DEFAULTS = {
+  price: {
+    A:'免费或极低定价，性价比极高',
+    B:'价格较低，性价比良好',
+    C:'价格中等，性价比一般',
+    D:'价格较高，性价比偏低',
+    E:'价格昂贵，性价比差'
+  },
+  reasoning: {
+    A:'推理链条完整，能处理多步骤、跨领域和含歧义问题，识别反例与边界条件',
+    B:'复杂问题大多能拆解，主要结论可靠，偶尔遗漏隐含条件',
+    C:'能处理常规分析题，多步骤任务或冲突信息下表现不稳定',
+    D:'主要依赖模式匹配，复杂问题容易跳步或循环论证',
+    E:'推理明显不连贯，经常自相矛盾'
+  },
+  code: {
+    A:'代码准确可运行，边界处理完善，可直接交付使用',
+    B:'代码基本正确，偶尔有轻微 bug 或边界遗漏',
+    C:'常规代码可用，复杂项目与调试能力一般',
+    D:'代码错误较多，需要较大幅度修改',
+    E:'代码不可运行，存在严重错误'
+  },
+  multimodal: {
+    A:'图像/音频/视频理解全面，跨模态关联能力强',
+    B:'主要模态表现良好，部分模态或复杂场景不足',
+    C:'基础多模态任务可用，复杂场景不稳定',
+    D:'多模态能力较弱，错误较多',
+    E:'几乎不具备多模态能力'
+  },
+  agent: {
+    A:'工具调用准确稳定，能自主完成任务闭环，异常处理完善',
+    B:'大部分工具调用正确，偶有参数错误或流程中断',
+    C:'简单工具可用，复杂多步调用不稳定',
+    D:'经常调用错误或无法完成任务',
+    E:'基本无法可靠调用工具'
+  },
+  fact: {
+    A:'事实和结论高度准确，引用可核验，未知内容明确说明不编造',
+    B:'大部分答案正确，偶尔轻微遗漏或非核心错误',
+    C:'基本问题能回答，复杂事实或数字错误较多',
+    D:'错误明显，常把不确定内容说得过于肯定',
+    E:'大量事实错误或虚构内容，结果不可用'
+  }
+};
+
+/* ================= 常量 / 状态 ================= */
+const LS_KEY = 'sixdim_tool_v25';
+const LS_STD = 'sixdim_standards_v25';
+const LS_SRC = 'sixdim_source_v25';
+const DEFAULT_SOURCE = '综合公开信息整理，仅供参考';
+
+let state = {
+  models: [],                       // [{id,company,name,version,releaseDate,paramsActivated,paramsTotal,grades{...}}]
+  selected: null,
+  compare: []                       // 雷达图叠加对比的模型 id 列表
+};
+let standards = loadStandards();
+
+/* ================= 工具函数 ================= */
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const getModel = id => state.models.find(m=>m.id===id);
+const colorOf = id => COLORS[Math.max(0, state.models.findIndex(m=>m.id===id)) % COLORS.length];
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const COLORS = ['#4f46e5','#f59e0b','#0ea5e9','#10b981','#ef4444','#8b5cf6','#ec4899','#84cc16','#f97316','#14b8a6'];
+
+function loadStandards(){
+  try{
+    const raw = localStorage.getItem(LS_STD);
+    if(raw){
+      const d = JSON.parse(raw);
+      if(d && d.price && d.price.A !== undefined) return d;
+    }
+  }catch(e){ console.warn('评级标准加载失败', e); }
+  return JSON.parse(JSON.stringify(STANDARD_DEFAULTS));
+}
+function saveStandards(){ localStorage.setItem(LS_STD, JSON.stringify(standards)); }
+
+function companies(){
+  const set = new Set();
+  for(const m of state.models) if(m.company) set.add(m.company);
+  return [...set].sort((a,b)=>a.localeCompare(b,'zh'));
+}
+
+/* ================= 持久化 ================= */
+function save(){
+  localStorage.setItem(LS_KEY, JSON.stringify({models:state.models}));
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return false;
+    const data = JSON.parse(raw);
+    if(Array.isArray(data.models)){
+      state.models = data.models;
+      if(state.models.length) state.selected = state.models[0].id;
+      return true;
+    }
+  }catch(e){ console.warn('加载数据失败', e); }
+  return false;
+}
+function seedExample(){
+  state.models = [{
+    id: uid(), company:'示例公司', name:'示例模型', version:'v1.0', releaseDate:'2026-01-01',
+    paramsActivated:'7', paramsTotal:'70', feature:'示例：综合能力均衡，擅长推理与代码',
+    grades:{price:'B', reasoning:'A', code:'A', multimodal:'B', agent:'B', fact:'A'}
+  }];
+  state.selected = state.models[0].id;
+  save();
+}
+
+/* ================= Toast ================= */
+let toastTimer=null;
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 2200);
+}
+
+/* ================= 渲染：模型列表（按公司分组） ================= */
+function renderModelList(){
+  const list = document.getElementById('modelList');
+  document.getElementById('modelCount').textContent = state.models.length + ' 个';
+  if(!state.models.length){
+    list.innerHTML = '<p style="font-size:12.5px;color:var(--muted);text-align:center;padding:14px 0;">暂无模型，点击下方按钮新增</p>';
+    return;
+  }
+  const groups = {};
+  for(const m of state.models){ const c = m.company || '未分类'; (groups[c]=groups[c]||[]).push(m); }
+  list.innerHTML = Object.keys(groups).sort((a,b)=>a.localeCompare(b,'zh')).map(c=>`
+    <div class="company-group">
+      <div class="company-head"><span>🏢 ${esc(c)}</span><span class="count">${groups[c].length}</span></div>
+      ${groups[c].map(modelCard).join('')}
+    </div>`).join('');
+}
+function modelCard(m){
+  const sel = m.id===state.selected ? ' sel':'';
+  const checked = state.compare.includes(m.id) ? 'checked':'';
+  const badges = DIMS.map(d=>{
+    const g = m.grades[d.key];
+    return `<span class="g-badge" style="background:${GRADE_COLORS[g]||'#cbd5e1'}" title="${d.name}：${g?((standards[d.key]||{})[g]||''):'未评级'}">${g||'—'}</span>`;
+  }).join('');
+  return `<div class="model-card${sel}" onclick="selectModel('${m.id}')">
+    <div class="mc-top">
+      <input type="checkbox" class="mc-check" ${checked} onclick="event.stopPropagation();toggleCompare('${m.id}')" title="叠加到雷达图对比">
+      <span class="mc-name" title="${esc(m.name)}">${esc(m.name)}</span>
+      <span class="mc-badges">${badges}</span>
+      <span class="mc-ops">
+        <button title="编辑" onclick="event.stopPropagation();openForm('${m.id}')">✏️</button>
+        <button title="删除" onclick="event.stopPropagation();deleteModel('${m.id}')">🗑️</button>
+      </span>
+    </div>
+    <div class="mc-sub">
+      ${m.version?`<span class="meta">${esc(m.version)}</span>`:''}
+      ${m.releaseDate?`<span class="meta">${m.releaseDate}</span>`:''}
+      ${(m.paramsActivated||m.paramsTotal)?`<span class="meta">激活 ${esc(m.paramsActivated||'—')}B / 总 ${esc(m.paramsTotal||'—')}B</span>`:''}
+    </div>
+  </div>`;
+}
+
+/* ================= 渲染：模型基本信息（模型库下方） ================= */
+function renderModelInfo(){
+  const el = document.getElementById('modelInfo');
+  const m = getModel(state.selected);
+  if(!m){
+    el.innerHTML = '<p class="info-empty">暂无模型数据</p>';
+    return;
+  }
+  el.innerHTML = `
+    <div class="info-row"><span class="info-lbl">模型名称</span><span class="info-val">${esc(m.name)}</span></div>
+    <div class="info-row"><span class="info-lbl">所属公司</span><span class="info-val">${esc(m.company||'未分类')}</span></div>
+    ${m.version?`<div class="info-row"><span class="info-lbl">版本号</span><span class="info-val">${esc(m.version)}</span></div>`:''}
+    <div class="info-row"><span class="info-lbl">发布日期</span><span class="info-val">${m.releaseDate||'—'}</span></div>
+    <div class="info-row"><span class="info-lbl">参数量</span><span class="info-val">激活 ${esc(m.paramsActivated||'—')}B / 总 ${esc(m.paramsTotal||'—')}B</span></div>
+    <div class="info-row"><span class="info-lbl">模型特点/专长</span><span class="info-val">${m.feature?esc(m.feature):'—'}</span></div>`;
+}
+
+/* ================= 渲染：维度得分（等级制，内联评级） ================= */
+function renderGrades(){
+  const m = getModel(state.selected);
+  if(!m) return;
+  document.getElementById('dimRows').innerHTML = DIMS.map(d=>{
+    const g = m.grades[d.key] || '';
+    const btns = GRADE_KEYS.map(k=>`
+      <button class="g-btn${g===k?' sel':''}" style="${g===k?`background:${GRADE_COLORS[k]};border-color:${GRADE_COLORS[k]};color:#fff`:''}"
+        onclick="setGrade('${d.key}','${k}')" title="${k}：${(standards[d.key]||{})[k]||''}">${k}</button>`).join('');
+    const desc = g ? ((standards[d.key]||{})[g] || '') : '未评级';
+    return `<div class="dim-row">
+      <div class="dim-name" title="主要考察：${d.items}">${d.name}<span class="dim-items">${d.items}</span></div>
+      <div class="grade-group">${btns}</div>
+      <div class="dim-band">${g?`<b style="color:${GRADE_COLORS[g]}">${g}</b>　`:''}${esc(desc)}</div>
+    </div>`;
+  }).join('');
+}
+function setGrade(key, g){
+  const m = getModel(state.selected);
+  if(!m) return;
+  m.grades[key] = g;
+  save(); renderAll();
+}
+
+/* ================= 渲染：雷达图（SMIL 平滑动画） ================= */
+function renderRadar(){
+  const wrap = document.getElementById('radarWrap');
+  const ids = state.selected ? [state.selected, ...state.compare.filter(i=>i!==state.selected)] : [...state.compare];
+  const models = ids.map(getModel).filter(Boolean);
+  const W=560, H=560, cx=W/2, cy=H/2+8, R=196;
+  const angs = DIMS.map((_,i)=>(-90 + i*60)*Math.PI/180);
+  const pt = (r,i)=>[cx + r*Math.cos(angs[i]), cy + r*Math.sin(angs[i])];
+  const DUR = 0.6;
+
+  const prevPts = state._radarPts || {};
+  const nextPts = {};
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="六维雷达图">`;
+  for(const lv of [20,40,60,80,100]){
+    const pts = DIMS.map((_,i)=>pt(R*lv/100,i));
+    svg += `<polygon points="${pts.map(p=>p.join(',')).join(' ')}" fill="${lv===100?'none':'#f6f8fd'}" fill-opacity="0.6" stroke="#dbe2ef" stroke-width="1"/>`;
+    const lp = pt(R*lv/100, 3);
+    svg += `<text x="${lp[0]+8}" y="${lp[1]+4}" class="ring-label">${lv}</text>`;
+  }
+  for(let i=0;i<6;i++){
+    const p = pt(R, i);
+    svg += `<line x1="${cx}" y1="${cy}" x2="${p[0]}" y2="${p[1]}" stroke="#dbe2ef" stroke-width="1"/>`;
+    const lp = pt(R+34, i);
+    const anchor = Math.cos(angs[i]) < -0.2 ? 'end' : (Math.cos(angs[i]) > 0.2 ? 'start' : 'middle');
+    svg += `<text x="${lp[0]}" y="${lp[1]+4}" class="axis-label" text-anchor="${anchor}">${DIMS[i].name}</text>`;
+  }
+  models.forEach(m=>{
+    const solid = m.id===state.selected;
+    const color = colorOf(m.id);
+    const pts = DIMS.map((_,i)=>pt((GRADE_VALUE[m.grades[DIMS[i].key]] || 0)/100*R, i));
+    nextPts[m.id] = pts;
+    const to = pts.map(p=>p.join(',')).join(' ');
+    const from = prevPts[m.id];
+    // 有旧位置 → 平滑过渡；首次出现 → 从中心展开
+    const anim = from
+      ? `<animate attributeName="points" values="${from.map(p=>p.join(',')).join(' ')};${to}" dur="${DUR}s" fill="freeze" calcMode="linear"/>`
+      : `<animate attributeName="points" values="${DIMS.map(()=>cx+','+cy).join(' ')};${to}" dur="${DUR}s" fill="freeze" calcMode="linear"/>`;
+    svg += `<polygon points="${to}" fill="${color}" fill-opacity="${solid?0.22:0.08}" stroke="${color}" stroke-width="${solid?3:1.5}" stroke-dasharray="${solid?'none':'5,4'}">${anim}</polygon>`;
+    if(solid) pts.forEach((p,i)=>{
+      const f = (from && from[i]) || [cx, cy];
+      svg += `<circle cx="${p[0]}" cy="${p[1]}" r="3.6" fill="${color}">
+        <animate attributeName="cx" values="${f[0]};${p[0]}" dur="${DUR}s" fill="freeze"/>
+        <animate attributeName="cy" values="${f[1]};${p[1]}" dur="${DUR}s" fill="freeze"/>
+      </circle>`;
+    });
+  });
+  svg += '</svg>';
+  wrap.innerHTML = svg;
+  state._radarPts = nextPts;
+
+  document.getElementById('radarLegend').innerHTML = models.map(m=>{
+    const sel = m.id===state.selected;
+    const gstr = DIMS.map(d=>m.grades[d.key]||'·').join(' ');
+    return `<div class="rl-item${sel?' sel':''}" onclick="selectModel('${m.id}')">
+      <span class="rl-dot" style="background:${colorOf(m.id)}"></span>${esc(m.name)}<span class="rl-grades">${gstr}</span>${sel?'<span class="count" style="margin-left:4px">当前</span>':''}
+    </div>`;
+  }).join('');
+}
+
+/* ================= 选择 / 对比 / 删除 ================= */
+function selectModel(id){
+  state.selected = id;
+  save(); renderAll();
+}
+function toggleCompare(id){
+  const i = state.compare.indexOf(id);
+  if(i>=0) state.compare.splice(i,1); else state.compare.push(id);
+  save(); renderRadar(); renderModelList();
+}
+function deleteModel(id){
+  const m = getModel(id);
+  if(!m) return;
+  if(!confirm(`确定删除模型「${m.name}」？此操作不可恢复。`)) return;
+  state.models = state.models.filter(x=>x.id!==id);
+  state.compare = state.compare.filter(x=>x!==id);
+  if(state.selected===id) state.selected = state.models.length ? state.models[0].id : null;
+  save(); renderAll();
+  toast('已删除');
+}
+
+/* ================= 表单弹窗 ================= */
+let editingId = null;
+function toggleNewCompany(){
+  const sel = document.getElementById('f_company');
+  document.getElementById('f_newCompany').style.display = (sel.value==='__new__') ? 'block' : 'none';
+}
+function openForm(id){
+  editingId = id || null;
+  const m = id ? getModel(id) : null;
+  document.getElementById('formTitle').textContent = m ? `编辑模型：${m.name}` : '新增模型';
+  document.getElementById('f_name').value = m ? m.name : '';
+  document.getElementById('f_version').value = m ? (m.version||'') : '';
+  document.getElementById('f_releaseDate').value = m ? (m.releaseDate||'') : '';
+  document.getElementById('f_paramsActivated').value = m ? (m.paramsActivated||'') : '';
+  document.getElementById('f_paramsTotal').value = m ? (m.paramsTotal||'') : '';
+  document.getElementById('f_feature').value = m ? (m.feature||'') : '';
+
+  const comps = companies();
+  document.getElementById('f_company').innerHTML =
+    `<option value="__new__">＋ 新增公司…</option>` +
+    `<option value="未分类">未分类</option>` +
+    comps.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  document.getElementById('f_company').value = m ? (m.company || '未分类') : (comps[0] || '未分类');
+  document.getElementById('f_newCompany').value = '';
+  document.getElementById('f_newCompany').style.display = 'none';
+
+  document.getElementById('gradeFields').innerHTML = DIMS.map(d=>{
+    const g = m ? (m.grades[d.key]||'') : 'C';
+    return `<div class="full">
+      <label class="f-label"><b>*</b> ${d.name}（A–E）<span style="color:var(--muted)">· ${d.question}</span></label>
+      <div class="grade-field">
+        <select id="fg_${d.key}" onchange="formGradeHint('${d.key}', this.value)">
+          ${GRADE_KEYS.map(k=>`<option value="${k}" ${g===k?'selected':''}>${k}</option>`).join('')}
+        </select>
+        <div class="grade-hint" id="fgh_${d.key}">${g?((standards[d.key]||{})[g]||''):''}</div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('formModal').style.display='flex';
+  document.getElementById('f_name').focus();
+}
+function closeForm(){ document.getElementById('formModal').style.display='none'; editingId=null; }
+function formGradeHint(key, val){
+  document.getElementById('fgh_'+key).textContent = (standards[key]||{})[val] || '';
+}
+function submitForm(){
+  const name = document.getElementById('f_name').value.trim();
+  if(!name){ toast('请填写模型名称'); document.getElementById('f_name').focus(); return; }
+  let company = document.getElementById('f_company').value;
+  if(company==='__new__'){
+    company = document.getElementById('f_newCompany').value.trim();
+    if(!company){ toast('请输入新公司名称'); document.getElementById('f_newCompany').focus(); return; }
+  }
+  const grades = {};
+  for(const d of DIMS) grades[d.key] = document.getElementById('fg_'+d.key).value;
+  const base = {
+    company,
+    name,
+    version: document.getElementById('f_version').value.trim(),
+    releaseDate: document.getElementById('f_releaseDate').value,
+    paramsActivated: document.getElementById('f_paramsActivated').value.trim(),
+    paramsTotal: document.getElementById('f_paramsTotal').value.trim(),
+    feature: document.getElementById('f_feature').value.trim(),
+    grades
+  };
+  if(editingId){
+    const m = getModel(editingId);
+    if(m) Object.assign(m, base);
+    toast('已保存修改');
+  } else {
+    state.models.push({id: uid(), ...base});
+    state.selected = state.models[state.models.length-1].id;
+    toast('已新增模型');
+  }
+  save(); closeForm(); renderAll();
+}
+
+/* ================= 评级标准弹窗 ================= */
+function autoResize(el){
+  el.style.height = 'auto';
+  el.style.height = Math.max(el.scrollHeight + 2, 48) + 'px';
+}
+function openStandards(){
+  document.getElementById('stdTable').innerHTML = `
+    <tr><th class="std-dim-col">维度</th>${GRADE_KEYS.map(k=>`<th style="color:${GRADE_COLORS[k]}">${k}</th>`).join('')}</tr>
+    ${DIMS.map(d=>`<tr>
+      <td class="std-dim"><b>${d.name}</b><br><span style="color:var(--muted);font-size:11px;">${d.items}</span></td>
+      ${GRADE_KEYS.map(k=>`<td><textarea id="std_${d.key}_${k}" oninput="autoResize(this)">${esc((standards[d.key]||{})[k]||'')}</textarea></td>`).join('')}
+    </tr>`).join('')}`;
+  document.querySelectorAll('#stdTable textarea').forEach(autoResize);
+  document.getElementById('stdModal').style.display='flex';
+}
+function closeStandards(){ document.getElementById('stdModal').style.display='none'; }
+function saveStandardsFromModal(){
+  for(const d of DIMS){
+    for(const k of GRADE_KEYS){
+      const el = document.getElementById(`std_${d.key}_${k}`);
+      if(el) standards[d.key][k] = el.value.trim();
+    }
+  }
+  saveStandards();
+  renderAll();
+  closeStandards();
+  toast('评级标准已保存');
+}
+function resetStandards(){
+  standards = JSON.parse(JSON.stringify(STANDARD_DEFAULTS));
+  saveStandards();
+  openStandards();   // 重新渲染表格
+  toast('已恢复默认评级标准');
+}
+
+/* ================= 导出 / 导入 ================= */
+function exportData(){
+  if(!state.models.length){ toast('还没有数据可导出'); return; }
+  const data = {
+    app:'六维模型能力数据', version:3, exportedAt:new Date().toISOString(),
+    models:state.models, standards, dataSource:document.getElementById('dataSource').value
+  };
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `六维模型能力数据_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('已导出 JSON 数据文件');
+}
+function openImport(){ document.getElementById('importModal').style.display='flex'; }
+function closeImport(){ document.getElementById('importModal').style.display='none'; document.getElementById('importFile').value=''; }
+function doImport(){
+  const mode = document.querySelector('input[name="impMode"]:checked').value;
+  const file = document.getElementById('importFile').files[0];
+  const text = document.getElementById('importText').value.trim();
+  if(file){
+    const reader = new FileReader();
+    reader.onload = e => applyImport(e.target.result, mode);
+    reader.readAsText(file);
+  } else if(text){
+    applyImport(text, mode);
+  } else {
+    toast('请选择文件或粘贴 JSON'); return;
+  }
+}
+
+/* 旧版（分数制）维度 → 新版（等级制）维度 映射：新 key → 旧 key */
+const LEGACY_MAP = {fact:'accuracy', reasoning:'reasoning', agent:'instruction', code:'expression', multimodal:'knowledge'};
+function gradeFromScore(v){
+  if(v==null || v==='') return '';
+  const n = Number(v);
+  if(n>=90) return 'A';
+  if(n>=75) return 'B';
+  if(n>=60) return 'C';
+  if(n>=40) return 'D';
+  return 'E';
+}
+function normModel(m){
+  let grades = {};
+  if(m.grades && typeof m.grades==='object'){
+    grades = {...m.grades};
+  } else if(m.scores && typeof m.scores==='object'){
+    for(const d of DIMS) grades[d.key] = gradeFromScore(m.scores[LEGACY_MAP[d.key]]);
+  }
+  return {
+    id: uid(),
+    company: String(m.company || '未分类'),
+    name: String(m.name),
+    version: m.version||'',
+    releaseDate: m.releaseDate||'',
+    paramsActivated: m.paramsActivated||'',
+    paramsTotal: m.paramsTotal||'',
+    feature: m.feature||'',
+    grades
+  };
+}
+function applyImport(text, mode){
+  let data;
+  try{ data = JSON.parse(text); }catch(e){ toast('JSON 解析失败，请检查格式'); return; }
+  const arr = data && Array.isArray(data.models) ? data.models : (Array.isArray(data) ? data : null);
+  if(!arr){ toast('未找到 models 数组'); return; }
+  const valid = arr.filter(m=>m && m.name);
+  if(!valid.length){ toast('导入内容中没有有效模型记录'); return; }
+  const norm = valid.map(normModel);
+  if(mode==='replace') state.models = norm;
+  else state.models.push(...norm);
+  if(data && data.standards && data.standards.price){
+    standards = data.standards;
+    saveStandards();
+  }
+  if(data && data.dataSource){
+    document.getElementById('dataSource').value = data.dataSource;
+    saveSource();
+  }
+  state.selected = state.models[0].id;
+  save(); closeImport(); renderAll();
+  toast(`导入成功：${valid.length} 条记录（${mode==='replace'?'覆盖':'合并'}）`);
+}
+
+/* ================= 复制数据摘要 ================= */
+function copySummary(){
+  const m = getModel(state.selected);
+  if(!m) return;
+  const lines = [
+    `【模型能力数据】${m.company?m.company+' · ':''}${m.name}${m.version?'（'+m.version+'）':''}`,
+    `发布日期：${m.releaseDate||'—'}　参数量：激活 ${m.paramsActivated||'—'}B / 总 ${m.paramsTotal||'—'}B`,
+    m.feature?`模型特点/专长：${m.feature}`:'',
+    ...DIMS.map(d=>`  ${d.name}：${m.grades[d.key]||'—'}${m.grades[d.key]&&(standards[d.key]||{})[m.grades[d.key]]?'（'+(standards[d.key][m.grades[d.key]])+'）':''}`),
+    `数据来源：${document.getElementById('dataSource').value}`
+  ].filter(Boolean).join('\n');
+  const done = ()=>toast('数据摘要已复制到剪贴板');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(lines).then(done, ()=>{ fallbackCopy(lines); done(); });
+  } else { fallbackCopy(lines); done(); }
+}
+function fallbackCopy(text){
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); }catch(e){}
+  document.body.removeChild(ta);
+}
+
+/* ================= 数据来源 ================= */
+function saveSource(){
+  localStorage.setItem(LS_SRC, document.getElementById('dataSource').value);
+}
+
+/* ================= 总渲染 / 初始化 ================= */
+function renderAll(){
+  const has = state.models.length > 0;
+  document.getElementById('emptyState').style.display = has ? 'none':'block';
+  document.getElementById('workArea').style.display = has ? 'flex':'none';
+  document.getElementById('workArea').style.flexDirection = 'column';
+  document.getElementById('workArea').style.gap = '18px';
+  if(!has){
+    document.getElementById('btnCopy').disabled = true;
+    renderModelList();
+    renderModelInfo();
+    return;
+  }
+  if(!state.selected || !getModel(state.selected)) state.selected = state.models[0].id;
+  renderModelList();
+  renderModelInfo();
+  renderGrades();
+  renderRadar();
+  document.getElementById('btnCopy').disabled = false;
+}
+function init(){
+  const ok = load();
+  if(!ok && !state.models.length) seedExample();
+  document.getElementById('dataSource').value = localStorage.getItem(LS_SRC) || DEFAULT_SOURCE;
+  renderAll();
+}
+document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closeForm(); closeStandards(); closeImport(); } });
+</script>
+</body>
+</html>

@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>六维模型能力数据</title>
+<style>
+:root{
+  --bg:#eef1f7; --card:#ffffff; --line:#e3e8f2; --text:#1f2937; --muted:#6b7280;
+  --accent:#4f46e5; --accent-soft:#eef0fe; --green:#059669; --green-bg:#e7f7f0;
+  --blue:#2563eb; --blue-bg:#e8f0fe; --amber:#b45309; --amber-bg:#fdf3e0;
+  --orange:#ea580c; --orange-bg:#fdeee3; --red:#dc2626; --red-bg:#fdeaea;
+  --radius:14px; --shadow:0 1px 3px rgba(15,23,42,.06), 0 8px 24px rgba(15,23,42,.05);
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{background:var(--bg); color:var(--text); font-family:"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif; font-size:14px; line-height:1.6;}
+h1,h2,h3{line-height:1.35;}
+button{font-family:inherit; cursor:pointer;}
+
+/* ---------- 顶栏 ---------- */
+.topbar{position:sticky; top:0; z-index:50; background:rgba(255,255,255,.92); backdrop-filter:blur(8px); border-bottom:1px solid var(--line); padding:14px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;}
+.brand h1{font-size:20px; font-weight:700; background:linear-gradient(120deg,#4f46e5,#7c3aed); -webkit-background-clip:text; background-clip:text; color:transparent;}
+.brand p{font-size:12px; color:var(--muted); margin-top:2px;}
+.actions{display:flex; gap:10px; flex-wrap:wrap;}
+
+/* ---------- 按钮 ---------- */
+.btn{border:1px solid var(--line); background:#fff; color:var(--text); border-radius:10px; padding:8px 14px; font-size:13px; transition:.15s;}
+.btn:hover{border-color:var(--accent); color:var(--accent);}
+.btn-primary{background:var(--accent); border-color:var(--accent); color:#fff;}
+.btn-primary:hover{background:#4338ca; color:#fff;}
+.btn-danger{border-color:#fecaca; color:var(--red); background:#fff;}
+.btn-danger:hover{background:var(--red); color:#fff; border-color:var(--red);}
+.btn-ghost{border-style:dashed; color:var(--muted); width:100%; padding:10px; margin-top:10px;}
+.btn-ghost:hover{color:var(--accent); border-color:var(--accent); background:var(--accent-soft);}
+.btn-sm{padding:4px 10px; font-size:12px; border-radius:8px;}
+
+/* ---------- 布局 ---------- */
+.layout{display:grid; grid-template-columns:340px minmax(0,1fr); gap:18px; padding:18px 24px 60px; max-width:1500px; margin:0 auto; align-items:start;}
+.left-col{display:flex; flex-direction:column; gap:18px; align-self:start;}
+main{display:flex; flex-direction:column; gap:18px; min-width:0;}
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:18px 20px;}
+.card h2{font-size:15px; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px;}
+.card h2 .hint{font-size:12px; color:var(--muted); font-weight:400;}
+
+/* ---------- 侧栏 ---------- */
+.sidebar{max-height:calc(100vh - 220px); overflow:auto;}
+.side-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+.side-head h2{font-size:15px; margin:0;}
+.count{background:var(--accent-soft); color:var(--accent); font-size:12px; padding:2px 10px; border-radius:999px; font-weight:600;}
+.model-list{display:flex; flex-direction:column; gap:8px;}
+.model-card{border:1px solid var(--line); border-radius:12px; padding:10px 12px; cursor:pointer; transition:.15s; background:#fbfcfe;}
+.model-card:hover{border-color:#c7cdf5;}
+.model-card.sel{border-color:var(--accent); background:var(--accent-soft); box-shadow:0 0 0 1px var(--accent);}
+.mc-top{display:flex; align-items:center; gap:8px;}
+.mc-check{accent-color:var(--accent); width:15px; height:15px; cursor:pointer; flex-shrink:0;}
+.mc-name{font-weight:600; font-size:13.5px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.mc-total{font-weight:800; font-size:15px;}
+.mc-sub{display:flex; align-items:center; gap:6px; margin-top:6px; flex-wrap:wrap; padding-left:23px;}
+.mc-sub .meta{font-size:11.5px; color:var(--muted);}
+.mc-ops{margin-left:auto; display:flex; gap:4px; opacity:0; transition:.15s;}
+.model-card:hover .mc-ops, .model-card.sel .mc-ops{opacity:1;}
+.mc-ops button{border:none; background:transparent; font-size:13px; padding:2px 4px; border-radius:6px;}
+.mc-ops button:hover{background:rgba(79,70,229,.12);}
+
+/* ---------- 标签 ---------- */
+.tag{display:inline-block; font-size:11.5px; font-weight:600; padding:1px 9px; border-radius:999px; white-space:nowrap;}
+.tag-green{background:var(--green-bg); color:var(--green);}
+.tag-blue{background:var(--blue-bg); color:var(--blue);}
+.tag-amber{background:var(--amber-bg); color:var(--amber);}
+.tag-orange{background:var(--orange-bg); color:var(--orange);}
+.tag-red{background:var(--red-bg); color:var(--red);}
+.tag-gray{background:#f1f3f8; color:var(--muted);}
+.tag-accent{background:var(--accent-soft); color:var(--accent);}
+
+/* ---------- 总览 ---------- */
+.ov-stack{display:flex; flex-direction:column; gap:12px;}
+.ov-total{display:flex; align-items:flex-end; gap:14px;}
+.ov-lbl{font-size:12px; color:var(--muted); margin-bottom:2px;}
+.total-num{font-size:46px; font-weight:800; line-height:1.05; letter-spacing:-1px;}
+.ov-actions{display:flex; gap:8px; flex-wrap:wrap;}
+.scenario-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:4px; padding-top:10px; border-top:1px dashed var(--line);}
+.scenario-row label{font-size:12.5px; color:var(--muted);}
+select{font-family:inherit; font-size:13px; padding:5px 10px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--text);}
+select:focus{outline:none; border-color:var(--accent);}
+.scenario-desc{font-size:12px; color:var(--muted); width:100%;}
+
+/* ---------- 两栏 ---------- */
+.two-col{display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:18px; align-items:start;}
+.radar-wrap{display:flex; justify-content:center;}
+.radar-wrap svg{width:100%; max-width:480px; height:auto;}
+.ring-label{font-size:10px; fill:#9aa3b2;}
+.axis-label{font-size:12.5px; fill:#374151; font-weight:600;}
+.radar-legend{display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:8px;}
+.rl-item{display:flex; align-items:center; gap:6px; font-size:12.5px; cursor:pointer; padding:3px 10px; border-radius:999px; border:1px solid var(--line);}
+.rl-item.sel{background:var(--accent-soft); border-color:var(--accent);}
+.rl-dot{width:10px; height:10px; border-radius:3px;}
+
+/* ---------- 维度得分 ---------- */
+.dim-head, .dim-row{display:grid; grid-template-columns:minmax(0,1.6fr) 84px 96px 92px; gap:10px; align-items:center; padding:8px 6px;}
+.dim-head{font-size:12px; color:var(--muted); border-bottom:1px solid var(--line); font-weight:600;}
+.dim-row{border-bottom:1px solid #f1f4fa;}
+.dim-row:last-child{border-bottom:none;}
+.dim-row:hover{background:#fafbfe;}
+.dim-name{font-weight:600; font-size:13px; cursor:help;}
+.dim-items{display:block; font-size:11.5px; color:var(--muted); font-weight:400; margin-top:1px;}
+.dim-row input[type=number]{width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:8px; font-size:13px; text-align:center; font-family:inherit;}
+.dim-row input[type=number]:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(79,70,229,.12);}
+.dim-w input{font-weight:600;}
+.dim-wt{font-size:12px; color:var(--muted); text-align:center;}
+.dim-total-row{display:flex; justify-content:flex-end; align-items:center; gap:12px; padding-top:10px; border-top:1px solid var(--line); font-size:13px;}
+.dim-total-row .big{font-size:20px; font-weight:800;}
+
+/* ---------- 空状态 ---------- */
+.empty{text-align:center; padding:70px 20px; color:var(--muted);}
+.empty .big{font-size:40px; margin-bottom:12px;}
+.empty h3{font-size:16px; color:var(--text); margin-bottom:6px;}
+
+/* ---------- 弹窗 ---------- */
+.modal-backdrop{position:fixed; inset:0; background:rgba(15,23,42,.45); backdrop-filter:blur(3px); z-index:100; display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; overflow:auto;}
+.modal{background:#fff; border-radius:16px; max-width:720px; width:100%; padding:22px 24px; box-shadow:0 24px 64px rgba(15,23,42,.25); animation:pop .18s ease;}
+@keyframes pop{from{transform:translateY(10px); opacity:0;} to{transform:none; opacity:1;}}
+.modal h2{font-size:16px; margin-bottom:14px;}
+.modal-close{float:right; border:none; background:transparent; font-size:18px; color:var(--muted);}
+.form-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px 14px;}
+.form-grid .full{grid-column:1/-1;}
+.f-label{font-size:12px; color:var(--muted); margin-bottom:3px; display:block;}
+.f-label b{color:var(--text);}
+input[type=text], input[type=number], input[type=date], textarea{width:100%; padding:7px 10px; border:1px solid var(--line); border-radius:9px; font-size:13px; font-family:inherit; color:var(--text); background:#fff;}
+input:focus, textarea:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(79,70,229,.12);}
+textarea{resize:vertical; min-height:56px;}
+.score-field{display:grid; grid-template-columns:1fr 74px; gap:8px; align-items:center;}
+.score-field input{text-align:center; font-weight:700;}
+.modal-foot{display:flex; justify-content:flex-end; gap:10px; margin-top:18px;}
+.radio-line{display:flex; gap:16px; margin:10px 0; font-size:13px;}
+.radio-line label{display:flex; align-items:center; gap:5px; cursor:pointer;}
+#importText{min-height:90px; font-family:Consolas,Menlo,monospace; font-size:11.5px;}
+
+/* ---------- Toast ---------- */
+#toast{position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(80px); background:#111827; color:#fff; padding:10px 20px; border-radius:10px; font-size:13px; z-index:200; opacity:0; transition:.25s; pointer-events:none; max-width:80vw;}
+#toast.show{transform:translateX(-50%) translateY(0); opacity:1;}
+
+footer{text-align:center; color:var(--muted); font-size:12px; padding:20px 0 40px;}
+
+@media (max-width:1180px){
+  .layout{grid-template-columns:1fr;}
+  .sidebar{position:static; max-height:none;}
+  .two-col{grid-template-columns:1fr;}
+}
+@media (max-width:760px){
+  .layout{grid-template-columns:1fr;}
+  .dim-head{display:none;}
+  .dim-row{grid-template-columns:minmax(0,1fr) 70px 80px 70px;}
+  .form-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <h1>六维模型能力数据</h1>
+    <p>市面主流大模型六维能力数据汇总 · 数据保存在本地浏览器，可导出 JSON 备份</p>
+  </div>
+  <div class="actions">
+    <button class="btn" onclick="copySummary()" id="btnCopy" disabled>📋 复制数据摘要</button>
+    <button class="btn" onclick="exportData()">📤 导出数据</button>
+    <button class="btn" onclick="openImport()">📥 导入数据</button>
+    <button class="btn btn-primary" onclick="openForm()">＋ 新增模型</button>
+  </div>
+</header>
+
+<div class="layout">
+  <div class="left-col">
+    <aside class="sidebar card">
+      <div class="side-head"><h2>模型库</h2><span class="count" id="modelCount">0</span></div>
+      <div class="model-list" id="modelList"></div>
+      <button class="btn btn-ghost" onclick="openForm()">＋ 新增模型</button>
+    </aside>
+
+    <section class="card" id="overviewCard">
+      <h2>加权总分</h2>
+      <div class="ov-stack" id="overviewGrid"></div>
+    </section>
+  </div>
+
+  <main>
+    <div id="emptyState" class="card empty" style="display:none;">
+      <div class="big">📊</div>
+      <h3>还没有模型数据</h3>
+      <p>点击「＋ 新增模型」开始添加，或「📥 导入数据」加载已有 JSON。</p>
+    </div>
+
+    <div id="workArea" style="display:none;">
+      <section class="card">
+        <h2>六维雷达图 <span class="hint">勾选模型库左侧复选框可叠加对比</span></h2>
+        <div class="radar-wrap" id="radarWrap"></div>
+        <div class="radar-legend" id="radarLegend"></div>
+      </section>
+
+      <section class="card">
+        <h2>维度得分 <span class="hint">直接修改得分或权重，加权总分实时更新</span></h2>
+        <div class="dim-head">
+          <div>维度</div><div>权重 %</div><div>得分</div><div>加权贡献</div>
+        </div>
+        <div id="dimRows"></div>
+        <div class="dim-total-row">
+          <span>加权总分</span><span class="big" id="inlineTotal">–</span>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<footer>六维模型能力数据 · 数据仅保存在本浏览器（localStorage），建议定期「📤 导出数据」备份</footer>
+
+<!-- 新增 / 编辑模型弹窗 -->
+<div class="modal-backdrop" id="formModal" style="display:none;" onclick="if(event.target===this)closeForm()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeForm()">✕</button>
+    <h2 id="formTitle">新增模型</h2>
+    <div class="form-grid">
+      <div><label class="f-label"><b>*</b> 模型名称</label><input type="text" id="f_name" placeholder="如：GPT-4o、DeepSeek-R1"></div>
+      <div><label class="f-label">版本号</label><input type="text" id="f_version" placeholder="如：v1.0 / 2024-11"></div>
+      <div id="scoreFields" class="full"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeForm()">取消</button>
+      <button class="btn btn-primary" onclick="submitForm()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 导入弹窗 -->
+<div class="modal-backdrop" id="importModal" style="display:none;" onclick="if(event.target===this)closeImport()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeImport()">✕</button>
+    <h2>导入数据</h2>
+    <div class="radio-line">
+      <label><input type="radio" name="impMode" value="merge" checked> 合并（保留现有，追加导入）</label>
+      <label><input type="radio" name="impMode" value="replace"> 覆盖（替换全部模型）</label>
+    </div>
+    <label class="f-label">选择 JSON 文件</label>
+    <input type="file" id="importFile" accept=".json,application/json" style="margin-bottom:10px;">
+    <label class="f-label">或粘贴 JSON 内容</label>
+    <textarea id="importText" placeholder='{"models":[...], "weights":{...}}'></textarea>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeImport()">取消</button>
+      <button class="btn btn-primary" onclick="doImport()">导入</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ================= 框架常量（来自《六维模型评分框架》） ================= */
+const DIMS = [
+  {key:'accuracy',    name:'准确性与事实性',       question:'模型的答案是否正确？',                  items:'事实正确率、计算正确率、引用准确性、幻觉率'},
+  {key:'reasoning',   name:'推理与问题解决能力',   question:'模型能否分析复杂问题并得出可靠结论？',  items:'逻辑推理、因果分析、数学推导、任务拆解、边界条件处理'},
+  {key:'instruction', name:'指令遵循与任务完成度', question:'模型是否准确理解并完成用户要求？',      items:'格式、范围、语气、角色、步骤和约束条件'},
+  {key:'expression',  name:'表达质量与生成能力',   question:'模型是否清晰、自然、专业地组织答案？',  items:'结构、可读性、简洁性、语言质量、代码和文本可用性'},
+  {key:'knowledge',   name:'知识覆盖与时效性',     question:'模型掌握的知识是否广、深、新？',        items:'学科覆盖、专业深度、跨领域能力、新信息处理能力'},
+  {key:'safety',      name:'安全性、稳定性与可靠性', question:'模型是否安全、稳健、可控？',          items:'有害请求拒答、隐私保护、偏见控制、稳定性'}
+];
+
+const SCENARIOS = {
+  'default':  {name:'默认（通用）',     desc:'框架建议默认权重（25/20/15/15/15/10）', weights:{accuracy:25,reasoning:20,instruction:15,expression:15,knowledge:15,safety:10}},
+  'qa':       {name:'通用问答',         desc:'应提高权重：准确性、知识覆盖、表达质量', weights:{accuracy:30,reasoning:15,instruction:10,expression:15,knowledge:20,safety:10}},
+  'code':     {name:'代码生成',         desc:'应提高权重：准确性、推理能力、任务完成度', weights:{accuracy:25,reasoning:25,instruction:20,expression:10,knowledge:10,safety:10}},
+  'cs':       {name:'客服系统',         desc:'应提高权重：指令遵循、表达质量、安全可靠性', weights:{accuracy:15,reasoning:10,instruction:20,expression:25,knowledge:10,safety:20}},
+  'research': {name:'研究助手',         desc:'应提高权重：准确性、推理能力、知识覆盖', weights:{accuracy:25,reasoning:25,instruction:10,expression:10,knowledge:20,safety:10}},
+  'decision': {name:'企业决策支持',     desc:'应提高权重：准确性、推理能力、安全可靠性', weights:{accuracy:25,reasoning:20,instruction:10,expression:10,knowledge:15,safety:20}},
+  'creative': {name:'创意写作',         desc:'应提高权重：表达质量、任务完成度、知识覆盖', weights:{accuracy:10,reasoning:10,instruction:15,expression:30,knowledge:25,safety:10}}
+};
+
+const COLORS = ['#4f46e5','#f59e0b','#0ea5e9','#10b981','#ef4444','#8b5cf6','#ec4899','#84cc16','#f97316','#14b8a6'];
+const LS_KEY = 'sixdim_tool_v11';   // 1.1 版独立数据，避免与原版互相干扰
+
+/* ================= 状态 ================= */
+let state = {
+  models: [],                       // [{id,name,version,scores{...}}]
+  weights: Object.fromEntries(DIMS.map(d=>[d.key, SCENARIOS['default'].weights[d.key]/100])),
+  scenario: 'default',
+  selected: null,
+  compare: []                       // 雷达图叠加对比的模型 id 列表
+};
+
+/* ================= 工具函数 ================= */
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const clamp = (v,lo=0,hi=100) => Math.min(hi, Math.max(lo, v));
+const getModel = id => state.models.find(m=>m.id===id);
+const colorOf = id => COLORS[Math.max(0, state.models.findIndex(m=>m.id===id)) % COLORS.length];
+
+function computeTotal(m){
+  let t = 0;
+  for(const d of DIMS) t += (m.scores[d.key] || 0) * (state.weights[d.key] || 0);
+  return Math.round(t*10)/10;
+}
+function scoreColor(t){   // 纯视觉提示：按分数区间取色，不含评价文字
+  if(t>=90) return '#059669';
+  if(t>=80) return '#2563eb';
+  if(t>=70) return '#b45309';
+  if(t>=60) return '#ea580c';
+  return '#dc2626';
+}
+
+/* ================= 持久化 ================= */
+function save(){
+  localStorage.setItem(LS_KEY, JSON.stringify({models:state.models, weights:state.weights, scenario:state.scenario}));
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return false;
+    const data = JSON.parse(raw);
+    if(Array.isArray(data.models)){
+      state.models = data.models;
+      state.weights = Object.fromEntries(DIMS.map(d=>[d.key, (data.weights && data.weights[d.key]) || SCENARIOS['default'].weights[d.key]/100]));
+      state.scenario = data.scenario || 'custom';
+      if(state.models.length) state.selected = state.models[0].id;
+      return true;
+    }
+  }catch(e){ console.warn('加载数据失败', e); }
+  return false;
+}
+function seedExample(){
+  state.models = [{
+    id: uid(), name:'示例模型', version:'v1.0',
+    scores:{accuracy:88, reasoning:82, instruction:92, expression:86, knowledge:80, safety:90}
+  }];
+  state.selected = state.models[0].id;
+  save();
+}
+
+/* ================= Toast ================= */
+let toastTimer=null;
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 2200);
+}
+
+/* ================= 渲染：模型列表 ================= */
+function renderModelList(){
+  const list = document.getElementById('modelList');
+  document.getElementById('modelCount').textContent = state.models.length + ' 个';
+  if(!state.models.length){
+    list.innerHTML = '<p style="font-size:12.5px;color:var(--muted);text-align:center;padding:14px 0;">暂无模型，点击下方按钮新增</p>';
+    return;
+  }
+  list.innerHTML = state.models.map(m=>{
+    const t = computeTotal(m);
+    const sel = m.id===state.selected ? ' sel':'';
+    const checked = state.compare.includes(m.id) ? 'checked':'';
+    return `<div class="model-card${sel}" onclick="selectModel('${m.id}')">
+      <div class="mc-top">
+        <input type="checkbox" class="mc-check" ${checked} onclick="event.stopPropagation();toggleCompare('${m.id}')" title="叠加到雷达图对比">
+        <span class="mc-name" title="${esc(m.name)}">${esc(m.name)}</span>
+        <span class="mc-total" style="color:${scoreColor(t)}">${t}</span>
+      </div>
+      <div class="mc-sub">
+        ${m.version?`<span class="meta">${esc(m.version)}</span>`:''}
+        <span class="mc-ops">
+          <button title="编辑" onclick="event.stopPropagation();openForm('${m.id}')">✏️</button>
+          <button title="删除" onclick="event.stopPropagation();deleteModel('${m.id}')">🗑️</button>
+        </span>
+      </div>
+    </div>`;
+  }).join('');
+}
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ================= 渲染：加权总分 ================= */
+function renderOverview(){
+  const m = getModel(state.selected);
+  if(!m) return;
+  const t = computeTotal(m);
+  const sc = SCENARIOS[state.scenario] || {name:'自定义', desc:'手动调整的权重'};
+  document.getElementById('overviewGrid').innerHTML = `
+    <div class="ov-total">
+      <div>
+        <div class="ov-lbl">加权总分（当前权重）</div>
+        <div class="total-num" style="color:${scoreColor(t)}">${t}</div>
+      </div>
+      <div class="ov-actions" style="margin-left:auto; align-self:flex-end;">
+        <button class="btn btn-sm" onclick="openForm('${m.id}')">✏️ 编辑</button>
+        <button class="btn btn-sm" onclick="copySummary()">📋 复制数据摘要</button>
+      </div>
+    </div>
+    <div class="scenario-row">
+      <label>权重场景</label>
+      <select id="scenarioSelect" onchange="applyScenario(this.value)">
+        ${Object.entries(SCENARIOS).map(([k,v])=>`<option value="${k}" ${state.scenario===k?'selected':''}>${v.name}</option>`).join('')}
+        <option value="custom" ${!SCENARIOS[state.scenario]?'selected':''}>自定义</option>
+      </select>
+      <button class="btn btn-sm" onclick="resetWeights()">恢复默认权重</button>
+      <span class="scenario-desc">当前：${sc.desc}。手动修改权重后将变为「自定义」。</span>
+    </div>`;
+  document.getElementById('btnCopy').disabled = false;
+}
+
+/* ================= 渲染：维度得分（内联编辑） ================= */
+function renderDimRows(){
+  const m = getModel(state.selected);
+  if(!m) return;
+  document.getElementById('dimRows').innerHTML = DIMS.map(d=>{
+    const s = clamp(m.scores[d.key]||0);
+    const w = Math.round((state.weights[d.key]||0)*1000)/10;
+    const contrib = Math.round(s * (state.weights[d.key]||0) * 10)/10;
+    return `<div class="dim-row">
+      <div class="dim-name" title="主要考察：${d.items}">${d.name}<span class="dim-items">${d.items}</span></div>
+      <div class="dim-w"><input type="number" min="0" max="100" step="1" value="${w}" title="该维度权重（百分比）" onchange="setWeight('${d.key}', this.value)" onfocus="this.select()"></div>
+      <div><input type="number" min="0" max="100" step="1" value="${s}" title="得分 0–100" style="font-weight:700;color:${scoreColor(s)}" onchange="setScore('${d.key}', this.value)" onfocus="this.select()"></div>
+      <div class="dim-wt">${contrib}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('inlineTotal').textContent = computeTotal(m);
+}
+
+function setScore(key, val){
+  const m = getModel(state.selected);
+  if(!m) return;
+  const v = Math.round(clamp(parseFloat(val)||0));
+  m.scores[key] = v;
+  save(); renderAll();
+  toast(`${DIMS.find(d=>d.key===key).name} → ${v} 分`);
+}
+function setWeight(key, val){
+  const v = Math.max(0, parseFloat(val)||0);
+  const cur = {};
+  for(const d of DIMS) cur[d.key] = Math.max(0, (d.key===key? v : (state.weights[d.key]||0)*100));
+  const sum = DIMS.reduce((s,d)=>s+cur[d.key],0);
+  if(sum<=0){ toast('权重合计不能为 0'); return; }
+  for(const d of DIMS){
+    let x = cur[d.key]/sum*100;
+    x = Math.round(x*10)/10;
+    state.weights[d.key] = x/100;
+  }
+  // 修正舍入漂移，使合计精确为 100%
+  const totalPct = Math.round(DIMS.reduce((s,d)=>s+state.weights[d.key]*100,0)*10)/10;
+  const diff = Math.round((100-totalPct)*10)/10;
+  if(diff!==0){
+    const edited = Math.round((state.weights[key]*100 + diff)*10)/10;
+    state.weights[key] = Math.max(0, edited)/100;
+  }
+  state.scenario = 'custom';
+  save(); renderAll();
+  toast('权重已自动归一化，合计 100%');
+}
+function applyScenario(key){
+  if(SCENARIOS[key]){
+    for(const d of DIMS) state.weights[d.key] = SCENARIOS[key].weights[d.key]/100;
+    state.scenario = key;
+    save(); renderAll();
+    toast(`已应用权重场景：${SCENARIOS[key].name}`);
+  } else {
+    state.scenario = 'custom';
+    save(); renderAll();
+  }
+}
+function resetWeights(){
+  applyScenario('default');
+}
+
+/* ================= 渲染：雷达图 ================= */
+function renderRadar(){
+  const wrap = document.getElementById('radarWrap');
+  const ids = state.selected ? [state.selected, ...state.compare.filter(i=>i!==state.selected)] : [...state.compare];
+  const models = ids.map(getModel).filter(Boolean);
+  const W=560, H=560, cx=W/2, cy=H/2+8, R=196;
+  const angs = DIMS.map((_,i)=>(-90 + i*60)*Math.PI/180);
+  const pt = (r,i)=>[cx + r*Math.cos(angs[i]), cy + r*Math.sin(angs[i])];
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="六维雷达图">`;
+  for(const lv of [20,40,60,80,100]){
+    const pts = DIMS.map((_,i)=>pt(R*lv/100,i));
+    svg += `<polygon points="${pts.map(p=>p.join(',')).join(' ')}" fill="${lv===100?'none':'#f6f8fd'}" fill-opacity="0.6" stroke="#dbe2ef" stroke-width="1"/>`;
+    const lp = pt(R*lv/100, 3);
+    svg += `<text x="${lp[0]+8}" y="${lp[1]+4}" class="ring-label">${lv}</text>`;
+  }
+  for(let i=0;i<6;i++){
+    const p = pt(R, i);
+    svg += `<line x1="${cx}" y1="${cy}" x2="${p[0]}" y2="${p[1]}" stroke="#dbe2ef" stroke-width="1"/>`;
+    const lp = pt(R+34, i);
+    const anchor = Math.cos(angs[i]) < -0.2 ? 'end' : (Math.cos(angs[i]) > 0.2 ? 'start' : 'middle');
+    svg += `<text x="${lp[0]}" y="${lp[1]+4}" class="axis-label" text-anchor="${anchor}">${DIMS[i].name.replace('能力','')}</text>`;
+  }
+  models.forEach(m=>{
+    const solid = m.id===state.selected;
+    const color = colorOf(m.id);
+    const pts = DIMS.map((_,i)=>pt((clamp(m.scores[DIMS[i].key]||0))/100*R, i));
+    svg += `<polygon points="${pts.map(p=>p.join(',')).join(' ')}" fill="${color}" fill-opacity="${solid?0.22:0.08}" stroke="${color}" stroke-width="${solid?3:1.5}" stroke-dasharray="${solid?'none':'5,4'}"/>`;
+    if(solid) pts.forEach(p=>{ svg += `<circle cx="${p[0]}" cy="${p[1]}" r="3.6" fill="${color}"/>`; });
+  });
+  svg += '</svg>';
+  wrap.innerHTML = svg;
+
+  document.getElementById('radarLegend').innerHTML = models.map(m=>{
+    const t = computeTotal(m);
+    const sel = m.id===state.selected;
+    return `<div class="rl-item${sel?' sel':''}" onclick="selectModel('${m.id}')">
+      <span class="rl-dot" style="background:${colorOf(m.id)}"></span>${esc(m.name)} <b>${t}</b>${sel?'<span class="tag tag-accent" style="margin-left:4px">当前</span>':''}
+    </div>`;
+  }).join('');
+}
+
+/* ================= 选择 / 对比 / 删除 ================= */
+function selectModel(id){
+  state.selected = id;
+  save(); renderAll();
+}
+function toggleCompare(id){
+  const i = state.compare.indexOf(id);
+  if(i>=0) state.compare.splice(i,1); else state.compare.push(id);
+  save(); renderRadar(); renderModelList();
+}
+function deleteModel(id){
+  const m = getModel(id);
+  if(!m) return;
+  if(!confirm(`确定删除模型「${m.name}」？此操作不可恢复。`)) return;
+  state.models = state.models.filter(x=>x.id!==id);
+  state.compare = state.compare.filter(x=>x!==id);
+  if(state.selected===id) state.selected = state.models.length ? state.models[0].id : null;
+  save(); renderAll();
+  toast('已删除');
+}
+
+/* ================= 表单弹窗 ================= */
+let editingId = null;
+function openForm(id){
+  editingId = id || null;
+  const m = id ? getModel(id) : null;
+  document.getElementById('formTitle').textContent = m ? `编辑模型：${m.name}` : '新增模型';
+  document.getElementById('f_name').value = m ? m.name : '';
+  document.getElementById('f_version').value = m ? (m.version||'') : '';
+  document.getElementById('scoreFields').innerHTML = DIMS.map(d=>{
+    const v = m ? (m.scores[d.key]||0) : 80;
+    return `<div class="full">
+      <label class="f-label"><b>*</b> ${d.name}（0–100）<span style="color:var(--muted)">· ${d.question}</span></label>
+      <div class="score-field">
+        <input type="number" id="fs_${d.key}" min="0" max="100" step="1" value="${v}" style="font-weight:700;color:${scoreColor(v)}" oninput="tintScore('${d.key}', this.value)">
+        <span class="dim-wt">权重 ${Math.round(state.weights[d.key]*100)}%</span>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('formModal').style.display='flex';
+  document.getElementById('f_name').focus();
+}
+function closeForm(){ document.getElementById('formModal').style.display='none'; editingId=null; }
+function tintScore(key, val){
+  const v = clamp(parseFloat(val)||0);
+  document.getElementById('fs_'+key).style.color = scoreColor(v);
+}
+function submitForm(){
+  const name = document.getElementById('f_name').value.trim();
+  if(!name){ toast('请填写模型名称'); document.getElementById('f_name').focus(); return; }
+  const scores = {};
+  for(const d of DIMS){
+    const v = Math.round(clamp(parseFloat(document.getElementById('fs_'+d.key).value)||0));
+    scores[d.key] = v;
+  }
+  const base = {
+    name,
+    version: document.getElementById('f_version').value.trim(),
+    scores
+  };
+  if(editingId){
+    const m = getModel(editingId);
+    if(m) Object.assign(m, base);
+    toast('已保存修改');
+  } else {
+    state.models.push({id: uid(), ...base});
+    state.selected = state.models[state.models.length-1].id;
+    toast('已新增模型');
+  }
+  save(); closeForm(); renderAll();
+}
+
+/* ================= 导出 / 导入 ================= */
+function exportData(){
+  if(!state.models.length){ toast('还没有数据可导出'); return; }
+  const data = {
+    app:'六维模型能力数据', version:2, exportedAt:new Date().toISOString(),
+    scenario:state.scenario, weights:state.weights, models:state.models
+  };
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `六维模型能力数据_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('已导出 JSON 数据文件');
+}
+function openImport(){ document.getElementById('importModal').style.display='flex'; }
+function closeImport(){ document.getElementById('importModal').style.display='none'; document.getElementById('importFile').value=''; }
+function doImport(){
+  const mode = document.querySelector('input[name="impMode"]:checked').value;
+  const file = document.getElementById('importFile').files[0];
+  const text = document.getElementById('importText').value.trim();
+  if(file){
+    const reader = new FileReader();
+    reader.onload = e => applyImport(e.target.result, mode);
+    reader.readAsText(file);
+  } else if(text){
+    applyImport(text, mode);
+  } else {
+    toast('请选择文件或粘贴 JSON'); return;
+  }
+}
+function applyImport(text, mode){
+  let data;
+  try{ data = JSON.parse(text); }catch(e){ toast('JSON 解析失败，请检查格式'); return; }
+  const arr = data && Array.isArray(data.models) ? data.models : (Array.isArray(data) ? data : null);
+  if(!arr){ toast('未找到 models 数组'); return; }
+  const valid = arr.filter(m=>m && m.name && m.scores);
+  if(!valid.length){ toast('导入内容中没有有效模型记录'); return; }
+  const norm = valid.map(m=>({id:uid(), name:String(m.name), version:m.version||'', scores:{...m.scores}}));
+  if(mode==='replace'){
+    state.models = norm;
+    if(data && data.weights){
+      state.weights = Object.fromEntries(DIMS.map(d=>[d.key, data.weights[d.key]!=null?data.weights[d.key]:SCENARIOS['default'].weights[d.key]/100]));
+      state.scenario = data.scenario || 'custom';
+    }
+  } else {
+    state.models.push(...norm);
+  }
+  state.selected = state.models[0].id;
+  save(); closeImport(); renderAll();
+  toast(`导入成功：${valid.length} 条记录（${mode==='replace'?'覆盖':'合并'}）`);
+}
+
+/* ================= 复制数据摘要 ================= */
+function copySummary(){
+  const m = getModel(state.selected);
+  if(!m) return;
+  const t = computeTotal(m);
+  const sc = SCENARIOS[state.scenario];
+  const lines = [
+    `【模型能力数据】${m.name}${m.version?'（'+m.version+'）':''}`,
+    `加权总分：${t}　权重场景：${sc?sc.name:'自定义'}`,
+    ...DIMS.map(d=>`  ${d.name}：${m.scores[d.key]||0} 分（权重 ${Math.round(state.weights[d.key]*100)}%）`)
+  ].join('\n');
+  const done = ()=>toast('数据摘要已复制到剪贴板');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(lines).then(done, ()=>{ fallbackCopy(lines); done(); });
+  } else { fallbackCopy(lines); done(); }
+}
+function fallbackCopy(text){
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); }catch(e){}
+  document.body.removeChild(ta);
+}
+
+/* ================= 总渲染 ================= */
+function renderAll(){
+  const has = state.models.length > 0;
+  document.getElementById('emptyState').style.display = has ? 'none':'block';
+  document.getElementById('workArea').style.display = has ? 'flex':'none';
+  document.getElementById('workArea').style.flexDirection = 'column';
+  document.getElementById('workArea').style.gap = '18px';
+  if(!has){
+    document.getElementById('btnCopy').disabled = true;
+    renderModelList();
+    return;
+  }
+  if(!state.selected || !getModel(state.selected)) state.selected = state.models[0].id;
+  renderModelList();
+  renderOverview();
+  renderDimRows();
+  renderRadar();
+}
+
+/* ================= 初始化 ================= */
+function init(){
+  const ok = load();
+  if(!ok && !state.models.length){
+    seedExample();
+  }
+  renderAll();
+}
+document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closeForm(); closeImport(); } });
+</script>
+</body>
+</html>
