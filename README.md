@@ -57,8 +57,6 @@
 └── artifacts/                       # v4 / v6 验收截图
 ```
 
-配套文档：`DESIGN.md`、`BACKUP_SETUP.md`、`REMINDER_SETUP.md`、`V5_SETUP.md`，以及多份代码评审、问题清单与交接记录。
-
 > 本目录是仓库中工程化程度最高的项目：含云函数分层、数据库安全规则与单元测试。
 
 ---
