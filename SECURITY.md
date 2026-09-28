@@ -4,11 +4,9 @@
 
 如果你发现安全漏洞，**请不要公开提交 Issue**（公开 Issue 会让问题在被修复前就暴露给所有人）。
 
-请优先使用 GitHub 的私密漏洞报告功能：
+请通过电子邮件私下报告：
 
-> 仓库页面 → **Security** → **Report a vulnerability**
-
-若该入口未开放，可通过仓库所有者 [@HUSHUANG188](https://github.com/HUSHUANG188) 的主页联系方式私下联系。
+> 📧 **tianti42@outlook.com**
 
 收到报告后我会尽快确认并回复。感谢所有负责任地报告安全问题的贡献者。
 
